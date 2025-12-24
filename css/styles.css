@@ -1,0 +1,546 @@
+/* js/styles.css */
+
+/* --- Media Query para Dispositivos Móviles (hasta 768px) --- */
+@media (max-width: 768px) {
+    
+    /* 1. Contenedor Principal */
+    .container {
+        padding: 0 10px; /* Reducir el padding de los lados */
+    }
+
+    /* 2. Cabecera */
+    .dashboard-header h1 {
+        font-size: 1.2em; /* Reducir el tamaño de la letra del título */
+    }
+    
+    /* 3. KPIs (Indicadores Clave) */
+    .kpi-container {
+        flex-direction: column; /* Forzamos a que los KPIs se apilen verticalmente */
+    }
+    
+    .kpi-card {
+        margin: 5px 0;
+        width: 100%; /* Cada KPI ocupa el ancho completo */
+        min-width: unset; /* Elimina la restricción de 150px de ancho mínimo */
+        flex-basis: auto; 
+    }
+
+    /* 4. Pestañas (Clasificación, Evolución, Detalle de Partidos) */
+    .tabs {
+        display: flex;
+        flex-direction: column; /* Hacemos que los botones de las pestañas se apilen */
+    }
+    
+    .tab-button {
+        width: 100%; /* Cada botón de pestaña ocupa el ancho completo */
+        margin-bottom: 5px;
+    }
+    
+    /* 5. Tarjetas (Cards) */
+    .card {
+        padding: 15px; /* Ligeramente menos padding para optimizar espacio */
+    }
+}
+
+/* --- Estilos Generales y Estructura --- */
+body {
+    font-family: Arial, sans-serif;
+    background-color: #f4f4f9;
+    color: #333;
+    margin: 0;
+    padding: 0;
+}
+
+:root {
+    --primary-color: #014C78;
+    --header-color: #014C78;
+    --success-color: #4caf50;
+    --fail-color: #f44336;
+    --warning-color: #ff9800;
+}
+
+.container {
+    max-width: 1200px;
+    margin: 20px auto;
+    padding: 0 20px;
+}
+
+.dashboard-header {
+    /* --- CAMBIOS SOLICITADOS (Fondo de Imagen FCBQ) --- */
+    background-image: url('https://www.basquetcatala.cat/apps/web/continguts/css/plantilles/2017/img/FCBQ24_Header.png');
+    background-repeat: no-repeat;
+    background-size: cover; /* Asegura que la imagen cubra toda la cabecera */
+    background-position: center; /* Centra la imagen */
+    background-color: var(--primary-color); /* Color de fallback si la imagen no carga */
+    
+    /* --- Estilos de Texto y Espaciado --- */
+    color: white; /* Mantiene el color de texto blanco para contraste */
+    padding: 1px; /* Incrementamos el padding para dar espacio a la imagen */
+    font-size: 1.5em;
+    font-weight: bold;
+    text-align: center;
+    margin-bottom: 20px;
+    
+    /* Efecto: Asegura que el texto esté sobre el fondo */
+    position: relative; 
+    z-index: 1;
+}
+
+/* Opcional: Si el texto no se ve bien sobre la imagen, puedes añadir un sombreado: */
+.dashboard-header h1 {
+    text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.7);
+}
+
+.card {
+    background-color: white;
+    padding: 20px;
+    margin-bottom: 20px;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
+}
+
+h2, h3, h4 {
+    color: var(--primary-color);
+    border-bottom: 2px solid #e0e0e0;
+    padding-bottom: 10px;
+    margin-top: 0;
+}
+
+/* --- Input y Botones --- */
+.input-group {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    margin-bottom: 10px;
+}
+
+.input-group label {
+    font-weight: bold;
+    color: var(--header-color);
+}
+
+select {
+    padding: 8px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+}
+
+.btn-sm {
+    padding: 3px 8px; 
+    font-size: 0.8em;
+    background-color: var(--header-color);
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.btn-sm:hover {
+    background-color: var(--primary-color);
+}
+
+
+/* --- KPIs --- */
+#kpi-container {
+    display: flex;
+    justify-content: space-around;
+    gap: 15px;
+    text-align: center;
+    margin-bottom: 20px;
+}
+
+.kpi-card {
+    flex: 1;
+    background-color: #f0f4f7;
+    padding: 15px;
+    border-radius: 6px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.kpi-card .value {
+    font-size: 1.8em;
+    font-weight: bold;
+    color: var(--primary-color);
+}
+
+.kpi-card .label {
+    font-size: 0.9em;
+    color: #666;
+}
+
+/* --- Pestañas Principales --- */
+.tabs {
+    display: flex;
+    border-bottom: 2px solid var(--primary-color);
+    margin-bottom: 15px;
+}
+
+.tabs .tab-button {
+    padding: 10px 15px;
+    cursor: pointer;
+    background-color: #f0f0f0;
+    border: 1px solid #ccc;
+    border-bottom: none;
+    border-radius: 5px 5px 0 0;
+    margin-right: 5px;
+    font-weight: bold;
+    color: #666;
+}
+
+.tabs .tab-button.active {
+    background-color: white;
+    color: var(--primary-color);
+    border-color: var(--primary-color);
+    border-bottom: 2px solid white; 
+}
+
+
+/* --- Contenedores de Gráficos (CRÍTICO) --- */
+#tab-content-evolution {
+    min-height: 450px; 
+    padding: 20px;
+    background-color: white;
+    border-radius: 0 8px 8px 8px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
+}
+
+#pfEvolutionChart {
+    width: 100%;
+    height: 100%;
+}
+
+
+/* --- Tablas --- */
+.stats-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 10px;
+    font-size: 0.9em;
+}
+
+.stats-table thead th {
+    background-color: var(--header-color);
+    color: #72efdd!important;
+    padding: 12px 15px;
+    text-align: center;
+    cursor: pointer;
+    position: relative;
+    border-right: 1px solid #014C78;
+}
+
+.stats-table thead th:last-child {
+    border-right: none;
+}
+
+/* Indicador de Ordenación */
+.sort-indicator {
+    display: inline-block;
+    margin-left: 5px;
+    width: 0;
+    height: 0;
+    border-left: 5px solid transparent;
+    border-right: 5px solid transparent;
+    transition: transform 0.2s;
+    vertical-align: middle;
+}
+
+.stats-table thead th:not(.sort-asc):not(.sort-desc) .sort-indicator {
+    /* Estado por defecto (no ordenado) */
+    border-top: 5px solid rgba(255, 255, 255, 0.5); /* Flecha abajo tenue */
+}
+
+/* Flecha Ascendente */
+.stats-table thead th.sort-asc .sort-indicator {
+    border-bottom: 5px solid white; 
+    border-top: none;
+    transform: translateY(-2px);
+}
+
+/* Flecha Descendente */
+.stats-table thead th.sort-desc .sort-indicator {
+    border-top: 5px solid white;
+    border-bottom: none;
+    transform: translateY(2px);
+}
+
+
+/* Cuerpo de la Tabla */
+.stats-table tbody tr {
+    border-bottom: 1px solid #dddddd;
+    transition: background-color 0.1s;
+}
+
+.stats-table tbody tr:nth-child(even) {
+    background-color: #86efdd!important;
+}
+
+.stats-table tbody tr:hover {
+    background-color: #f0f0f0;
+}
+
+.stats-table tbody td {
+    padding: 10px 15px;
+    text-align: center;
+}
+
+.stats-table tbody td:first-child {
+    text-align: left;
+    font-weight: bold;
+}
+
+
+/* Fila de Detalle de Jugador (oculta) */
+.match-detail-row {
+    background-color: #eef2f7 !important;
+}
+
+/* Subgrid dentro del detalle */
+.subgrid-container {
+    padding: 10px;
+    background-color: #eef2f7;
+    box-shadow: none;
+}
+
+.subgrid-container h4 {
+    color: #333;
+    border-bottom: 1px dashed #ccc;
+    font-size: 1.1em;
+}
+
+.subgrid-table {
+    font-size: 0.85em;
+    margin-bottom: 0;
+}
+
+.subgrid-table thead th {
+    background-color: #d8e2ed;
+    color: #333;
+    padding: 8px 10px;
+    border-right: 1px solid #eef2f7;
+}
+
+.subgrid-table tbody tr {
+    background-color: transparent !important;
+}
+
+.shot-efficiency {
+    white-space: nowrap;
+}
+
+/* --- Estilos del Dashboard (Clasificación y KPIs) --- */
+
+.dashboard-container {
+    padding: 20px;
+}
+
+/* Tablas de Clasificación y Detalles */
+.classification-table, .player-stats-table, .match-stats-table {
+    width: 100%;
+    border-collapse: collapse;
+    /* margin-top: 20px; */
+    font-size: 0.95em;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    background-color: #fff;
+}
+
+.classification-table th, .player-stats-table th, .match-stats-table th {
+    background-color: #014C78; /* Azul primario */
+    color: #72efdd!important;
+    padding: 12px 8px;
+    text-align: center;
+    font-weight: 600;
+}
+
+.classification-table td, .player-stats-table td, .match-stats-table td {
+    border: 1px solid #e0e0e0;
+    padding: 10px 8px;
+    text-align: center;
+}
+
+.classification-table tbody tr:nth-child(even),
+.player-stats-table tbody tr:nth-child(even),
+.match-stats-table tbody tr:nth-child(even) {
+    background-color: #86efdd!important; /* Rayado suave */
+}
+
+.classification-table tbody tr:hover,
+.player-stats-table tbody tr:hover,
+.match-stats-table tbody tr:hover {
+    background-color: #e3f2fd; /* Resaltar al pasar el ratón */
+}
+
+/* --- Estilos de Navegación (Tabs) --- */
+
+.tabs {
+    display: flex;
+    border-bottom: 2px solid #ccc;
+    margin-bottom: 15px;
+}
+
+.tab-button {
+    background-color: #f1f1f1;
+    border: none;
+    outline: none;
+    cursor: pointer;
+    padding: 10px 15px;
+    transition: 0.3s;
+    font-size: 16px;
+    border-top-left-radius: 5px;
+    border-top-right-radius: 5px;
+    margin-right: 2px;
+}
+
+.tab-button:hover {
+    background-color: #ddd;
+}
+
+.tab-button.active {
+    background-color: #fff;
+    border-bottom: 2px solid #014C78; /* Línea azul para la pestaña activa */
+    color: #014C78;
+    font-weight: bold;
+}
+
+/* Contenedores de contenido de pestañas (Tab Contents) */
+#tab-content-aggregated, #tab-content-matches, #tab-content-evolution {
+    padding: 10px 0;
+}
+
+/* --- Elementos de formulario y tarjetas --- */
+
+.card {
+    background-color: white;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    margin-bottom: 20px;
+}
+
+.input-group {
+    margin-bottom: 15px;
+}
+
+.input-group label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: 600;
+    color: #555;
+}
+
+.input-group select {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    box-sizing: border-box;
+}
+
+/* Estilos de KPI (si los usas, añade esta sección) */
+.kpi-container {
+    display: flex;
+    justify-content: space-around;
+    flex-wrap: wrap;
+    margin-bottom: 20px;
+}
+
+.kpi-card {
+    background-color: #e8eaf6; 
+    padding: 15px;
+    border-radius: 6px;
+    text-align: center;
+    margin: 10px;
+    flex: 1;
+    min-width: 150px;
+}
+
+/* --- Estilos para la tabla de detalle por jugador --- */
+
+/* Hace que la fila de resumen sea clickable */
+.player-summary-row {
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+/* Resalta la fila al pasar el ratón */
+.player-summary-row:hover {
+    background-color: #86efdd!important;
+}
+
+/* Resalta la fila cuando está activa/desplegada */
+.player-summary-row.active-detail {
+    background-color: #e0e0f0; /* Un color ligeramente diferente */
+    font-weight: bold;
+    border-bottom: 2px solid var(--primary-color);
+}
+
+/* Asegura que la tabla de detalle no tenga bordes dobles innecesarios */
+.match-history-subtable {
+    width: 100%;
+    margin-bottom: 0;
+}
+
+.match-history-subtable th {
+    font-size: 0.9em; /* Encabezado más pequeño */
+}
+
+/* Elimina el padding de la celda que contiene la sub-tabla */
+.player-detail-content {
+    padding: 0 !important;
+    background-color: #fafafa;
+}
+
+/* Aplicamos overflow-x a los contenedores que albergan las tablas */
+#classification-content,
+#player-content, /* Estadísticas Agregadas */
+#match-list,
+#match-player-detail {
+    overflow-x: auto; /* Permite el scroll horizontal solo si el contenido lo excede */
+    -webkit-overflow-scrolling: touch; /* Mejora el scroll en iOS */
+}
+
+/* Aseguramos que la tabla dentro de estos contenedores tenga un ancho mínimo para forzar el scroll */
+/* Este min-width es crucial para que la tabla sea legible en móvil */
+#classification-content table, 
+#player-content table,
+#match-list table, 
+#match-player-detail table {
+    min-width: 700px; 
+    width: 100%; /* Ocupa el 100% del contenedor de scroll */
+}
+
+/* js/styles.css (Añadir al final) */
+
+/* --- Estilos para el Mapa de Tiros (Shot Chart) --- */
+
+.shot-chart-container {
+    position: relative; /* CRÍTICO: Permite posicionar los marcadores de tiro absolutos */
+    width: 100%; 
+    max-width: 600px; /* Limitar el ancho máximo para que no se extienda demasiado */
+    margin: 15px auto; /* Centrar el contenedor */
+    /* El aspect-ratio asegura que el contenedor no se deforme al cargar la imagen */
+    aspect-ratio: 1 / 1.05; 
+}
+
+.court-image {
+    width: 100%;
+    height: auto;
+    display: block;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+}
+
+.shot-marker {
+    position: absolute; /* Posicionamiento absoluto dentro de shot-chart-container */
+    width: 12px; 
+    height: 12px;
+    border-radius: 50%; /* Forma de círculo */
+    transform: translate(-50%, -50%); /* Centra el punto exactamente en las coordenadas X/Y */
+    z-index: 10;
+}
+
+.shot-marker.successful {
+    background-color: var(--success-color); /* Color verde para canastas encestadas */
+    border: 2px solid white; 
+    box-shadow: 0 0 4px rgba(0, 0, 0, 0.5);
+}

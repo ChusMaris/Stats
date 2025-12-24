@@ -1,0 +1,56 @@
+{
+  "categories": [
+    {
+      "name": "2025/26 Pre-Infantil Masculí Nivel B - 05",
+      "folder": "202526_Pre_Infantil",
+      "is_mini_basket": true,
+      "description": "eglas de Mini-Basket (puntos por periodo).",
+      "match_files": [
+        "J1_P1_27_77.json", "J1_P2_38_59.json", 
+        "J2_P1_82_83.json", "J2_P2_54_40.json",
+        "J3_P1_37_60.json", "J3_P2_76_54.json", 
+        "J4_P1_42_47.json", "J4_P2_38_88.json",
+        "J5_P1_62_58.json", "J5_P2_71_24.json", 
+        "J6_P1_63_54.json", "J6_P2_76_43.json",
+        "J7_P1_47_58.json", "J7_P2_34_74.json", 
+        "J8_P1_69_51.json", "J8_P2_51_36.json",
+        "J9_P1_51_50.json", "J9_P2_80_31.json",
+        "J10_P1_42_92.json", "J10_P2_46_47.json"
+      ]
+    },
+    {
+      "name": "2025/26 Cadet Femení Promoció",
+      "folder": "202526_Cadet_Femeni",
+      "is_mini_basket": false,
+      "description": "Reglas de baloncesto estándar (3/1/0).",
+      "match_files": [
+        "J1_P1_36_49.json", "J1_P2_59_50.json", "J1_P3_46_43.json", 
+        "J2_P1_50_53.json", "J2_P2_56_51.json",
+        "J3_P1_60_44.json", "J3_P2_63_36.json", "J3_P3_42_36.json",
+        "J4_P1_36_44.json",                     "J4_P3_36_48.json",
+        "J5_P1_63_36.json", "J5_P2_60_29.json", "J5_P3_50_37.json",
+        "J6_P1_48_54.json", "J6_P2_44_41.json", "J6_P3_73_39.json",
+        "J7_P1_49_45.json", "J7_P2_30_70.json", "J7_P3_44_48.json", 
+        "J8_P1_36_49.json", "J8_P2_46_57.json", "J8_P3_39_20.json",
+        "J9_P1_32_46.json", "J9_P2_37_32.json"
+      ]
+    },
+    {
+      "name": "2025/26 Cadet Masculí Promoció",
+      "folder": "202526_Cadet_Masculi",
+      "is_mini_basket": false,
+      "description": "Reglas de baloncesto estándar (3/1/0).",
+      "match_files": [
+        "J1_P1_59_54.json", "J1_P2_45_100.json", "J1_P3_44_116.json",
+        "J2_P1_98_13.json", "J2_P2_53_48.json", "J2_P3_63_65.json",
+        "J3_P1_48_62.json", "J3_P2_15_115.json", "J3_P3_47_49.json",
+        "J4_P1_145_9.json", "J4_P2_32_75.json", "J4_P3_100_26.json",
+        "J5_P1_63_41.json", "J5_P2_55_91.json", "J5_P3_35_71.json",
+        "J6_P1_102_24.json", "J6_P2_72_39.json",
+        "J7_P1_49_61.json", "J7_P2_58_72.json", "J7_P3_20_96.json",
+        "J8_P1_87_51.json", "J8_P2_75_50.json", "J8_P3_125_13.json",
+        "J9_P1_76_67.json", "J9_P2_35_85.json", "J9_P3_42_133.json"
+      ]
+    }
+  ]
+}

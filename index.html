@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard de Clasificación y Detalle</title>
+    <link rel="stylesheet" href="css/styles.css">    
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script> 
+</head>
+<body>
+
+    <header class="dashboard-header">
+        <h1>Dashboard de Análisis Deportivo</h1>
+    </header>
+
+    <div class="container">
+        
+        <div class="input-group card">
+            <label for="categorySelector">Selecciona Categoría:</label>
+            <select id="categorySelector">
+                <option value="">-- Seleccionar --</option>
+            </select>
+        </div>
+
+        <div id="dashboard-content" style="display: none;">
+            
+            <h2>Indicadores Clave (KPIs)</h2>
+            <div id="kpi-container" class="card">
+                </div>
+
+            <div class="tabs" id="main-tabs">
+                <button class="tab-button active" data-tab="classification">Clasificación</button>
+                <button class="tab-button" data-tab="evolution">Evolución de Puntos</button>
+            </div>
+            
+            <div id="tab-content-classification">
+                <div id="classification-content" class="card">
+                    </div>
+            </div>
+
+            <div id="tab-content-evolution" style="display: none;">
+                <canvas id="pfEvolutionChart"></canvas> 
+            </div>
+
+            <div class="card">
+                <h2>Detalle de Equipo y Jugadores</h2>
+                <div class="input-group">
+                    <label for="teamFilterDetail">Equipo:</label>
+                    <select id="teamFilterDetail"></select>
+                </div>
+
+                <div class="tabs" id="detail-tabs">
+                    <button class="tab-button active" data-tab="aggregated">Estadísticas Agregadas</button>
+                    <button class="tab-button" data-tab="matches">Listado de Partidos</button>
+                </div>
+                
+                <div id="tab-content-aggregated">
+                    <div id="player-content">
+                        </div>
+                </div>
+
+                <div id="tab-content-matches" style="display: none;">
+                    <div id="match-list" style="margin-bottom: 20px;">
+                        </div>
+                    <div id="match-player-detail">
+                        </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script src="js/config.js"></script>
+    <script src="js/utils.js"></script>
+    <script src="js/uiRenderer.js"></script>
+    <script src="js/dataProcessor.js"></script>
+</body>
+</html>
