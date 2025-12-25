@@ -1,4 +1,4 @@
-// js/dataProcessor.js (Fichero completo con todas las correcciones V3.0)
+// js/dataProcessor.js
 
 // Depende de: config.js (variables globales), uiRenderer.js (funciones de renderizado), utils.js
 
@@ -56,33 +56,25 @@ function calculatePeriodsResult(match) {
  * Ligas normales (Baloncesto Estándar FCBQ): 2 puntos por victoria, 1 por derrota/empate.
  */
 const getNormalLeaguePoints = (teamScore, opponentScore) => {
-    // Victoria (Gana): 2 puntos
     if (teamScore > opponentScore) return 2;
-    // Derrota o Empate (No Gana): 1 punto
     return 1; 
 };
 
 /**
- * Ligas de Mini-Basket: 2 puntos por período ganado.
- * (Esta función ya no se usa, la lógica se aplica en processMatch)
+ * Calcula la clasificación aplicando el desempate oficial FCBQ (Art. 132).
+ * Gestiona empates dobles y múltiples (clasificación particular).
  */
-const getMiniBasketLeaguePoints = (teamPeriodsWon) => {
-    return teamPeriodsWon * 2; 
-};
-
-/**
- * Calcula los datos para renderizar la tabla de clasificación.
- */
-
 function calculateClassification(summaries) {
     if (Object.keys(processedTeams).length === 0) {
          processAllData();
     }
     
-    // NOTA: La ordenación de desempate por Bàsquet-Average de enfrentamiento directo
-    // requiere un segundo paso de cálculo complejo que se implementará más adelante.
-    // Por ahora, ordenamos por Puntos (Ptos) y luego por Diferencia (diff)
-    return Object.values(processedTeams).map(t => ({
+    const selector = document.getElementById('categorySelector');
+    const currentCategoryFolder = selector ? selector.value : '';
+    const currentCategory = categoryConfiguration.find(c => c.folder === currentCategoryFolder);
+    const isMiniBasket = currentCategory ? currentCategory.is_mini_basket : false;
+
+    let teamsArray = Object.values(processedTeams).map(t => ({
         name: t.name,
         J: t.stats.J,
         G: t.stats.G,
@@ -91,18 +83,56 @@ function calculateClassification(summaries) {
         PF: t.stats.GF,
         PC: t.stats.GC,
         diff: t.stats.GF - t.stats.GC,
-        Ptos: t.stats.Puntos
-    })).sort(compareValues('Ptos', 'desc', 'numeric'))
-       .sort((a, b) => {
-           // Si los puntos son iguales, desempatar por Bàsquet-Average General (diff).
-           // Este es un desempate provisional, el definitivo es por Enfrentamiento Directo.
-           if (a.Ptos === b.Ptos) {
-               return b.diff - a.diff; // Más diferencia (mayor Bàsquet-Average) va primero
-           }
-           return b.Ptos - a.Ptos; // Por defecto, ordenar por puntos
-       });
-}
+        Ptos: t.stats.Puntos,
+        _matches: t.matches 
+    }));
 
+    return teamsArray.sort((a, b) => {
+        // 1. Criterio principal: Puntos totales
+        if (b.Ptos !== a.Ptos) return b.Ptos - a.Ptos;
+
+        // 2. Desempate Particular (FCBQ)
+        // Buscamos todos los equipos empatados a los mismos puntos
+        const tiedTeams = teamsArray.filter(t => t.Ptos === a.Ptos).map(t => t.name);
+
+        if (tiedTeams.length > 2) {
+            // Empate Múltiple: Clasificación interna entre los implicados
+            const getInternal = (name) => {
+                let iPtos = 0, iDiff = 0;
+                const team = teamsArray.find(t => t.name === name);
+                team._matches.forEach(m => {
+                    if (tiedTeams.includes(m.opponentName)) {
+                        iPtos += (m.result === 'Ganado' ? 2 : 1);
+                        iDiff += (m.score - m.opponentScore);
+                    }
+                });
+                return { iPtos, iDiff };
+            };
+
+            const statsA = getInternal(a.name);
+            const statsB = getInternal(b.name);
+
+            if (statsB.iPtos !== statsA.iPtos) return statsB.iPtos - statsA.iPtos;
+            if (statsB.iDiff !== statsA.iDiff) return statsB.iDiff - statsA.iDiff;
+        } else {
+            // Empate Doble: Enfrentamiento directo
+            const matchDirecto = a._matches.find(m => m.opponentName === b.name);
+            if (matchDirecto) {
+                if (matchDirecto.result === 'Ganado') return -1;
+                if (matchDirecto.result === 'Perdido') return 1;
+            }
+        }
+
+        // 3. Diferencia General (si persiste el empate)
+        if (isMiniBasket) {
+            if (b.PF !== a.PF) return b.PF - a.PF;
+            return a.PC - b.PC;
+        } else {
+            if (b.diff !== a.diff) return b.diff - a.diff;
+            return b.PF - a.PF;
+        }
+    });
+}
 
 function getPointsEvolutionData() {
     const data = [];
@@ -147,61 +177,52 @@ function getPointsEvolutionData() {
     return data;
 }
 
-/**
- * Carga el archivo categories.json y rellena el selector.
- */
 async function loadCategoryConfiguration() {
     try {
         const response = await fetch('./categories.json');
         if (!response.ok) {
-            // Si el archivo no existe o hay error, asume una configuración por defecto.
-            console.error("No se pudo cargar categories.json. Usando configuración por defecto.");
-            categoryConfiguration = [];
+            console.error("No se pudo cargar categories.json.");
             return;
         }
         const config = await response.json();
         categoryConfiguration = config.categories || [];
         
-        // Rellenar el selector de categorías
-        categorySelector.innerHTML = '<option value="">-- Seleccionar --</option>';
-        categoryConfiguration.forEach(cat => {
-            const option = document.createElement('option');
-            option.value = cat.folder; 
-            option.textContent = cat.name; 
-            categorySelector.appendChild(option);
-        });
+        const selector = document.getElementById('categorySelector');
+        if (selector) {
+            selector.innerHTML = '<option value="">-- Seleccionar --</option>';
+            categoryConfiguration.forEach(cat => {
+                const option = document.createElement('option');
+                option.value = cat.folder; 
+                option.textContent = cat.name; 
+                selector.appendChild(option);
+            });
+        }
 
     } catch (error) {
         console.error(`🔴 ERROR de configuración: ${error.message}`);
     }
 }
 
-
 function processAllData() {
     processedTeams = {};
     const summaries = allMatchSummaries;
     
-    // 1. Obtener la configuración y comprobar la bandera Mini-Basket
-    const currentCategoryFolder = categorySelector.value;
+    const selector = document.getElementById('categorySelector');
+    const currentCategoryFolder = selector ? selector.value : '';
     const currentCategory = categoryConfiguration.find(c => c.folder === currentCategoryFolder);
     
     if (!currentCategory) {
-        console.error("No se encontró la configuración para la categoría seleccionada.");
-        toggleDashboardView(false);
+        if (typeof toggleDashboardView === 'function') toggleDashboardView(false);
         return;
     }
     
     const isMiniBasket = currentCategory.is_mini_basket;
 
-    // 2. Inicialización de equipos
     Object.keys(summaries).forEach(matchId => {
         const match = summaries[matchId];
-        
-        // CRÍTICO: Inicialización por nombre de equipo
         const localTeam = match.teams.find(t => t.teamIdIntern === match.localId);
         const visitTeam = match.teams.find(t => t.teamIdIntern === match.visitId);
         
-        // Obtenemos directamente los nombres del JSON. Estos son las claves de processedTeams.
         const localName = localTeam ? localTeam.name : 'Equipo Local Desconocido';
         const visitName = visitTeam ? visitTeam.name : 'Equipo Visitante Desconocido';
         
@@ -209,7 +230,6 @@ function processAllData() {
             if (!processedTeams[name]) {
                 processedTeams[name] = {
                     name: name,
-                    // Estadísticas de clasificación
                     stats: { J: 0, G: 0, P: 0, NP: 0, GF: 0, GC: 0, Puntos: 0 },
                     matches: [],
                     players: {},
@@ -219,7 +239,6 @@ function processAllData() {
         });
     });
 
-    // 3. Procesamiento de partidos y aplicación de reglas
     Object.keys(summaries).forEach(matchId => {
         const match = summaries[matchId];
         const jornada = match.jornada || 'N/D'; 
@@ -231,497 +250,166 @@ function processAllData() {
 
         if (!local || !visitor) return;
         
-        // Puntuación del JSON (original)
         const finalScore = match.score[match.score.length - 1];
-        const jsonScoreLocal = parseInt(finalScore.local) || 0; 
-        const jsonScoreVisit = parseInt(finalScore.visit) || 0;
+        let sL = parseInt(finalScore.local) || 0;
+        let sV = parseInt(finalScore.visit) || 0;
         
-        // Puntuaciones a usar para GF/GC y G/P/NP (por defecto, las del JSON)
-        let scoreForStatsLocal = jsonScoreLocal;
-        let scoreForStatsVisit = jsonScoreVisit;
-        
-        // LÓGICA MINI-BASKET: Usar el marcador del nombre del fichero para GF/GC y G/P/NP
-        if (isMiniBasket) {
-            const fileScore = getScoreFromFileName(match.fileName); 
-            
-            if (fileScore) {
-                // Sobrescribe GF/GC y la puntuación usada para G/P/NP
-                scoreForStatsLocal = fileScore.localScore;
-                scoreForStatsVisit = fileScore.visitScore;
-            } 
+        if (isMiniBasket && typeof getScoreFromFileName === 'function') {
+            const fs = getScoreFromFileName(match.fileName); 
+            if (fs) { sL = fs.localScore; sV = fs.visitScore; } 
         }
         
-        const periodsResult = calculatePeriodsResult(match);
-        const localPeriods = periodsResult.periodsWonLocal;
-        const visitPeriods = periodsResult.periodsWonVisit;
-        
-        
-        const processMatch = (team, opponent, teamScoreForStats, opponentScoreForStats, teamPeriods, opponentPeriods, isLocal) => {
-            const t = processedTeams[team.name]; // Ahora buscamos por el nombre
+        const periods = calculatePeriodsResult(match);
+
+        const addStats = (team, opponent, score, oppScore, pWon, pLost, isLocal) => {
+            const t = processedTeams[team.name];
+            t.stats.J++; t.stats.GF += score; t.stats.GC += oppScore;
+            t.stats.Puntos += (score > oppScore) ? 2 : 1;
             
-            t.stats.J++;
-            t.stats.GF += teamScoreForStats; 
-            t.stats.GC += opponentScoreForStats; 
-            
-            // ASIGNACIÓN CONDICIONAL DE PUNTOS DE CLASIFICACIÓN (Ptos)
-            let pointsToAssign = 0;
-            
-            // 1. ASIGNACIÓN DE PUNTOS DE CLASIFICACIÓN (Ptos)
-            if (isMiniBasket) {
-                // REGLA MINI-BASKET: 2 pts win / 1 pt loss/tie (en la V2.5 se aplicaba mal el 2/1)
-                // Usando la lógica Mini-Basket de periodos (ahora se usa el marcador cerrado)
-                if (teamScoreForStats > opponentScoreForStats) {
-                    pointsToAssign = 2; // Ganado
-                } else {
-                    pointsToAssign = 1; // Perdido o Empatado
-                }
-            } else {
-                // Liga Normal (Baloncesto Estándar FCBQ): 2 pts win / 1 pt loss/tie
-                pointsToAssign = getNormalLeaguePoints(teamScoreForStats, opponentScoreForStats);
-            }
-            t.stats.Puntos += pointsToAssign;
-            
-            let matchResult;
-            
-            // 2. Determinación de G/P/NP basada en el marcador cerrado
-            if (teamScoreForStats > opponentScoreForStats) { 
-                t.stats.G++; matchResult = 'Ganado';
-            } else if (teamScoreForStats < opponentScoreForStats) {
-                t.stats.P++; matchResult = 'Perdido';
-            } else {
-                t.stats.NP++; matchResult = 'No Perdido';
-            }
+            let res = score > oppScore ? 'Ganado' : (score < oppScore ? 'Perdido' : 'No Perdido');
+            if (res === 'Ganado') t.stats.G++; else if (res === 'Perdido') t.stats.P++; else t.stats.NP++;
 
             t.matches.push({
-                jornada: jornada,
-                opponentName: opponent.name,
-                score: teamScoreForStats, 
-                opponentScore: opponentScoreForStats, 
-                result: matchResult,
-                periodsWon: teamPeriods,
-                periodsLost: opponentPeriods,
-                isLocal: isLocal
+                jornada: jornada, opponentName: opponent.name, score, opponentScore: oppScore,
+                result: res, periodsWon: pWon, periodsLost: pLost, isLocal
             });
             
-            // Registro de puntos acumulados para getPointsEvolutionData
-            t.jornadaData[jornada] = { 
-                Puntos: t.stats.Puntos, 
-                GF: t.stats.GF,
-                GC: t.stats.GC
-            };
-
-            // --- Lógica de Jugadores (Acceso Directo y Seguridad) ---
-            
-            // 1. CRÍTICO: Encontrar el objeto del equipo actual dentro del array 'match.teams'.
-            const currentTeamData = match.teams.find(mt => mt.teamIdIntern === team.teamIdIntern);
-
-            let teamPlayersData = [];
-            
-            // 2. Comprobación de seguridad: Aseguramos que 'currentTeamData.players' es un array válido.
-            if (currentTeamData && currentTeamData.players && Array.isArray(currentTeamData.players)) {
-                 // Acceder a la lista directamente sin filtro
-                teamPlayersData = currentTeamData.players; 
-            } else {
-                // Si no es válido o es undefined, usamos un array vacío y registramos la advertencia.
-                console.warn(`[dataProcessor.js] Advertencia: Jugadores no encontrados para el equipo ${team.name} en el JSON: ${match.fileName || 'DESCONOCIDO'}. Usando array vacío.`);
-            }
-            
-            // El resto del código ahora está seguro porque teamPlayersData siempre es un array.
-            teamPlayersData.forEach(player => {
-                 const key = player.dorsal || player.name; 
-                if (!processedTeams[team.name].players[key]) {
-                    processedTeams[team.name].players[key] = { 
-                        dorsal: player.dorsal, 
-                        name: player.name, 
-                        stats: { Puntos: 0, PJ: 0, Minutos: 0, shotsOfOneSuccessful: 0, shotsOfOneAttempted: 0, shotsOfTwoSuccessful: 0, shotsOfTwoAttempted: 0, shotsOfThreeSuccessful: 0, shotsOfThreeAttempted: 0, Faltas: 0 }, 
-                        matchHistory: [] 
-                    };
-                }
-                const pStats = processedTeams[team.name].players[key].stats;
-                const pData = player.data || {};
-                if (Object.keys(pData).length === 0 && !player.timePlayed) { return; }
-                pStats.PJ++; pStats.Puntos += pData.score || 0; pStats.Minutos += player.timePlayed || 0; pStats.Faltas += pData.faults || 0; 
-                pStats.shotsOfOneSuccessful += pData.shotsOfOneSuccessful || 0; pStats.shotsOfOneAttempted += pData.shotsOfOneAttempted || 0; 
-                pStats.shotsOfTwoSuccessful += pData.shotsOfTwoSuccessful || 0; pStats.shotsOfTwoAttempted += pData.shotsOfTwoAttempted || 0; 
-                pStats.shotsOfThreeSuccessful += pData.shotsOfThreeSuccessful || 0; pStats.shotsOfThreeAttempted += pData.shotsOfThreeAttempted || 0; 
-                
-                processedTeams[team.name].players[key].matchHistory.push({
-                    jornada: jornada, opponentName: opponent.name, teamScore: teamScoreForStats, opponentScore: opponentScoreForStats, result: matchResult, 
-                    Puntos: pData.score || 0, Minutos: player.timePlayed || 0, Faltas: pData.faults || 0,
-                    shotsOfOneSuccessful: pData.shotsOfOneSuccessful || 0, shotsOfOneAttempted: pData.shotsOfOneAttempted || 0,
-                    shotsOfTwoSuccessful: pData.shotsOfTwoSuccessful || 0, shotsOfTwoAttempted: pData.shotsOfTwoAttempted || 0,
-                    shotsOfThreeSuccessful: pData.shotsOfThreeSuccessful || 0, shotsOfThreeAttempted: pData.shotsOfThreeAttempted || 0
+            if (team.players) {
+                team.players.forEach(player => {
+                    const key = player.dorsal || player.name;
+                    if (!t.players[key]) {
+                        t.players[key] = { 
+                            dorsal: player.dorsal, name: player.name, 
+                            stats: { Puntos: 0, PJ: 0, Minutos: 0, shotsOfOneSuccessful: 0, shotsOfOneAttempted: 0, shotsOfTwoSuccessful: 0, shotsOfTwoAttempted: 0, shotsOfThreeSuccessful: 0, shotsOfThreeAttempted: 0, Faltas: 0 }, 
+                            matchHistory: [] 
+                        };
+                    }
+                    const ps = t.players[key].stats;
+                    const pd = player.data || {};
+                    if (Object.keys(pd).length === 0 && !player.timePlayed) return;
+                    ps.PJ++; ps.Puntos += pd.score || 0; ps.Minutos += player.timePlayed || 0; ps.Faltas += pd.faults || 0;
+                    ps.shotsOfOneSuccessful += pd.shotsOfOneSuccessful || 0; ps.shotsOfOneAttempted += pd.shotsOfOneAttempted || 0;
+                    ps.shotsOfTwoSuccessful += pd.shotsOfTwoSuccessful || 0; ps.shotsOfTwoAttempted += pd.shotsOfTwoAttempted || 0;
+                    ps.shotsOfThreeSuccessful += pd.shotsOfThreeSuccessful || 0; ps.shotsOfThreeAttempted += pd.shotsOfThreeAttempted || 0;
+                    
+                    t.players[key].matchHistory.push({
+                        jornada, opponentName: opponent.name, teamScore: score, opponentScore: oppScore, result: res,
+                        Puntos: pd.score || 0, Minutos: player.timePlayed || 0, Faltas: pd.faults || 0,
+                        shotsOfOneSuccessful: pd.shotsOfOneSuccessful || 0, shotsOfOneAttempted: pd.shotsOfOneAttempted || 0,
+                        shotsOfTwoSuccessful: pd.shotsOfTwoSuccessful || 0, shotsOfTwoAttempted: pd.shotsOfTwoAttempted || 0,
+                        shotsOfThreeSuccessful: pd.shotsOfThreeSuccessful || 0, shotsOfThreeAttempted: pd.shotsOfThreeAttempted || 0
+                    });
                 });
-            });
-            // -----------------------------------------------------------------
+            }
         };
-        
-        processMatch(local, visitor, scoreForStatsLocal, scoreForStatsVisit, localPeriods, visitPeriods, true);
-        processMatch(visitor, local, scoreForStatsVisit, scoreForStatsLocal, visitPeriods, localPeriods, false);
+        addStats(local, visitor, sL, sV, periods.periodsWonLocal, periods.periodsWonVisit, true);
+        addStats(visitor, local, sV, sL, periods.periodsWonVisit, periods.periodsWonLocal, false);
     });
 
-    const teamNames = Object.keys(processedTeams);
-    if (teamNames.length > 0) {
-        displayKPIs(); 
-        renderClassificationTable(); 
+    if (Object.keys(processedTeams).length > 0) {
+        if (typeof displayKPIs === 'function') displayKPIs(); 
+        if (typeof renderClassificationTable === 'function') renderClassificationTable(); 
         populateTeamFilterDetail(Object.values(processedTeams)); 
-        toggleDashboardView(true);
+        if (typeof toggleDashboardView === 'function') toggleDashboardView(true);
     }
 }
 
-
 function loadAllMatches() {
-    const categoryFolder = categorySelector.value;
+    const selector = document.getElementById('categorySelector');
+    const folder = selector ? selector.value : '';
+    const cat = categoryConfiguration.find(c => c.folder === folder);
+    if (!cat) return;
     
-    if (!categoryFolder || categoryFolder === "") {
-        return;
-    }
-
-    // CRÍTICO: Obtener la configuración de la categoría seleccionada
-    const currentCategory = categoryConfiguration.find(c => c.folder === categoryFolder);
-    
-    if (!currentCategory || !currentCategory.match_files) {
-         console.error(`🔴 ERROR: No se encontró la configuración o la lista de archivos para la categoría: ${categoryFolder}`);
-         toggleDashboardView(false);
-         return;
-    }
-    
-    // Usamos la lista de archivos específica de la categoría
-    const categoryMatchFiles = currentCategory.match_files; 
-
     allMatchSummaries = {};
-    toggleDashboardView(false);
-
-    const fetchPromises = categoryMatchFiles.map(fileName => {
-        // RUTA CORREGIDA: Ahora busca dentro de la carpeta 'Partidos'
-        const url = `./Partidos/${categoryFolder}/${fileName}`; 
-        const matchId = getMatchIdFromFileName(fileName); 
-        
-        return fetch(url)
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error(`404: No encontrado (${fileName})`);
-                }
-                return response.json();
-            })
+    const promises = cat.match_files.map(fileName => 
+        fetch(`./Partidos/${folder}/${fileName}`)
+            .then(r => r.json())
             .then(data => {
-                if (!data.jornada && fileName.startsWith('J')) {
-                    data.jornada = parseInt(fileName.split('_')[0].replace('J', ''));
-                }
-                
-                // CRÍTICO: Guardar el nombre del archivo para la lógica Mini-Basket
                 data.fileName = fileName; 
-                
-                const finalScore = data.score[data.score.length - 1]; 
-                data.finalScoreLocal = parseInt(finalScore.local) || 0;
-                data.finalScoreVisit = parseInt(finalScore.visit) || 0;
-                
-                allMatchSummaries[matchId] = data; 
+                allMatchSummaries[fileName] = data; 
             })
-            .catch(error => {
-                console.error(`🔴 Error al cargar ${fileName}: ${error.message}`);
-            });
-    });
-
-    Promise.all(fetchPromises.map(p => p.catch(e => e))).then(() => {
-        const loadedCount = Object.keys(allMatchSummaries).length;
-        if (loadedCount > 0) {
-            processAllData();
-            const evolutionTab = document.querySelector('#main-tabs .tab-button[data-tab="evolution"]');
-            if (evolutionTab && evolutionTab.classList.contains('active')) {
-                renderPointsEvolutionGraph();
-            }
-        } else {
-            console.error(`🔴 ERROR: No se pudo cargar ningún archivo JSON válido. Revisa los mensajes 404 en la consola...`);
-        }
-    });
+    );
+    Promise.all(promises).then(() => processAllData());
 }
 
 document.addEventListener('DOMContentLoaded', () => {
-    // CRÍTICO: Cargar la configuración antes de asociar el evento 'change'
     loadCategoryConfiguration().then(() => {
-        if (categorySelector) {
-            categorySelector.addEventListener('change', loadAllMatches);
-            if (categorySelector.value) {
-                 loadAllMatches();
-            }
-        }
+        const selector = document.getElementById('categorySelector');
+        if (selector) selector.addEventListener('change', loadAllMatches);
     });
 });
 
-// --- FUNCIONES REINTEGRADAS (para evitar ReferenceError y errores de UI) ---
-
-/**
- * Rellena el selector de equipos y configura el detalle de jugadores.
- */
 function populateTeamFilterDetail(teams) {
-    const teamFilterSelect = document.getElementById('teamFilterDetail'); 
-    
-    if (!teamFilterSelect) {
-        console.error("No se encontró el elemento #teamFilterDetail.");
-        return;
-    }
-
-    // 1. Limpiar y añadir opciones
-    teamFilterSelect.innerHTML = '<option value="">-- Seleccionar Equipo --</option>';
-    
-    // Ordenar los equipos alfabéticamente
-    teams.sort((a, b) => a.name.localeCompare(b.name));
-    
-    teams.forEach(team => {
+    const select = document.getElementById('teamFilterDetail'); 
+    if (!select) return;
+    select.innerHTML = '<option value="">-- Seleccionar Equipo --</option>';
+    teams.sort((a, b) => a.name.localeCompare(b.name)).forEach(team => {
         const option = document.createElement('option');
-        option.value = team.name;
-        option.textContent = team.name;
-        teamFilterSelect.appendChild(option);
+        option.value = team.name; option.textContent = team.name;
+        select.appendChild(option);
     });
-
-    // 2. Definir el manejador de eventos
-    teamFilterSelect.onchange = function() {
-        const selectedTeamName = this.value;
-        const selectedTeam = teams.find(t => t.name === selectedTeamName);
-
-        if (selectedTeam) {
-            renderTeamDetails(selectedTeam);
-        } else {
-            // Limpiar si se selecciona la opción vacía
-            clearTeamDetails();
-        }
+    select.onchange = function() {
+        const selectedTeam = teams.find(t => t.name === this.value);
+        if (selectedTeam) renderTeamDetails(selectedTeam);
     };
-
-    // 3. Inicializar el detalle con el primer equipo si existe
-    if (teams.length > 0) {
-        teamFilterSelect.value = teams[0].name;
-        renderTeamDetails(teams[0]);
-    }
+    if (teams.length > 0) { select.value = teams[0].name; renderTeamDetails(teams[0]); }
 }
 
-/**
- * Renderiza el detalle del equipo y sus partidos.
- */
 function renderTeamDetails(team) {
-    const detailName = document.getElementById('teamDetailName'); 
-    const detailMatches = document.getElementById('match-list'); 
-    const detailPlayers = document.getElementById('player-content'); 
+    const nameEl = document.getElementById('teamDetailName'); 
+    const matchEl = document.getElementById('match-list'); 
+    const playerEl = document.getElementById('player-content'); 
 
-    if (detailName) detailName.textContent = team.name;
-    
-    // Renderizado de partidos
-    if (detailMatches) {
-        detailMatches.innerHTML = `
-        <h4>Partidos Jugados</h4>
-        <table class="match-stats-table">
-            <thead>
-                <tr>
-                    <th>Jornada</th>
-                    <th>Oponente</th>
-                    <th>Marcador</th>
-                    <th>Resultado (Periodos)</th>
-                </tr>
-            </thead>
-            <tbody>
-                ${team.matches.map((m, index) => { // Añadimos 'index'
-                    const teamNameEncoded = encodeURIComponent(team.name);
-                    
-                    // Añadimos la función de clic a la fila
-                    return `
-                    <tr class="match-detail-row" 
-                        onclick="showPlayersByMatch('${teamNameEncoded}', ${index})" 
-                        style="cursor: pointer;">
-                        <td>J${m.jornada}</td>
-                        <td>vs ${m.opponentName}</td>
-                        <td>${m.score} - ${m.opponentScore}</td>
-                        <td>${m.result} (${m.periodsWon}-${m.periodsLost})</td>
-                    </tr>
-                `;
-                }).join('')}
-            </tbody>
-        </table>
-        
-        <div id="match-player-detail" style="margin-top: 20px;"></div>`;
+    if (nameEl) nameEl.textContent = team.name;
+    if (matchEl) {
+        matchEl.innerHTML = `<h4>Partidos Jugados</h4><table class="match-stats-table">
+            <thead><tr><th>Jornada</th><th>Oponente</th><th>Marcador</th><th>Resultado</th></tr></thead><tbody>
+                ${team.matches.map((m, index) => `
+                <tr class="match-detail-row" onclick="showPlayersByMatch('${encodeURIComponent(team.name)}', ${index})" style="cursor: pointer;">
+                    <td>J${m.jornada}</td><td>vs ${m.opponentName}</td><td>${m.score} - ${m.opponentScore}</td><td>${m.result}</td>
+                </tr>`).join('')}
+            </tbody></table><div id="match-player-detail" style="margin-top: 20px;"></div>`;
     }
-    
-    // Renderizado de jugadores
-    if (detailPlayers && typeof renderPlayerStatsTable !== 'undefined') {
-        const playersArray = Object.values(team.players);
-        renderPlayerStatsTable(playersArray, detailPlayers);
-    } else if (detailPlayers) {
-        detailPlayers.innerHTML = '<h4>Estadísticas Individuales</h4><p>La función renderPlayerStatsTable no está definida o los datos no se cargaron correctamente.</p>';
-    }
+    if (playerEl && typeof renderPlayerStatsTable !== 'undefined') renderPlayerStatsTable(Object.values(team.players), playerEl);
 }
 
-/**
- * Limpia el área de detalle del equipo.
- */
-function clearTeamDetails() {
-    const detailName = document.getElementById('teamDetailName'); 
-    const detailMatches = document.getElementById('match-list');
-    const detailPlayers = document.getElementById('player-content');
-
-    if (detailName) detailName.textContent = 'Equipo no Seleccionado';
-    if (detailMatches) detailMatches.innerHTML = '';
-    if (detailPlayers) detailPlayers.innerHTML = '';
-}
-
-/**
- * Dibuja la tabla de estadísticas de jugadores.
- * Se añade la funcionalidad de desplegar detalle por partido.
- */
-function renderPlayerStatsTable(players, containerElement) {
-    if (!containerElement || players.length === 0) {
-        containerElement.innerHTML = '<p>No hay datos de jugadores disponibles para este equipo.</p>';
-        return;
-    }
-
-    const playersArray = players.map(player => ({
-        dorsal: player.dorsal || '',
-        name: player.name || 'N/D',
-        PJ: player.stats.PJ,
-        Puntos: player.stats.Puntos,
-        Minutos: player.stats.Minutos,
-        Faltas: player.stats.Faltas,
-        Tiros1C: player.stats.shotsOfOneSuccessful,
-        Tiros1I: player.stats.shotsOfOneAttempted,
-        Tiros2C: player.stats.shotsOfTwoSuccessful,
-        Tiros2I: player.stats.shotsOfTwoAttempted,
-        Tiros3C: player.stats.shotsOfThreeSuccessful,
-        Tiros3I: player.stats.shotsOfThreeAttempted
-    })).sort((a, b) => b.Puntos - a.Puntos); 
-
-    const header = `
-        <thead>
-            <tr>
-                <th>Dorsal</th>
-                <th>Nombre</th>
-                <th>PJ</th>
-                <th>Ptos</th>
-                <th>Min</th>
-                <th>Faltas</th>
-                <th>Tiros 1</th>
-                <th>Tiros 2</th>
-                <th>Tiros 3</th>
-            </tr>
-        </thead>
-    `;
-
-    // Generar las filas de datos y el placeholder de detalle
-    const rows = playersArray.map(p => {
-        const playerKey = p.dorsal || p.name; // Clave única
-        
+function renderPlayerStatsTable(players, container) {
+    if (!container || players.length === 0) return;
+    const rows = players.sort((a, b) => b.stats.Puntos - a.stats.Puntos).map(p => {
+        const key = p.dorsal || p.name;
         return `
-            <tr class="player-summary-row" data-player-key="${playerKey}" onclick="togglePlayerMatchDetails('${playerKey}', this)">
-                <td>${p.dorsal}</td>
-                <td>${p.name}</td>
-                <td>${p.PJ}</td>
-                <td>${p.Puntos}</td>
-                <td>${formatTime(p.Minutos)}</td>
-                <td>${p.Faltas}</td>
-                <td>${renderShotEfficiency(p.Tiros1C, p.Tiros1I, 'compact_pct')}</td>
-                <td>${renderShotEfficiency(p.Tiros2C, p.Tiros2I, 'successful_only')}</td>
-                <td>${renderShotEfficiency(p.Tiros3C, p.Tiros3I, 'successful_only')}</td>
+            <tr class="player-summary-row" data-player-key="${key}" onclick="togglePlayerMatchDetails('${key}', this)">
+                <td>${p.dorsal}</td><td>${p.name}</td><td>${p.stats.PJ}</td><td>${p.stats.Puntos}</td><td>${formatTime(p.stats.Minutos)}</td><td>${p.stats.Faltas}</td>
+                <td>${renderShotEfficiency(p.stats.shotsOfOneSuccessful, p.stats.shotsOfOneAttempted, 'compact_pct')}</td>
+                <td>${renderShotEfficiency(p.stats.shotsOfTwoSuccessful, p.stats.shotsOfTwoAttempted, 'successful_only')}</td>
+                <td>${renderShotEfficiency(p.stats.shotsOfThreeSuccessful, p.stats.shotsOfThreeAttempted, 'successful_only')}</td>
             </tr>
-            <tr class="player-detail-row" id="detail-row-${playerKey}" style="display: none;">
-                <td colspan="9" class="player-detail-content" style="padding: 0;">
-                    </td>
-            </tr>
-        `;
+            <tr class="player-detail-row" id="detail-row-${key}" style="display: none;"><td colspan="9" class="player-detail-content" style="padding: 0;"></td></tr>`;
     }).join('');
-
-    // Insertar la tabla completa
-    containerElement.innerHTML = `
-        <h4>Estadísticas Agregadas de Jugadores</h4>
-        <table class="player-stats-table">
-            ${header}
-            <tbody>${rows}</tbody>
-        </table>
-    `;
+    container.innerHTML = `<h4>Estadísticas Agregadas</h4><table class="player-stats-table"><thead><tr><th>#</th><th>Nombre</th><th>PJ</th><th>Pts</th><th>Min</th><th>F</th><th>T1</th><th>T2</th><th>T3</th></tr></thead><tbody>${rows}</tbody></table>`;
 }
 
-
-// --- NUEVAS FUNCIONES DE DETALLE POR JUGADOR ---
-
-/**
- * Muestra u oculta la sub-tabla de historial de partidos de un jugador.
- */
 function togglePlayerMatchDetails(playerKey, clickedRow) {
     const detailRow = document.getElementById(`detail-row-${playerKey}`);
-    const detailContentCell = detailRow.querySelector('.player-detail-content');
-
-    // Toggle visibility
+    const cell = detailRow.querySelector('.player-detail-content');
     if (detailRow.style.display === 'none') {
-        // Ocultar cualquier otra fila de detalle que esté abierta
-        document.querySelectorAll('.player-detail-row').forEach(row => {
-            if (row.id !== detailRow.id) {
-                row.style.display = 'none';
-                // También quitar la clase 'active' de la fila de resumen
-                document.querySelector(`[data-player-key="${row.id.replace('detail-row-', '')}"]`).classList.remove('active-detail');
-            }
-        });
-
         detailRow.style.display = 'table-row';
-        clickedRow.classList.add('active-detail');
-        
-        // Cargar data y renderizar sub-tabla (solo si no se ha cargado)
-        if (detailContentCell.innerHTML.trim() === '') {
-            const currentTeamName = document.getElementById('teamFilterDetail').value;
-            const team = processedTeams[currentTeamName];
-            
+        if (cell.innerHTML === '') {
+            const team = processedTeams[document.getElementById('teamFilterDetail').value];
             if (team && team.players[playerKey]) {
-                const matchHistory = team.players[playerKey].matchHistory.sort((a, b) => parseInt(a.jornada) - parseInt(b.jornada));
-                
-                const subTableHTML = generateMatchHistoryTable(matchHistory);
-                detailContentCell.innerHTML = subTableHTML;
-            } else {
-                detailContentCell.innerHTML = '<p>No hay historial de partidos disponible.</p>';
+                const history = team.players[playerKey].matchHistory.sort((a, b) => parseInt(a.jornada) - parseInt(b.jornada));
+                cell.innerHTML = generateMatchHistoryTable(history);
             }
         }
     } else {
-        // Ocultar la fila de detalle
         detailRow.style.display = 'none';
-        clickedRow.classList.remove('active-detail');
     }
 }
 
-/**
- * Genera el HTML de la tabla de desglose de partidos.
- */
 function generateMatchHistoryTable(matchHistory) {
-    
-    const header = `
-        <thead>
-            <tr style="background-color: #f0f0f0; color: var(--primary-color);">
-                <th>J</th>
-                <th>Oponente</th>
-                <th>Resultado</th>
-                <th>Ptos</th>
-                <th>Min</th>
-                <th>Faltas</th>
-                <th>Tiros 1</th>
-                <th>Tiros 2</th>
-                <th>Tiros 3</th>
-            </tr>
-        </thead>
-    `;
-
+    const header = `<thead><tr style="background-color: #f0f0f0;"><th>J</th><th>Oponente</th><th>Resultado</th><th>Ptos</th><th>Min</th><th>Faltas</th><th>T1</th><th>T2</th><th>T3</th></tr></thead>`;
     const rows = matchHistory.map(m => `
-        <tr>
-            <td>J${m.jornada}</td>
-            <td>${m.opponentName}</td>
-            <td>${m.teamScore} - ${m.opponentScore} (${m.result.substring(0, 1)})</td>
-            <td>${m.Puntos}</td>
-            <td>${formatTime(m.Minutos)}</td>
-            <td>${m.Faltas}</td>
-            <td>${renderShotEfficiency(m.shotsOfOneSuccessful, m.shotsOfOneAttempted, 'compact_pct')}</td>
-            <td>${renderShotEfficiency(m.shotsOfTwoSuccessful, m.shotsOfTwoAttempted, 'successful_only')}</td>
-            <td>${renderShotEfficiency(m.shotsOfThreeSuccessful, m.shotsOfThreeAttempted, 'successful_only')}</td>
-        </tr>
+        <tr><td>J${m.jornada}</td><td>${m.opponentName}</td><td>${m.teamScore}-${m.opponentScore}</td><td>${m.Puntos}</td><td>${formatTime(m.Minutos)}</td><td>${m.Faltas}</td><td>${renderShotEfficiency(m.shotsOfOneSuccessful, m.shotsOfOneAttempted, 'compact_pct')}</td><td>${renderShotEfficiency(m.shotsOfTwoSuccessful, m.shotsOfTwoAttempted, 'successful_only')}</td><td>${renderShotEfficiency(m.shotsOfThreeSuccessful, m.shotsOfThreeAttempted, 'successful_only')}</td></tr>
     `).join('');
-
-    return `
-        <div style="padding: 10px;">
-            <table class="match-history-subtable player-stats-table">
-                ${header}
-                <tbody>${rows}</tbody>
-            </table>
-        </div>
-    `;
+    return `<div style="padding: 10px;"><table class="match-history-subtable player-stats-table">${header}<tbody>${rows}</tbody></table></div>`;
 }
