@@ -35,12 +35,12 @@ function renderPlayerCards(players, containerId) {
                 <div class="card-dorsal">#${p.dorsal || '??'}</div>
                 <div class="card-name">${p.name}</div>
                 <div class="card-stats-grid">
+                    <div class="stat-item"><span class="stat-value">${p.stats.PJ}</span><span class="stat-label">PJ</span></div>
                     <div class="stat-item"><span class="stat-value">${p.stats.Puntos}</span><span class="stat-label">PTS</span></div>
-                    <div class="stat-item"><span class="stat-value">${p.stats.shotsOfOneSuccessful}</span><span class="stat-label">T1</span></div>
+                    <div class="stat-item"><span class="stat-value">${p.stats.Faltas}</span><span class="stat-label">F</span></div>
+                    <div class="stat-item"><span class="stat-value">${renderShotEfficiency(p.stats.shotsOfOneSuccessful, p.stats.shotsOfOneAttempted, 'compact_pct')}</span><span class="stat-label">T1</span></div>
                     <div class="stat-item"><span class="stat-value">${p.stats.shotsOfTwoSuccessful}</span><span class="stat-label">T2</span></div>
                     <div class="stat-item"><span class="stat-value">${p.stats.shotsOfThreeSuccessful}</span><span class="stat-label">T3</span></div>
-                    <div class="stat-item"><span class="stat-value">${p.stats.PJ}</span><span class="stat-label">PJ</span></div>
-                    <div class="stat-item"><span class="stat-value">${p.stats.Faltas}</span><span class="stat-label">F</span></div>
                 </div>
             </div>`;
     }).join('');

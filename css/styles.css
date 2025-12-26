@@ -596,6 +596,10 @@ select {
     font-weight: bold;
     margin: 5px 0;
     color: #333;
+    height: 3em;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .card-dorsal {
@@ -620,16 +624,58 @@ select {
 .stat-item {
     display: flex;
     flex-direction: column;
+    justify-content: space-between;
+    align-items: center;
 }
 
 .stat-value {
     font-weight: bold;
     font-size: 1.1rem;
     color: #222;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .stat-label {
     font-size: 0.75rem;
     color: #777;
     text-transform: uppercase;
+}
+
+/* --- Estilos para el Gráfico Circular de Progreso --- */
+.circular-chart {
+    display: block;
+    margin: 0 auto; /* Centrado horizontal */
+    max-width: 60px; /* Ancho máximo */
+    max-height: 60px; /* Alto máximo */
+}
+
+.circle-bg {
+    fill: none;
+    stroke: #eee; /* Color de fondo del círculo */
+    stroke-width: 3.8;
+}
+
+.circle {
+    fill: none;
+    stroke-width: 2.8;
+    stroke: var(--success-color); /* Color del progreso */
+    stroke-linecap: round;
+    /* La animación se maneja con stroke-dasharray directamente */
+}
+
+.percentage {
+    fill: #333; /* Color del texto */
+    font-family: Arial, sans-serif;
+    font-size: 0.6em; /* Tamaño del texto del porcentaje */
+    text-anchor: middle; /* Centrado del texto */
+    font-weight: bold;
+}
+
+.shot-circle {
+    width: 40px;
+    height: 40px;
+    margin: 0 auto;
 }

@@ -112,3 +112,29 @@ function compareValues(key, order = 'asc', type = 'numeric') {
         return order === 'desc' ? (comparison * -1) : comparison;
     };
 }
+
+/**
+ * Genera el HTML para un gráfico circular de progreso.
+ */
+function createCircularProgressBar(successful, attempted) {
+    const percentage = attempted > 0 ? (successful / attempted) * 100 : 0;
+    const clampedPercentage = Math.max(0, Math.min(100, percentage)); // Asegura que esté entre 0 y 100
+    const strokeDashArray = `${clampedPercentage.toFixed(0)} 100`;
+
+    return `
+        <svg viewBox="0 0 36 36" class="circular-chart shot-circle">
+            <path class="circle-bg"
+                d="M18 2.0845
+                a 15.9155 15.9155 0 0 1 0 31.831
+                a 15.9155 15.9155 0 0 1 0 -31.831"
+            />
+            <path class="circle"
+                stroke-dasharray="${strokeDashArray}"
+                d="M18 2.0845
+                a 15.9155 15.9155 0 0 1 0 31.831
+                a 15.9155 15.9155 0 0 1 0 -31.831"
+            />
+            <text x="18" y="22" class="percentage">${percentage.toFixed(0)}%</text>
+        </svg>
+    `;
+}
