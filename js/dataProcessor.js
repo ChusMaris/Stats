@@ -355,22 +355,56 @@ function populateTeamFilterDetail(teams) {
     if (teams.length > 0) { select.value = teams[0].name; renderTeamDetails(teams[0]); }
 }
 
+/**
+ * Actualiza toda la interfaz de detalle cuando se selecciona un equipo.
+ * Debe incluirse en js/dataProcessor.js o js/uiRenderer.js según tu estructura.
+ */
 function renderTeamDetails(team) {
+    // 1. Referencias a los contenedores del HTML
     const nameEl = document.getElementById('teamDetailName'); 
     const matchEl = document.getElementById('match-list'); 
-    const playerEl = document.getElementById('player-content'); 
+    const playerTableEl = document.getElementById('player-content'); 
+    const playerCardsEl = document.getElementById('player-cards-container');
 
+    // 2. Actualizar el nombre del equipo en la cabecera del detalle
     if (nameEl) nameEl.textContent = team.name;
+
+    // 3. Renderizar el listado de partidos (Pestaña "Listado de Partidos")
     if (matchEl) {
-        matchEl.innerHTML = `<h4>Partidos Jugados</h4><table class="match-stats-table">
-            <thead><tr><th>Jornada</th><th>Oponente</th><th>Marcador</th><th>Resultado</th></tr></thead><tbody>
-                ${team.matches.map((m, index) => `
-                <tr class="match-detail-row" onclick="showPlayersByMatch('${encodeURIComponent(team.name)}', ${index})" style="cursor: pointer;">
-                    <td>J${m.jornada}</td><td>vs ${m.opponentName}</td><td>${m.score} - ${m.opponentScore}</td><td>${m.result}</td>
-                </tr>`).join('')}
-            </tbody></table><div id="match-player-detail" style="margin-top: 20px;"></div>`;
+        matchEl.innerHTML = `
+            <h4>Partidos Jugados</h4>
+            <table class="match-stats-table">
+                <thead>
+                    <tr>
+                        <th>Jornada</th>
+                        <th>Oponente</th>
+                        <th>Marcador</th>
+                        <th>Resultado</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${team.matches.map((m, index) => `
+                    <tr class="match-detail-row" onclick="showPlayersByMatch('${encodeURIComponent(team.name)}', ${index})" style="cursor: pointer;">
+                        <td>J${m.jornada}</td>
+                        <td>vs ${m.opponentName}</td>
+                        <td>${m.score} - ${m.opponentScore}</td>
+                        <td>${m.result}</td>
+                    </tr>`).join('')}
+                </tbody>
+            </table>
+            <div id="match-player-detail" style="margin-top: 20px;"></div>`;
     }
-    if (playerEl && typeof renderPlayerStatsTable !== 'undefined') renderPlayerStatsTable(Object.values(team.players), playerEl);
+
+    // 4. Renderizar la tabla clásica (Pestaña "Estadísticas Agregadas")
+    if (playerTableEl && typeof renderPlayerStatsTable !== 'undefined') {
+        renderPlayerStatsTable(Object.values(team.players), playerTableEl);
+    }
+
+    // 5. Renderizar las tarjetas nuevas (Pestaña "Tarjetas de Jugadores")
+    // Esta es la función que añadimos anteriormente en uiRenderer.js
+    if (typeof renderPlayerCards === 'function') {
+        renderPlayerCards(Object.values(team.players), 'player-cards-container');
+    }
 }
 
 function renderPlayerStatsTable(players, container) {

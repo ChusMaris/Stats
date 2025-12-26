@@ -228,12 +228,32 @@ function populateTeamFilter(teamNames) {
 function handleTeamFilterChange(e) {
     currentSelectedTeam = e.target.value;
     const activeTab = document.querySelector('#detail-tabs .tab-button.active').getAttribute('data-tab');
+    
     if (activeTab === 'aggregated') {
         displayPlayerAggregateStats();
+    } else if (activeTab === 'player-cards') { // <--- Añadir este bloque
+        const team = processedTeams[currentSelectedTeam];
+        renderPlayerCards(Object.values(team.players), 'player-cards-container');
     } else if (activeTab === 'matches') {
         displayMatchList();
     }
     document.getElementById('match-player-detail').innerHTML = '';
+}
+
+function refreshDetailTabsVisibility(targetTab) {
+    // Lista de todos los posibles contenedores de las pestañas de detalle
+    const containers = [
+        'tab-content-aggregated', 
+        'tab-content-player-cards', 
+        'tab-content-matches'
+    ];
+
+    containers.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) {
+            el.style.display = (id === `tab-content-${targetTab}`) ? 'block' : 'none';
+        }
+    });
 }
 
 function displayPlayerAggregateStats() {
@@ -577,15 +597,19 @@ document.addEventListener('DOMContentLoaded', () => {
         button.addEventListener('click', () => {
             const targetTab = button.getAttribute('data-tab');
 
+            // 1. Gestionar clases active
             detailTabs.forEach(btn => btn.classList.remove('active'));
-            document.getElementById('tab-content-aggregated').style.display = 'none';
-            document.getElementById('tab-content-matches').style.display = 'none';
-
             button.classList.add('active');
-            document.getElementById(`tab-content-${targetTab}`).style.display = 'block';
 
+            // 2. Gestionar visibilidad (Esto arregla que no se queden visibles las tarjetas)
+            refreshDetailTabsVisibility(targetTab);
+
+            // 3. Renderizar contenido según la pestaña
             if (targetTab === 'aggregated') {
                 displayPlayerAggregateStats(); 
+            } else if (targetTab === 'player-cards') {
+                const team = processedTeams[currentSelectedTeam];
+                renderPlayerCards(Object.values(team.players), 'player-cards-container');
             } else if (targetTab === 'matches') {
                 displayMatchList();
             }
@@ -818,4 +842,62 @@ function renderShotChart(shots, containerId) {
     }
     
     container.innerHTML += `<h4 style="margin-top: 20px;">Mapa de Tiros (Canastas de 2 Puntos)</h4>${shotChartHTML}`;
+}
+
+/**
+ * Renderiza los jugadores en formato de tarjetas (Cards)
+ * Añadir al final de js/uiRenderer.js
+ */
+function renderPlayerCards(players, containerId) {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+
+    const sortedPlayers = players.sort((a, b) => b.stats.Puntos - a.stats.Puntos);
+
+    const cardsHtml = sortedPlayers.map(p => {
+        const key = p.name.toUpperCase().trim();
+        // Usamos el objeto JUGADOR_FOTOS definido en config.js o dataProcessor.js
+        const fotoUrl = (typeof JUGADOR_FOTOS !== 'undefined' && JUGADOR_FOTOS[key]) 
+                        ? JUGADOR_FOTOS[key] 
+                        : "https://www.w3schools.com/howto/img_avatar.png";
+
+        return `
+            <div class="player-card">
+                <div class="card-photo-container">
+                    <img src="${fotoUrl}" alt="${p.name}" onerror="this.src='https://www.w3schools.com/howto/img_avatar.png'">
+                </div>
+                <div class="card-dorsal">#${p.dorsal || '??'}</div>
+                <div class="card-name">${p.name}</div>
+                
+                <div class="card-stats-grid">
+                    <div class="stat-item">
+                        <span class="stat-value">${p.stats.PJ}</span>
+                        <span class="stat-label">PJ</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-value">${p.stats.Puntos}</span>
+                        <span class="stat-label">PTS</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-value">${formatTime(p.stats.Minutos)}</span>
+                        <span class="stat-label">MIN</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-value">${p.stats.Faltas}</span>
+                        <span class="stat-label">F</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-value">${p.stats.shotsOfTwoSuccessful}</span>
+                        <span class="stat-label">T2</span>
+                    </div>
+                    <div class="stat-item">
+                        <span class="stat-value">${p.stats.shotsOfThreeSuccessful}</span>
+                        <span class="stat-label">T3</span>
+                    </div>
+                </div>
+            </div>
+        `;
+    }).join('');
+
+    container.innerHTML = `<div class="player-cards-grid">${cardsHtml}</div>`;
 }

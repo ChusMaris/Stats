@@ -544,3 +544,92 @@ select {
     border: 2px solid white; 
     box-shadow: 0 0 4px rgba(0, 0, 0, 0.5);
 }
+
+/* Contenedor de las tarjetas */
+.player-cards-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 20px;
+    padding: 20px 0;
+}
+
+/* Tarjeta individual */
+.player-card {
+    background: white;
+    border-radius: 15px;
+    border: 1px solid #ddd;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+    overflow: hidden;
+    transition: transform 0.2s;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 20px;
+    text-align: center;
+}
+
+.player-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 15px rgba(0,0,0,0.1);
+}
+
+/* Foto redonda con borde */
+.card-photo-container {
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    border: 3px solid var(--primary-color, #00458e);
+    padding: 3px;
+    margin-bottom: 15px;
+    background: white;
+}
+
+.card-photo-container img {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.card-name {
+    font-size: 1.2rem;
+    font-weight: bold;
+    margin: 5px 0;
+    color: #333;
+}
+
+.card-dorsal {
+    background: var(--primary-color, #00458e);
+    color: white;
+    padding: 2px 10px;
+    border-radius: 10px;
+    font-size: 0.9rem;
+    margin-bottom: 15px;
+}
+
+/* Grid interno de estadísticas */
+.card-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    width: 100%;
+    border-top: 1px solid #eee;
+    padding-top: 15px;
+}
+
+.stat-item {
+    display: flex;
+    flex-direction: column;
+}
+
+.stat-value {
+    font-weight: bold;
+    font-size: 1.1rem;
+    color: #222;
+}
+
+.stat-label {
+    font-size: 0.75rem;
+    color: #777;
+    text-transform: uppercase;
+}
