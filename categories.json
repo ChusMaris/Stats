@@ -1,7 +1,7 @@
 {
   "categories": [
     {
-      "name": "2025/26 Pre-Infantil Masculí Nivel B - 05",
+      "name": "2025/26 C.t. Pre-infantil Masculí Nivell B - 05",
       "folder": "202526_Pre_Infantil",
       "is_mini_basket": true,
       "description": "eglas de Mini-Basket (puntos por periodo).",
@@ -19,7 +19,7 @@
       ]
     },
     {
-      "name": "2025/26 Cadet Femení Promoció",
+      "name": "2025/26 C.t. Cadet Masculí Promoció Nivell B - 05",
       "folder": "202526_Cadet_Femeni",
       "is_mini_basket": false,
       "description": "Reglas de baloncesto estándar (3/1/0).",
@@ -37,7 +37,7 @@
       ]
     },
     {
-      "name": "2025/26 Cadet Masculí Promoció",
+      "name": "2025/26 C.t. Cadet Femení Promoció Nivell D - 07",
       "folder": "202526_Cadet_Masculi",
       "is_mini_basket": false,
       "description": "Reglas de baloncesto estándar (3/1/0).",
