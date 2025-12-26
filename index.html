@@ -49,35 +49,37 @@
                     <select id="teamFilterDetail"></select>
                 </div>
 
-                <div class="tabs" id="detail-tabs">
-                    <button class="tab-button active" data-tab="aggregated">Estadísticas Agregadas</button>
-                    <button class="tab-button" data-tab="player-cards">Tarjetas de Jugadores</button>
-                    <button class="tab-button" data-tab="matches">Listado de Partidos</button>
-                </div>
-                
-                <div id="tab-content-aggregated">
-                    <div id="player-content">
-                        </div>
-                </div>
+            <div class="tabs" id="detail-tabs">
+                <button class="tab-button active" data-tab="player-cards">Tarjetas</button>
+                <button class="tab-button" data-tab="aggregated">Estadísticas</button>
+                <button class="tab-button" data-tab="matches">Partidos</button>
+            </div>
 
-                <div id="tab-content-player-cards" style="display: none;">
-                    <div id="player-cards-container">
-                        </div>
-                </div>
+            <div id="tab-content-player-cards">
+                <div id="player-cards-container"></div>
+            </div>
 
-                <div id="tab-content-matches" style="display: none;">
-                    <div id="match-list" style="margin-bottom: 20px;">
-                        </div>
-                    <div id="match-player-detail">
-                        </div>
-                </div>
+            <div id="tab-content-aggregated" style="display: none;">
+                <div id="player-content"></div>
+            </div>
+
+            <div id="tab-content-matches" style="display: none;">
+                <div id="match-list" style="margin-bottom: 20px;"></div>
+                <div id="match-player-detail"></div>
+            </div>
             </div>
         </div>
     </div>
-    
+
     <script src="js/config.js"></script>
     <script src="js/utils.js"></script>
-    <script src="js/uiRenderer.js"></script>
     <script src="js/dataProcessor.js"></script>
+
+    <script src="js/ui/ui-base.js"></script>
+    <script src="js/ui/ui-tables.js"></script>
+    <script src="js/ui/ui-classification.js"></script>
+    <script src="js/ui/ui-players.js"></script>
+    <script src="js/ui/ui-matches.js"></script>
+    <script src="js/ui/ui-events.js"></script>
 </body>
 </html>

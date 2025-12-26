@@ -326,6 +326,8 @@ function loadAllMatches() {
             .then(r => r.json())
             .then(data => {
                 data.fileName = fileName; 
+                const jornadaPart = fileName.split('_')[0];
+                data.jornada = jornadaPart ? jornadaPart.replace('J', '') : 'N/D';
                 allMatchSummaries[fileName] = data; 
             })
     );
@@ -383,7 +385,7 @@ function renderTeamDetails(team) {
                     </tr>
                 </thead>
                 <tbody>
-                    ${team.matches.map((m, index) => `
+                    ${team.matches.sort((a, b) => parseInt(a.jornada) - parseInt(b.jornada)).map((m, index) => `
                     <tr class="match-detail-row" onclick="showPlayersByMatch('${encodeURIComponent(team.name)}', ${index})" style="cursor: pointer;">
                         <td>J${m.jornada}</td>
                         <td>vs ${m.opponentName}</td>

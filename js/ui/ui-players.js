@@ -1,0 +1,91 @@
+// js/ui/ui-players.js
+
+function displayPlayerAggregateStats() {
+    const team = processedTeams[currentSelectedTeam];
+    if (!team) return;
+    const playersArray = Object.values(team.players).map(p => ({
+        dorsal: p.dorsal, Jugador: p.name, PJ: p.stats.PJ, Puntos: p.stats.Puntos,
+        'T1': renderShotEfficiency(p.stats.shotsOfOneSuccessful, p.stats.shotsOfOneAttempted),
+        'T2': p.stats.shotsOfTwoSuccessful, 'T3': p.stats.shotsOfThreeSuccessful, Faltas: p.stats.Faltas
+    }));
+
+    let html = `<table class="stats-table" id="playerStatsTable"><thead><tr>
+        <th>#</th><th>Jugador</th><th>PJ</th><th>Pts</th><th>T1 (Libres)</th><th>T2</th><th>T3</th><th>F</th></tr></thead><tbody>`;
+    playersArray.sort((a,b) => b.Puntos - a.Puntos).forEach(d => {
+        html += `<tr class="player-row" onclick="togglePlayerMatchDetail(event, '${d.Jugador}', this)">
+            <td>${d.dorsal || '-'}</td><td style="text-align:left;">${d.Jugador}</td><td>${d.PJ}</td><td>${d.Puntos}</td>
+            <td>${d.T1}</td><td>${d.T2}</td><td>${d.T3}</td><td>${d.Faltas}</td>
+        </tr><tr id="detail-row-${d.Jugador}" class="match-detail-row" style="display:none;"><td colspan="8" style="padding:0;"></td></tr>`;
+    });
+    document.getElementById('player-content').innerHTML = html + `</tbody></table>`;
+    makeTableSortable('playerStatsTable', playersArray);
+}
+
+function renderPlayerCards(players, containerId) {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+
+    const cardsHtml = players.sort((a, b) => b.stats.Puntos - a.stats.Puntos).map(p => {
+        const key = p.name.toUpperCase().trim();
+        const fotoUrl = (typeof JUGADOR_FOTOS !== 'undefined' && JUGADOR_FOTOS[key]) || "https://www.w3schools.com/howto/img_avatar.png";
+
+        return `
+            <div class="player-card">
+                <div class="card-photo-container"><img src="${fotoUrl}" onerror="this.src='https://www.w3schools.com/howto/img_avatar.png'"></div>
+                <div class="card-dorsal">#${p.dorsal || '??'}</div>
+                <div class="card-name">${p.name}</div>
+                <div class="card-stats-grid">
+                    <div class="stat-item"><span class="stat-value">${p.stats.Puntos}</span><span class="stat-label">PTS</span></div>
+                    <div class="stat-item"><span class="stat-value">${p.stats.shotsOfOneSuccessful}</span><span class="stat-label">T1</span></div>
+                    <div class="stat-item"><span class="stat-value">${p.stats.shotsOfTwoSuccessful}</span><span class="stat-label">T2</span></div>
+                    <div class="stat-item"><span class="stat-value">${p.stats.shotsOfThreeSuccessful}</span><span class="stat-label">T3</span></div>
+                    <div class="stat-item"><span class="stat-value">${p.stats.PJ}</span><span class="stat-label">PJ</span></div>
+                    <div class="stat-item"><span class="stat-value">${p.stats.Faltas}</span><span class="stat-label">F</span></div>
+                </div>
+            </div>`;
+    }).join('');
+    container.innerHTML = `<div class="player-cards-grid">${cardsHtml}</div>`;
+}
+
+// Función togglePlayerMatchDetail (Se mantiene igual que la original)
+function togglePlayerMatchDetail(event, playerName, clickedRow) {
+    event.stopPropagation();
+    const detailRow = document.getElementById(`detail-row-${playerName}`);
+    if (detailRow && clickedRow.classList.contains('expanded')) {
+        detailRow.style.display = 'none';
+        clickedRow.classList.remove('expanded');
+        return;
+    }
+    document.querySelectorAll('.match-detail-row').forEach(row => row.style.display = 'none');
+    document.querySelectorAll('.player-row').forEach(row => row.classList.remove('expanded'));
+
+    const team = processedTeams[currentSelectedTeam];
+    const player = Object.values(team.players).find(p => p.name === playerName);
+    if (!player) return;
+
+    let subHtml = `<div class="subgrid-container card" style="margin: 10px;">
+        <h4>Desglose por Partido</h4>
+        <table class="subgrid-table stats-table">
+            <thead>
+                <tr>
+                    <th>J</th><th>Oponente</th><th>Pts</th><th>Min</th><th>T1</th><th>T2</th><th>T3</th><th>F</th>
+                </tr>
+            </thead>
+            <tbody>`;
+
+    player.matchHistory.forEach(m => {
+        subHtml += `<tr>
+            <td>${m.jornada}</td>
+            <td>vs ${m.opponentName}</td>
+            <td>${m.Puntos}</td>
+            <td>${formatTime(m.Minutos)}</td>
+            <td>${renderShotEfficiency(m.shotsOfOneSuccessful, m.shotsOfOneAttempted)}</td>
+            <td>${renderShotEfficiency(m.shotsOfTwoSuccessful, m.shotsOfTwoAttempted, 'successful_only')}</td>
+            <td>${renderShotEfficiency(m.shotsOfThreeSuccessful, m.shotsOfThreeAttempted, 'successful_only')}</td>
+            <td>${m.Faltas}</td>
+        </tr>`;
+    });
+    detailRow.querySelector('td').innerHTML = subHtml + `</tbody></table></div>`;
+    detailRow.style.display = 'table-row';
+    clickedRow.classList.add('expanded');
+}
