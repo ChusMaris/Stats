@@ -582,6 +582,7 @@ select {
     padding: 3px;
     margin-bottom: 15px;
     background: white;
+    overflow: hidden;
 }
 
 .card-photo-container img {
@@ -589,6 +590,7 @@ select {
     height: 100%;
     border-radius: 50%;
     object-fit: cover;
+    transform: scale(1.2);
 }
 
 .card-name {
