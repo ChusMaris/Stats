@@ -61,9 +61,39 @@ function renderClassificationTable() {
 
     list.forEach((t, index) => {
         const diffStyle = t.diff >= 0 ? 'color: var(--success-color);' : 'color: var(--fail-color);';
+        
+        // Obtenemos la URL completa directamente del objeto
+        const logoUrl = TEAM_LOGOS[t.name.toUpperCase().trim()];
+
+        // Diseño del logo circular con borde
+        const logoImg = logoUrl 
+            ? `<div style="
+                    width: 32px; 
+                    height: 32px; 
+                    background-color: white; 
+                    border: 1px solid #ddd; 
+                    border-radius: 50%; 
+                    display: flex; 
+                    align-items: center; 
+                    justify-content: center; 
+                    margin-right: 12px; 
+                    overflow: hidden; 
+                    flex-shrink: 0;
+                    padding: 2px;
+                    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+                ">
+                    <img src="${logoUrl}" style="width: 100%; height: 100%; object-fit: contain; border-radius: 50%;" 
+                         onerror="this.parentElement.style.display='none'">
+                </div>`
+            : `<span style="width: 44px; display: inline-block;"></span>`;
+
         html += `
             <tr>
-                <td style="text-align: left;">${index + 1}. ${t.name}</td>
+                <td style="text-align: left; display: flex; align-items: center; padding: 8px 10px;">
+                    <span style="min-width: 25px; font-weight: bold; color: #666;">${index + 1}.</span>
+                    ${logoImg}
+                    <span style="font-weight: 500;">${t.name}</span>
+                </td>
                 <td>${t.J}</td>
                 <td>${t.G}</td>
                 <td>${t.P}</td>
@@ -77,9 +107,12 @@ function renderClassificationTable() {
     });
 
     html += `</tbody></table>`;
-    document.getElementById('classification-content').innerHTML = html;
     
-    makeTableSortable('classificationTable', list.map(item => ({...item, name: item.name, diff: item.diff, Ptos: item.Ptos})));
+    const container = document.getElementById('classification-content');
+    if (container) {
+        container.innerHTML = html;
+        makeTableSortable('classificationTable', list.map(item => ({...item, name: item.name, diff: item.diff, Ptos: item.Ptos})));
+    }
 }
 
 function renderPointsEvolutionGraph() {
