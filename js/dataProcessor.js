@@ -422,7 +422,9 @@ function populateTeamFilterDetail(teams) {
         let teamToSelect = null;
         if (urlTeamName) {
             teamToSelect = teams.find(t => t.name === urlTeamName);
-        } 
+        } else {
+            teamToSelect = teams.find(t => t.name === "Fundació Brafa");
+        }
         
         // If no specific team from URL, or if URL team not found, default to the first team
         if (!teamToSelect && teams.length > 0) {

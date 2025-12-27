@@ -21,7 +21,7 @@
         flex-direction: column; /* Forzamos a que los KPIs se apilen verticalmente */
     }
     
-    .kpi-card {
+    #kpi-container .kpi-card {
         margin: 5px 0;
         width: 100%; /* Cada KPI ocupa el ancho completo */
         min-width: unset; /* Elimina la restricción de 150px de ancho mínimo */
@@ -724,6 +724,7 @@ select {
     font-weight: bold;
     color: var(--primary-color);
     margin: 5px 0;
+    text-align: center;
 }
 
 .player-dorsal {
@@ -736,11 +737,12 @@ select {
 }
 
 .player-kpis .kpi-container {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    display: flex;
+    flex-wrap: wrap;
     gap: 15px;
     width: 100%;
     margin-top: 20px;
+    justify-content: center;
 }
 
 .player-kpis .kpi-card {
@@ -828,10 +830,6 @@ select {
 
     .player-dorsal {
         font-size: 1em;
-    }
-
-    .player-kpis .kpi-container {
-        grid-template-columns: 1fr; /* Apilar KPIs en móviles */
     }
 
     .game-cards-grid {

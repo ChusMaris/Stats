@@ -8,8 +8,12 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script> 
 </head>
 <body>
+    <header class="dashboard-header">
+        <h1 id="team-header-title" style="display: flex; align-items: center; justify-content: center;"></h1>
+    </header>
+
     <div class="container player-detail-container">
-        <header class="player-detail-header card">
+        <div class="card" style="position: relative;">
             <button class="close-button" onclick="goBackToMainPage()">✖</button>
             <div class="player-info">
                 <div class="player-photo-container">
@@ -21,7 +25,7 @@
             <div class="player-kpis">
                 <!-- KPIs generales del jugador (Puntos/partido, Puntos/minuto, etc.) -->
             </div>
-        </header>
+        </div>
 
         <section class="player-evolution card">
             <h2>Evolución del Jugador</h2>
@@ -41,6 +45,7 @@
         </section>
     </div>
 
+    <script src="js/config.js"></script>
     <script src="js/utils.js"></script>
     <script src="js/dataProcessor.js"></script>
     <script src="js/playerDetailRenderer.js"></script>

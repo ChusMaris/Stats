@@ -35,6 +35,7 @@ async function displayPlayerDetail(playerName, teamNameAsCategoryFolder) {
 
         if (player && team) {
             document.title = `Detalle de Jugador: ${player.name}`;
+            renderTeamHeader(team);
             renderPlayerDetailHeader(player);
             renderPlayerAggregatedKPIs(player);
             renderPlayerEvolutionCharts(player); // Renderizar gráficas
@@ -47,6 +48,21 @@ async function displayPlayerDetail(playerName, teamNameAsCategoryFolder) {
         console.error("Error loading data for player detail:", error);
         document.querySelector('.player-name').textContent = `Error al cargar datos del jugador`;
     }
+}
+
+function renderTeamHeader(team) {
+    const headerTitle = document.getElementById('team-header-title');
+    if (!headerTitle) return;
+
+    const teamName = team.name;
+    const logoUrl = TEAM_LOGOS[teamName.toUpperCase().trim()];
+
+    let logoImg = '';
+    if (logoUrl) {
+        logoImg = `<img src="${logoUrl}" style="height: 40px; margin-right: 15px; border-radius: 50%; background-color: white; padding: 2px;" onerror="this.style.display='none'">`;
+    }
+
+    headerTitle.innerHTML = `${logoImg}<span>${teamName}</span>`;
 }
 
 function renderPlayerDetailHeader(player) {
