@@ -4,45 +4,58 @@
 /* --- 0. RESPONSIVE / MEDIA QUERIES --- */
 /* ========================================================= */
 /* --- Media Query para Dispositivos Móviles (hasta 768px) --- */
+/* ========================================================= */
+/* --- 0. RESPONSIVE / MEDIA QUERIES --- */
+/* ========================================================= */
 @media (max-width: 768px) {
+    .container { padding: 0 10px; }
+    .dashboard-header h1 { font-size: 1.2em; }
+    .kpi-container { flex-direction: column; }
     
-    /* 1. Contenedor Principal */
-    .container {
-        padding: 0 10px; /* Reducir el padding de los lados */
+    /* Contenedor para que el scroll no rompa el diseño */
+    .table-responsive {
+        width: 100%;
+        overflow-x: auto !important;
+        display: block;
+        -webkit-overflow-scrolling: touch;
+        position: relative;
     }
 
-    /* 2. Cabecera */
-    .dashboard-header h1 {
-        font-size: 1.2em; /* Reducir el tamaño de la letra del título */
-    }
-    
-    /* 3. KPIs (Indicadores Clave) */
-    .kpi-container {
-        flex-direction: column; /* Forzamos a que los KPIs se apilen verticalmente */
-    }
-    
-    #kpi-container .kpi-card {
-        margin: 5px 0;
-        width: 100%; /* Cada KPI ocupa el ancho completo */
-        min-width: unset; /* Elimina la restricción de 150px de ancho mínimo */
-        flex-basis: auto; 
+    .stats-table {
+        min-width: 800px; /* Forzamos ancho para que haya scroll lateral */
+        border-collapse: separate !important; /* Crítico para que funcione el sticky */
+        border-spacing: 0;
     }
 
-    /* 4. Pestañas (Clasificación, Evolución, Detalle de Partidos) */
-    .tabs {
-        display: flex;
-        flex-direction: column; /* Hacemos que los botones de las pestañas se apilen */
+    /* BLOQUEO EXCLUSIVO DE LA PRIMERA COLUMNA (LOGO/DORSAL) */
+    .stats-table th:nth-child(1),
+    .stats-table td:nth-child(1) {
+        position: sticky !important;
+        left: 0;
+        z-index: 10;
+        background-color: white !important; /* Fondo sólido para ocultar lo que pasa detrás */
+        border-right: 1px solid #eee; /* Separación visual */
     }
-    
-    .tab-button {
-        width: 100%; /* Cada botón de pestaña ocupa el ancho completo */
-        margin-bottom: 5px;
+
+    /* La cabecera de la primera columna con el color azul original */
+    .stats-table th:nth-child(1) {
+        z-index: 11;
+        background-color: var(--header-color) !important;
     }
-    
-    /* 5. Tarjetas (Cards) */
-    .card {
-        padding: 15px; /* Ligeramente menos padding para optimizar espacio */
+
+    /* Opcional: Sombra suave para marcar el límite del logo al desplazar */
+    .stats-table td:nth-child(1) {
+        box-shadow: 2px 0 5px rgba(0,0,0,0.05);
     }
+}
+
+/* Regla general de scroll para los IDs */
+#classification-content,
+#player-content, 
+#match-list,
+#match-player-detail {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
 }
 
 /* Aplicamos overflow-x a los contenedores que albergan las tablas */
@@ -66,8 +79,7 @@
 
 /* --- Estilos Generales y Estructura --- */
 /* ========================================================= */
-/* --- 0. GENERALES / BASE & VARIABLES --- */
-/* ========================================================= */
+/* --- 0. GENERALES / BASE & VARIABLES --- ========================================================= */
 
 body {
     font-family: Arial, sans-serif;
@@ -337,9 +349,18 @@ select {
     text-align: center;
 }
 
-.stats-table tbody td:first-child {
+/* Styling for team logos within tables */
+.team-logo {
+    width: 40px;  /* Tamaño del logo */
+    height: 40px; /* Mantener proporción */
+    object-fit: contain; /* Asegura que el logo se ajuste sin cortarse */
+    display: block; /* Para centrarlo con margin auto */
+    margin: 0 auto; /* Centrar el logo horizontalmente */
+}
+
+/* Ensure the second column (name) aligns left */
+.stats-table tbody td:nth-child(2) {
     text-align: left;
-    font-weight: bold;
 }
 
 /* Fila de Detalle de Jugador (oculta) */

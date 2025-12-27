@@ -24,15 +24,13 @@
 
         <div id="dashboard-content" style="display: none;">
             
-
-
             <div class="tabs" id="main-tabs">
                 <button class="tab-button active" data-tab="classification">Clasificación</button>
             </div>
             
             <div id="tab-content-classification">
-                <div id="classification-content" class="card">
-                    </div>
+                <div id="classification-content" class="card card-table-container">
+                </div>
             </div>
 
             <div class="card">
@@ -42,24 +40,24 @@
                     <select id="teamFilterDetail"></select>
                 </div>
 
-            <div class="tabs" id="detail-tabs">
-                <button class="tab-button active" data-tab="player-cards">Tarjetas</button>
-                <button class="tab-button" data-tab="aggregated">Estadísticas</button>
-                <button class="tab-button" data-tab="matches">Partidos</button>
-            </div>
+                <div class="tabs" id="detail-tabs">
+                    <button class="tab-button active" data-tab="player-cards">Tarjetas</button>
+                    <button class="tab-button" data-tab="aggregated">Estadísticas</button>
+                    <button class="tab-button" data-tab="matches">Partidos</button>
+                </div>
 
-            <div id="tab-content-player-cards">
-                <div id="player-cards-container"></div>
-            </div>
+                <div id="tab-content-player-cards">
+                    <div id="player-cards-container"></div>
+                </div>
 
-            <div id="tab-content-aggregated" style="display: none;">
-                <div id="player-content"></div>
-            </div>
+                <div id="tab-content-aggregated" style="display: none;">
+                    <div id="player-content" class="card-table-container"></div>
+                </div>
 
-            <div id="tab-content-matches" style="display: none;">
-                <div id="match-list" style="margin-bottom: 20px;"></div>
-                <div id="match-player-detail"></div>
-            </div>
+                <div id="tab-content-matches" style="display: none;">
+                    <div id="match-list" class="table-responsive" style="margin-bottom: 20px;"></div>
+                    <div id="match-player-detail" class="table-responsive"></div>
+                </div>
             </div>
         </div>
     </div>
@@ -69,7 +67,6 @@
     <script src="js/ui/ui-players.js"></script>
     <script src="js/dataProcessor.js"></script>
     <script src="js/uiRenderer.js"></script>
-
 
 </body>
 </html>

@@ -15,6 +15,7 @@ function renderClassificationTable() {
         <table class="stats-table" id="classificationTable">
             <thead>
                 <tr>
+                    <th style="text-align: center;">Logo</th>
                     <th style="text-align: left;">Equipo</th>
                     <th data-key="J" data-type="numeric">J <span class="sort-indicator"></span></th>
                     <th data-key="G" data-type="numeric">G <span class="sort-indicator"></span></th>
@@ -35,33 +36,16 @@ function renderClassificationTable() {
         // Obtenemos la URL completa directamente del objeto
         const logoUrl = TEAM_LOGOS[t.name.toUpperCase().trim()];
 
-        // Diseño del logo circular con borde
+        // Usamos la clase CSS 'team-logo'
         const logoImg = logoUrl 
-            ? `<div style="
-                    width: 32px; 
-                    height: 32px; 
-                    background-color: white; 
-                    border: 1px solid #ddd; 
-                    border-radius: 50%; 
-                    display: flex; 
-                    align-items: center; 
-                    justify-content: center; 
-                    margin-right: 12px; 
-                    overflow: hidden; 
-                    flex-shrink: 0;
-                    padding: 2px;
-                    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-                ">
-                    <img src="${logoUrl}" style="width: 100%; height: 100%; object-fit: contain; border-radius: 50%;" 
-                         onerror="this.parentElement.style.display='none'">
-                </div>`
-            : `<span style="width: 44px; display: inline-block;"></span>`;
+            ? `<img src="${logoUrl}" alt="Logo ${t.name}" class="team-logo" onerror="this.style.display='none'">`
+            : ''; // Si no hay URL, no renderizamos nada
 
         html += `
             <tr>
+                <td>${logoImg}</td>
                 <td style="text-align: left; display: flex; align-items: center; padding: 8px 10px;">
                     <span style="min-width: 25px; font-weight: bold; color: #666;">${index + 1}.</span>
-                    ${logoImg}
                     <span style="font-weight: 500;">${t.name}</span>
                 </td>
                 <td>${t.J}</td>
@@ -346,14 +330,23 @@ function makeTableSortable(tableId, dataArray) {
                 dataArray.forEach((d, index) => {
                     const row = tbody.insertRow();
                     const diffStyle = d.diff >= 0 ? 'color: var(--success-color);' : 'color: var(--fail-color);';
-                    row.insertCell().innerHTML = `${index + 1}. ${d.name}`; row.cells[0].style.textAlign = 'left';
+                    
+                    const logoUrl = TEAM_LOGOS[d.name.toUpperCase().trim()];
+                    const logoImg = logoUrl 
+                        ? `<img src="${logoUrl}" alt="Logo ${d.name}" class="team-logo" onerror="this.style.display='none'">`
+                        : '';
+
+                    row.insertCell().innerHTML = logoImg; // New cell for logo
+                    row.insertCell().innerHTML = `<span style="min-width: 25px; font-weight: bold; color: #666;">${index + 1}.</span> <span style="font-weight: 500;">${d.name}</span>`; // Cell for rank and name
+                    row.cells[1].style.textAlign = 'left'; // Set text-align for the name cell
+
                     row.insertCell().textContent = d.J;
                     row.insertCell().textContent = d.G;
                     row.insertCell().textContent = d.P;
                     row.insertCell().textContent = d.NP;
                     row.insertCell().textContent = d.PF;
                     row.insertCell().textContent = d.PC;
-                    row.insertCell().textContent = d.diff; row.cells[7].style = diffStyle;
+                    row.insertCell().textContent = d.diff; row.cells[8].style = diffStyle; // Adjusted index due to new column
                     row.insertCell().innerHTML = `<strong>${d.Ptos}</strong>`;
                 });
             } else { 
