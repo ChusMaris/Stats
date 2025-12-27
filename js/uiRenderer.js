@@ -214,9 +214,14 @@ function populateTeamFilter(teamNames) {
     });
 
     if (sortedNames.length > 0) {
-        currentSelectedTeam = sortedNames[0];
-        // Nota: 'detail-container' no existe, usaremos el card contenedor de 'Detalle de Equipo y Jugadores'
-        // document.getElementById('detail-container').style.display = 'block'; 
+        // If there's a globally selected team name, try to pre-select it
+        if (window.currentSelectedTeamName && sortedNames.includes(window.currentSelectedTeamName)) {
+            select.value = window.currentSelectedTeamName;
+        } else {
+            // Otherwise, select the first team and update the global variable
+            select.value = sortedNames[0];
+            window.currentSelectedTeamName = sortedNames[0];
+        }
         
         select.removeEventListener('change', handleTeamFilterChange); 
         select.addEventListener('change', handleTeamFilterChange);
@@ -226,14 +231,18 @@ function populateTeamFilter(teamNames) {
 }
 
 function handleTeamFilterChange(e) {
-    currentSelectedTeam = e.target.value;
+    window.currentSelectedTeamName = e.target.value; // Update the global variable
     const activeTab = document.querySelector('#detail-tabs .tab-button.active').getAttribute('data-tab');
     
     if (activeTab === 'aggregated') {
         displayPlayerAggregateStats();
-    } else if (activeTab === 'player-cards') { // <--- Añadir este bloque
-        const team = processedTeams[currentSelectedTeam];
-        renderPlayerCards(Object.values(team.players), 'player-cards-container');
+    } else if (activeTab === 'player-cards') {
+        const selectedTeamData = processedTeams[window.currentSelectedTeamName];
+        if (selectedTeamData) {
+            renderPlayerCards(Object.values(selectedTeamData.players), 'player-cards-container');
+        } else {
+            console.error("Selected team data not found for rendering player cards.");
+        }
     } else if (activeTab === 'matches') {
         displayMatchList();
     }
@@ -257,7 +266,7 @@ function refreshDetailTabsVisibility(targetTab) {
 }
 
 function displayPlayerAggregateStats() {
-    const teamName = currentSelectedTeam;
+    const teamName = window.currentSelectedTeamName; // Use the global team name
     const team = processedTeams[teamName];
     
     if (!team) return;
@@ -354,7 +363,7 @@ function togglePlayerMatchDetail(event, playerName, clickedRow) {
         row.classList.remove('expanded');
     });
 
-    const team = processedTeams[currentSelectedTeam];
+    const team = processedTeams[window.currentSelectedCategoryFolder];
     const player = Object.values(team.players).find(p => p.name === playerName);
     
     if (!player || !player.matchHistory || player.matchHistory.length === 0) {
@@ -488,7 +497,7 @@ function makeTableSortable(tableId, dataArray) {
 
 
 function displayMatchList() {
-    const team = processedTeams[currentSelectedTeam];
+    const team = processedTeams[window.currentSelectedCategoryFolder];
     if (!team) return;
 
     let html = '<div class="card" style="padding: 10px;">';
@@ -511,7 +520,7 @@ function displayMatchList() {
 }
 
 function displayMatchPlayerStats(matchId, jornada) {
-    const team = processedTeams[currentSelectedTeam];
+    const team = processedTeams[window.currentSelectedCategoryFolder];
     if (!team) return;
 
     const matchKey = Object.keys(allMatchSummaries).find(k => k.startsWith(`J${jornada}_P`));
@@ -521,7 +530,7 @@ function displayMatchPlayerStats(matchId, jornada) {
     }
 
     const fullMatchData = allMatchSummaries[matchKey];
-    const currentTeamData = fullMatchData.teams.find(t => t.name === currentSelectedTeam);
+    const currentTeamData = fullMatchData.teams.find(t => t.name === window.currentSelectedTeamName);
     
     if (!currentTeamData) {
         document.getElementById('match-player-detail').innerHTML = `<p class="warning">No se encontraron datos de jugadores para este equipo en el JSON de la Jornada ${jornada}.</p>`;
@@ -862,7 +871,7 @@ function renderPlayerCards(players, containerId) {
                         : "https://www.w3schools.com/howto/img_avatar.png";
 
         return `
-            <div class="player-card" style="cursor: pointer;" onclick="goToPlayerDetail('${encodeURIComponent(p.name)}', '${encodeURIComponent(window.currentSelectedTeam)}')">
+            <div class="player-card" style="cursor: pointer;" onclick="goToPlayerDetail('${encodeURIComponent(p.name)}', '${encodeURIComponent(window.currentSelectedCategoryFolder)}')">
                 <div class="card-photo-container">
                     <img src="${fotoUrl}" alt="${p.name}" onerror="this.src='https://www.w3schools.com/howto/img_avatar.png'">
                 </div>
@@ -908,5 +917,5 @@ function renderPlayerCards(players, containerId) {
  * @param {string} teamName - Nombre del equipo.
  */
 function goToPlayerDetail(playerName, categoryFolder) {
-    window.location.href = `player-detail.html?player=${playerName}&team=${categoryFolder}`;
+    window.location.href = `player-detail.html?player=${playerName}&category=${categoryFolder}&teamName=${encodeURIComponent(window.currentSelectedTeamName)}`;
 }

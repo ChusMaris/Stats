@@ -3,7 +3,8 @@
 
 let allMatchSummaries = {};
 let processedTeams = {};
-let currentSelectedTeam = null;
+let currentSelectedCategoryFolder = null;
+let currentSelectedTeamName = null;
 const teamNormalization = {}; // Diccionario para normalizar nombres de equipo
 
 // 🆕 Variable para almacenar la configuración de categories.json

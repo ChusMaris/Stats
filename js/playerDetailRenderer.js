@@ -1,7 +1,7 @@
 document.addEventListener('DOMContentLoaded', () => {
     const urlParams = new URLSearchParams(window.location.search);
     const playerName = decodeURIComponent(urlParams.get('player'));
-    const teamName = decodeURIComponent(urlParams.get('team'));
+    const teamName = decodeURIComponent(urlParams.get('category'));
 
     if (playerName && teamName) {
         displayPlayerDetail(playerName, teamName);
@@ -244,10 +244,32 @@ function renderPlayerEvolutionCharts(player) {
     //                     text: 'Evolución de Rebotes y Asistencias',
     //                     color: '#333'
     //                 }
-    //             }
-    //         }
+            // }
     //     });
     // }
 }
 
+/**
+ * Navigates back to the main page (index.html), preserving the selected team (category folder).
+ */
+function goBackToMainPage() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const categoryFolder = urlParams.get('category'); // Retrieve the category folder
+    const teamName = urlParams.get('teamName');     // Retrieve the specific team name
 
+    let redirectUrl = `index.html`;
+    const params = [];
+
+    if (categoryFolder) {
+        params.push(`category=${encodeURIComponent(categoryFolder)}`);
+    }
+    if (teamName) {
+        params.push(`teamName=${encodeURIComponent(teamName)}`);
+    }
+
+    if (params.length > 0) {
+        redirectUrl += `?${params.join('&')}`;
+    }
+    
+    window.location.href = redirectUrl;
+}

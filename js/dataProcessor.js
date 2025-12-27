@@ -233,7 +233,7 @@ async function loadDataForCategory(folder) {
     
     return Promise.all(promises).then(() => {
         processAllData(cat); // Pasar la configuración de la categoría
-        window.currentSelectedTeam = folder; // Actualizar el equipo seleccionado globalmente (desde config.js)
+        window.currentSelectedCategoryFolder = folder; // Actualizar el equipo seleccionado globalmente (desde config.js)
     }).catch(error => {
         console.error(`Error al cargar datos para la categoría "${folder}":`, error);
         throw error;
@@ -357,9 +357,12 @@ function processAllData(categoryConfig) {
 document.addEventListener('DOMContentLoaded', () => {
     loadCategoryConfiguration().then(() => {
         const selector = document.getElementById('categorySelector');
+        const urlParams = new URLSearchParams(window.location.search);
+        const urlCategory = urlParams.get('category');
+        
         if (selector) selector.addEventListener('change', (event) => {
             const selectedFolder = event.target.value;
-            window.currentSelectedTeam = selectedFolder; // Set current selected team on change
+            window.currentSelectedCategoryFolder = selectedFolder; // Set current selected team on change
             loadDataForCategory(selectedFolder).then(() => {
                 // Lógica de renderizado para index.html después de cargar la categoría
                 populateTeamFilterDetail(Object.values(window.processedTeams)); 
@@ -369,15 +372,21 @@ document.addEventListener('DOMContentLoaded', () => {
             }).catch(error => console.error("Error al cargar y renderizar datos:", error));
         });
         
-        // Carga inicial: Si no hay categoría seleccionada, o si el selector está vacío, selecciona la primera.
-        let initialCategoryFolder = selector ? selector.value : '';
+        let initialCategoryFolder = '';
+        if (urlCategory) {
+            initialCategoryFolder = urlCategory;
+            if (selector) selector.value = initialCategoryFolder;
+        } else if (selector) {
+            initialCategoryFolder = selector.value;
+        }
+        
         if (!initialCategoryFolder && window.categoryConfiguration.length > 0) {
             initialCategoryFolder = window.categoryConfiguration[0].folder;
             if (selector) selector.value = initialCategoryFolder; // Pre-seleccionar en el UI
         }
         
         if (initialCategoryFolder) {
-            window.currentSelectedTeam = initialCategoryFolder; // Set current selected team for initial load
+            window.currentSelectedCategoryFolder = initialCategoryFolder; // Set current selected team for initial load
             loadDataForCategory(initialCategoryFolder).then(() => {
                 populateTeamFilterDetail(Object.values(window.processedTeams)); 
                 if (typeof displayKPIs === 'function') displayKPIs(); 
@@ -400,15 +409,31 @@ function populateTeamFilterDetail(teams) {
     });
     select.onchange = function() {
         const selectedTeam = teams.find(t => t.name === this.value);
-        if (selectedTeam) renderTeamDetails(selectedTeam);
+        if (selectedTeam) {
+            window.currentSelectedTeamName = selectedTeam.name; // Update global on change
+            renderTeamDetails(selectedTeam);
+        }
     };
-    if (teams.length > 0 && window.currentSelectedTeam) { // Solo si ya hay un equipo seleccionado por defecto
-        select.value = window.currentSelectedTeam; 
-        const defaultTeam = teams.find(t => t.name === window.currentSelectedTeam);
-        if (defaultTeam) renderTeamDetails(defaultTeam);
-    } else if (teams.length > 0) { // Si no hay currentSelectedTeam, seleccionar el primero
-        select.value = teams[0].name;
-        renderTeamDetails(teams[0]);
+    
+    const urlParams = new URLSearchParams(window.location.search);
+    const urlTeamName = urlParams.get('teamName'); // Get the specific team name from the URL
+
+    if (teams.length > 0) {
+        let teamToSelect = null;
+        if (urlTeamName) {
+            teamToSelect = teams.find(t => t.name === urlTeamName);
+        } 
+        
+        // If no specific team from URL, or if URL team not found, default to the first team
+        if (!teamToSelect && teams.length > 0) {
+            teamToSelect = teams[0];
+        }
+
+        if (teamToSelect) {
+            select.value = teamToSelect.name;
+            window.currentSelectedTeamName = teamToSelect.name; // Update the global team name
+            renderTeamDetails(teamToSelect);
+        }
     }
 }
 
