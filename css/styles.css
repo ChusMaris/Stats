@@ -8,52 +8,52 @@
 /* --- 0. RESPONSIVE / MEDIA QUERIES --- */
 /* ========================================================= */
 @media (max-width: 768px) {
-    .container { padding: 0 10px; }
-    .dashboard-header h1 { font-size: 1.2em; }
-    .kpi-container { flex-direction: column; }
-    
-    /* Contenedor para que el scroll no rompa el diseño */
+    /* 1. Contenedor para que el scroll no rompa el diseño (se quede dentro de la card) */
     .table-responsive {
         width: 100%;
         overflow-x: auto !important;
         display: block;
         -webkit-overflow-scrolling: touch;
-        position: relative;
     }
 
     .stats-table {
-        min-width: 800px; /* Forzamos ancho para que haya scroll lateral */
-        border-collapse: separate !important; /* Crítico para que funcione el sticky */
+        min-width: 800px; /* Asegura que haya contenido para desplazar */
+        border-collapse: separate !important;
         border-spacing: 0;
     }
 
-    /* BLOQUEO EXCLUSIVO DE LA PRIMERA COLUMNA (LOGO/DORSAL) */
+    /* 2. BLOQUEO EXCLUSIVO DE LA PRIMERA COLUMNA (LOGO) */
     .stats-table th:nth-child(1),
     .stats-table td:nth-child(1) {
         position: sticky !important;
         left: 0;
         z-index: 10;
-        background-color: white !important; /* Fondo sólido para ocultar lo que pasa detrás */
-        border-right: 1px solid #eee; /* Separación visual */
+        background-color: white !important;
+        width: 60px; /* Ancho fijo para el logo */
+        min-width: 60px;
     }
 
-    /* La cabecera de la primera columna con el color azul original */
     .stats-table th:nth-child(1) {
         z-index: 11;
         background-color: var(--header-color) !important;
     }
 
-    /* Opcional: Sombra suave para marcar el límite del logo al desplazar */
-    .stats-table td:nth-child(1) {
-        box-shadow: 2px 0 5px rgba(0,0,0,0.05);
+    /* 3. LOGOS EN CÍRCULO (RECUPERADO) */
+    .stats-table td:nth-child(1) img {
+        width: 40px;
+        height: 40px;
+        border-radius: 50%; /* Hace el círculo */
+        object-fit: cover;
+        border: 1px solid #ddd;
+        display: block;
+        margin: 0 auto;
     }
 }
 
-/* Regla general de scroll para los IDs */
+/* Regla para que el scroll funcione en los contenedores específicos */
 #classification-content,
 #player-content, 
-#match-list,
-#match-player-detail {
+#match-list {
     overflow-x: auto;
     -webkit-overflow-scrolling: touch;
 }
@@ -859,3 +859,4 @@ select {
         grid-template-columns: 1fr; /* Apilar tarjetas de partidos en móviles */
     }
 }
+
