@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Detalle de Jugador</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script> 
+</head>
+<body>
+    <div class="container player-detail-container">
+        <header class="player-detail-header card">
+            <div class="player-info">
+                <div class="player-photo-container">
+                    <img src="img/player_placeholder.png" alt="Foto de Jugador" class="player-photo">
+                </div>
+                <h1 class="player-name"></h1>
+                <p class="player-dorsal"></p>
+            </div>
+            <div class="player-kpis">
+                <!-- KPIs generales del jugador (Puntos/partido, Puntos/minuto, etc.) -->
+            </div>
+        </header>
+
+        <section class="player-evolution card">
+            <h2>Evolución del Jugador</h2>
+            <div class="chart-container">
+                <canvas id="ppgEvolutionChart"></canvas>
+            </div>
+            <div class="chart-container">
+                <canvas id="efficiencyEvolutionChart"></canvas>
+            </div>
+        </section>
+
+        <section class="player-game-log card">
+            <h2>Registro de Partidos</h2>
+            <div class="game-cards-grid">
+                <!-- Tarjetas individuales de partidos -->
+            </div>
+        </section>
+    </div>
+
+    <script src="js/utils.js"></script>
+    <script src="js/dataProcessor.js"></script>
+    <script src="js/playerDetailRenderer.js"></script>
+</body>
+</html>

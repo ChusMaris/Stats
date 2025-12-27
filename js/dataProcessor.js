@@ -65,16 +65,16 @@ const getNormalLeaguePoints = (teamScore, opponentScore) => {
  * Gestiona empates dobles y múltiples (clasificación particular).
  */
 function calculateClassification(summaries) {
-    if (Object.keys(processedTeams).length === 0) {
+    if (Object.keys(window.processedTeams).length === 0) {
          processAllData();
     }
     
     const selector = document.getElementById('categorySelector');
     const currentCategoryFolder = selector ? selector.value : '';
-    const currentCategory = categoryConfiguration.find(c => c.folder === currentCategoryFolder);
+    const currentCategory = window.categoryConfiguration.find(c => c.folder === currentCategoryFolder);
     const isMiniBasket = currentCategory ? currentCategory.is_mini_basket : false;
 
-    let teamsArray = Object.values(processedTeams).map(t => ({
+    let teamsArray = Object.values(window.processedTeams).map(t => ({
         name: t.name,
         J: t.stats.J,
         G: t.stats.G,
@@ -136,10 +136,10 @@ function calculateClassification(summaries) {
 
 function getPointsEvolutionData() {
     const data = [];
-    const teamNames = Object.keys(processedTeams);
+    const teamNames = Object.keys(window.processedTeams);
 
     teamNames.forEach(teamName => {
-        const team = processedTeams[teamName];
+        const team = window.processedTeams[teamName];
         let cumulativePF = 0;
         
         const validMatches = team.matches.filter(m => {
@@ -185,12 +185,12 @@ async function loadCategoryConfiguration() {
             return;
         }
         const config = await response.json();
-        categoryConfiguration = config.categories || [];
+        window.categoryConfiguration = config.categories || [];
         
         const selector = document.getElementById('categorySelector');
         if (selector) {
             selector.innerHTML = '<option value="">-- Seleccionar --</option>';
-            categoryConfiguration.forEach(cat => {
+            window.categoryConfiguration.forEach(cat => {
                 const option = document.createElement('option');
                 option.value = cat.folder; 
                 option.textContent = cat.name; 
@@ -203,13 +203,49 @@ async function loadCategoryConfiguration() {
     }
 }
 
-function processAllData() {
-    processedTeams = {};
-    const summaries = allMatchSummaries;
+/**
+ * Carga y procesa todos los datos para una categoría específica.
+ * @param {string} folder - La carpeta de la categoría a cargar.
+ * @returns {Promise<void>} Una promesa que se resuelve cuando los datos están cargados y procesados.
+ */
+async function loadDataForCategory(folder) {
+    if (!window.categoryConfiguration || window.categoryConfiguration.length === 0) {
+        await loadCategoryConfiguration();
+    }
+
+    const cat = window.categoryConfiguration.find(c => c.folder === folder);
+    if (!cat) {
+        console.error(`Categoría "${folder}" no encontrada.`);
+        return Promise.reject(`Categoría "${folder}" no encontrada.`);
+    }
     
-    const selector = document.getElementById('categorySelector');
-    const currentCategoryFolder = selector ? selector.value : '';
-    const currentCategory = categoryConfiguration.find(c => c.folder === currentCategoryFolder);
+    window.allMatchSummaries = {};
+    const promises = cat.match_files.map(fileName => 
+        fetch(`./Partidos/${folder}/${fileName}`)
+            .then(r => r.json())
+            .then(data => {
+                data.fileName = fileName; 
+                const jornadaPart = fileName.split('_')[0];
+                data.jornada = jornadaPart ? jornadaPart.replace('J', '') : 'N/D';
+                window.allMatchSummaries[fileName] = data; 
+            })
+    );
+    
+    return Promise.all(promises).then(() => {
+        processAllData(cat); // Pasar la configuración de la categoría
+        window.currentSelectedTeam = folder; // Actualizar el equipo seleccionado globalmente (desde config.js)
+    }).catch(error => {
+        console.error(`Error al cargar datos para la categoría "${folder}":`, error);
+        throw error;
+    });
+}
+
+// Modificar processAllData para aceptar la configuración de la categoría.
+function processAllData(categoryConfig) {
+    window.processedTeams = {}; // Resetear processedTeams para la nueva categoría
+    const summaries = window.allMatchSummaries;
+    
+    const currentCategory = categoryConfig; // Usar la config pasada, no buscar de nuevo en el DOM
     
     if (!currentCategory) {
         if (typeof toggleDashboardView === 'function') toggleDashboardView(false);
@@ -227,8 +263,8 @@ function processAllData() {
         const visitName = visitTeam ? visitTeam.name : 'Equipo Visitante Desconocido';
         
         [localName, visitName].forEach(name => {
-            if (!processedTeams[name]) {
-                processedTeams[name] = {
+            if (!window.processedTeams[name]) {
+                window.processedTeams[name] = {
                     name: name,
                     stats: { J: 0, G: 0, P: 0, NP: 0, GF: 0, GC: 0, Puntos: 0 },
                     matches: [],
@@ -262,7 +298,7 @@ function processAllData() {
         const periods = calculatePeriodsResult(match);
 
         const addStats = (team, opponent, score, oppScore, pWon, pLost, isLocal) => {
-            const t = processedTeams[team.name];
+            const t = window.processedTeams[team.name];
             t.stats.J++; t.stats.GF += score; t.stats.GC += oppScore;
             t.stats.Puntos += (score > oppScore) ? 2 : 1;
             
@@ -306,42 +342,54 @@ function processAllData() {
         addStats(visitor, local, sV, sL, periods.periodsWonVisit, periods.periodsWonLocal, false);
     });
 
-    if (Object.keys(processedTeams).length > 0) {
-        if (typeof displayKPIs === 'function') displayKPIs(); 
-        if (typeof renderClassificationTable === 'function') renderClassificationTable(); 
-        populateTeamFilterDetail(Object.values(processedTeams)); 
-        if (typeof toggleDashboardView === 'function') toggleDashboardView(true);
+    if (Object.keys(window.processedTeams).length > 0) {
+        // Estas llamadas deben ser condicionales o manejadas por uiRenderer.js
+        // para la página principal.
+        // if (typeof displayKPIs === 'function') displayKPIs(); 
+        // if (typeof renderClassificationTable === 'function') renderClassificationTable(); 
+        // populateTeamFilterDetail(Object.values(window.processedTeams)); 
+        // if (typeof toggleDashboardView === 'function') toggleDashboardView(true);
     }
 }
 
-function loadAllMatches() {
-    const selector = document.getElementById('categorySelector');
-    const folder = selector ? selector.value : '';
-    const cat = categoryConfiguration.find(c => c.folder === folder);
-    if (!cat) return;
-    
-    allMatchSummaries = {};
-    const promises = cat.match_files.map(fileName => 
-        fetch(`./Partidos/${folder}/${fileName}`)
-            .then(r => r.json())
-            .then(data => {
-                data.fileName = fileName; 
-                const jornadaPart = fileName.split('_')[0];
-                data.jornada = jornadaPart ? jornadaPart.replace('J', '') : 'N/D';
-                allMatchSummaries[fileName] = data; 
-            })
-    );
-    Promise.all(promises).then(() => processAllData());
-}
+
 
 document.addEventListener('DOMContentLoaded', () => {
     loadCategoryConfiguration().then(() => {
         const selector = document.getElementById('categorySelector');
-        if (selector) selector.addEventListener('change', loadAllMatches);
+        if (selector) selector.addEventListener('change', (event) => {
+            const selectedFolder = event.target.value;
+            window.currentSelectedTeam = selectedFolder; // Set current selected team on change
+            loadDataForCategory(selectedFolder).then(() => {
+                // Lógica de renderizado para index.html después de cargar la categoría
+                populateTeamFilterDetail(Object.values(window.processedTeams)); 
+                if (typeof displayKPIs === 'function') displayKPIs(); 
+                if (typeof renderClassificationTable === 'function') renderClassificationTable(); 
+                if (typeof toggleDashboardView === 'function') toggleDashboardView(true);
+            }).catch(error => console.error("Error al cargar y renderizar datos:", error));
+        });
+        
+        // Carga inicial: Si no hay categoría seleccionada, o si el selector está vacío, selecciona la primera.
+        let initialCategoryFolder = selector ? selector.value : '';
+        if (!initialCategoryFolder && window.categoryConfiguration.length > 0) {
+            initialCategoryFolder = window.categoryConfiguration[0].folder;
+            if (selector) selector.value = initialCategoryFolder; // Pre-seleccionar en el UI
+        }
+        
+        if (initialCategoryFolder) {
+            window.currentSelectedTeam = initialCategoryFolder; // Set current selected team for initial load
+            loadDataForCategory(initialCategoryFolder).then(() => {
+                populateTeamFilterDetail(Object.values(window.processedTeams)); 
+                if (typeof displayKPIs === 'function') displayKPIs(); 
+                if (typeof renderClassificationTable === 'function') renderClassificationTable(); 
+                if (typeof toggleDashboardView === 'function') toggleDashboardView(true);
+            }).catch(error => console.error("Error en carga inicial de datos:", error));
+        }
     });
 });
 
 function populateTeamFilterDetail(teams) {
+    console.log("populateTeamFilterDetail called with teams:", teams);
     const select = document.getElementById('teamFilterDetail'); 
     if (!select) return;
     select.innerHTML = '<option value="">-- Seleccionar Equipo --</option>';
@@ -354,7 +402,14 @@ function populateTeamFilterDetail(teams) {
         const selectedTeam = teams.find(t => t.name === this.value);
         if (selectedTeam) renderTeamDetails(selectedTeam);
     };
-    if (teams.length > 0) { select.value = teams[0].name; renderTeamDetails(teams[0]); }
+    if (teams.length > 0 && window.currentSelectedTeam) { // Solo si ya hay un equipo seleccionado por defecto
+        select.value = window.currentSelectedTeam; 
+        const defaultTeam = teams.find(t => t.name === window.currentSelectedTeam);
+        if (defaultTeam) renderTeamDetails(defaultTeam);
+    } else if (teams.length > 0) { // Si no hay currentSelectedTeam, seleccionar el primero
+        select.value = teams[0].name;
+        renderTeamDetails(teams[0]);
+    }
 }
 
 /**
@@ -362,6 +417,7 @@ function populateTeamFilterDetail(teams) {
  * Debe incluirse en js/dataProcessor.js o js/uiRenderer.js según tu estructura.
  */
 function renderTeamDetails(team) {
+    console.log("renderTeamDetails called with team:", team);
     // 1. Referencias a los contenedores del HTML
     const nameEl = document.getElementById('teamDetailName'); 
     const matchEl = document.getElementById('match-list'); 
@@ -431,7 +487,7 @@ function togglePlayerMatchDetails(playerKey, clickedRow) {
     if (detailRow.style.display === 'none') {
         detailRow.style.display = 'table-row';
         if (cell.innerHTML === '') {
-            const team = processedTeams[document.getElementById('teamFilterDetail').value];
+            const team = window.processedTeams[document.getElementById('teamFilterDetail').value];
             if (team && team.players[playerKey]) {
                 const history = team.players[playerKey].matchHistory.sort((a, b) => parseInt(a.jornada) - parseInt(b.jornada));
                 cell.innerHTML = generateMatchHistoryTable(history);

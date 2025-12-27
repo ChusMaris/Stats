@@ -374,9 +374,9 @@ function togglePlayerMatchDetail(event, playerName, clickedRow) {
                         <th style="width: 30%; text-align: left;">Oponente (Resultado)</th>
                         <th>Ptos</th>
                         <th>Tiempo (HH:MM)</th>
-                        <th>T1 (A/I)</th>
-                        <th>T2</th> 
-                        <th>T3</th> 
+                        <th>Tiros 1</th>
+                        <th>Tiros 2</th> 
+                        <th>Tiros 3</th> 
                         <th>Faltas</th>
                     </tr>
                 </thead>
@@ -862,7 +862,7 @@ function renderPlayerCards(players, containerId) {
                         : "https://www.w3schools.com/howto/img_avatar.png";
 
         return `
-            <div class="player-card">
+            <div class="player-card" style="cursor: pointer;" onclick="goToPlayerDetail('${encodeURIComponent(p.name)}', '${encodeURIComponent(window.currentSelectedTeam)}')">
                 <div class="card-photo-container">
                     <img src="${fotoUrl}" alt="${p.name}" onerror="this.src='https://www.w3schools.com/howto/img_avatar.png'">
                 </div>
@@ -900,4 +900,13 @@ function renderPlayerCards(players, containerId) {
     }).join('');
 
     container.innerHTML = `<div class="player-cards-grid">${cardsHtml}</div>`;
+}
+
+/**
+ * Redirige a la página de detalle del jugador.
+ * @param {string} playerName - Nombre del jugador.
+ * @param {string} teamName - Nombre del equipo.
+ */
+function goToPlayerDetail(playerName, categoryFolder) {
+    window.location.href = `player-detail.html?player=${playerName}&team=${categoryFolder}`;
 }

@@ -30,7 +30,7 @@ function renderPlayerCards(players, containerId) {
         const fotoUrl = (typeof JUGADOR_FOTOS !== 'undefined' && JUGADOR_FOTOS[key]) || "https://www.w3schools.com/howto/img_avatar.png";
 
         return `
-            <div class="player-card">
+            <div class="player-card" onclick="goToPlayerDetail('${p.name}')">
                 <div class="card-photo-container"><img src="${fotoUrl}" onerror="this.src='https://www.w3schools.com/howto/img_avatar.png'"></div>
                 <div class="card-dorsal">#${p.dorsal || '??'}</div>
                 <div class="card-name">${p.name}</div>
@@ -45,6 +45,16 @@ function renderPlayerCards(players, containerId) {
             </div>`;
     }).join('');
     container.innerHTML = `<div class="player-cards-grid">${cardsHtml}</div>`;
+}
+
+function goToPlayerDetail(playerName) {
+    console.log("Clicked player:", playerName, "Current Selected Team:", window.currentSelectedTeam);
+    if (window.currentSelectedTeam) { // currentSelectedTeam should be available from config.js
+        window.location.href = `player-detail.html?player=${encodeURIComponent(playerName)}&category=${encodeURIComponent(window.currentSelectedTeam)}`;
+    } else {
+        console.error("No se ha seleccionado ningún equipo. No se puede navegar al detalle del jugador.");
+        alert("Por favor, selecciona una categoría para ver el detalle del jugador."); // Añadir un alert para feedback al usuario
+    }
 }
 
 // Función togglePlayerMatchDetail (Se mantiene igual que la original)
