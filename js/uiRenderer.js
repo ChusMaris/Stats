@@ -2,8 +2,6 @@
 
 // Depende de: config.js, utils.js, dataProcessor.js
 
-let pfChart = null; // Para almacenar la instancia del gráfico
-
 function toggleDashboardView(show) {
     document.getElementById('dashboard-content').style.display = show ? 'block' : 'none'; 
 }
@@ -21,6 +19,32 @@ function displayKPIs() {
     
     const avgGFPerMatch = totalMatches > 0 ? (totalGF + totalGC) / (totalMatches * 2) : 0; 
     
+    // New Free Throw KPI calculation
+    let totalShotsOfOneAttempted = 0;
+    let totalShotsOfOneSuccessful = 0;
+
+    Object.values(processedTeams).forEach(team => {
+        if (team.players) {
+            Object.values(team.players).forEach(player => {
+                totalShotsOfOneAttempted += player.stats.shotsOfOneAttempted || 0;
+                totalShotsOfOneSuccessful += player.stats.shotsOfOneSuccessful || 0;
+            });
+        }
+    });
+
+    const freeThrowKpiHtml = `
+        <div class="kpi-card kpi-card-t1">
+            <div class="kpi-t1-chart">
+                ${createCircularProgressBar(totalShotsOfOneSuccessful, totalShotsOfOneAttempted)}
+            </div>
+            <div class="kpi-t1-details">
+                <div class="label">Tiros Libres</div>
+                <div class="value">${totalShotsOfOneSuccessful} / ${totalShotsOfOneAttempted}</div>
+                <div class="sub-label">(Acertados / Intentados)</div>
+            </div>
+        </div>
+    `;
+    
     const kpis = [
         { label: "Partidos Procesados", value: totalMatches },
         { label: "Equipos", value: totalTeams },
@@ -35,7 +59,7 @@ function displayKPIs() {
         </div>
     `).join('');
 
-    document.getElementById('kpi-container').innerHTML = kpiHtml;
+    document.getElementById('kpi-container').innerHTML = freeThrowKpiHtml + kpiHtml;
 }
 
 function renderClassificationTable() {
@@ -113,90 +137,6 @@ function renderClassificationTable() {
         container.innerHTML = html;
         makeTableSortable('classificationTable', list.map(item => ({...item, name: item.name, diff: item.diff, Ptos: item.Ptos})));
     }
-}
-
-function renderPointsEvolutionGraph() {
-    if (typeof Chart === 'undefined') {
-        console.error("Chart.js no está cargado.");
-        return;
-    }
-
-    const evolutionData = getPointsEvolutionData(); 
-    const ctx = document.getElementById('pfEvolutionChart');
-    
-    if (!ctx) {
-        console.error("No se encontró el elemento canvas con ID 'pfEvolutionChart'.");
-        return;
-    }
-    
-    if (pfChart) {
-        pfChart.destroy();
-    }
-    
-    if (evolutionData.length === 0) {
-        console.warn("No hay datos válidos para la evolución de puntos.");
-        return; 
-    }
-
-    const datasets = evolutionData.map((team, index) => {
-        const colors = [
-            '#3f51b5', '#ff9800', '#4caf50', '#f44336', '#9c27b0', '#00bcd4', 
-            '#8bc34a', '#ffeb3b', '#607d8b', '#795548', '#e91e63', '#009688'
-        ];
-        const color = colors[index % colors.length];
-        
-        return {
-            label: team.teamName, 
-            data: team.data, 
-            fill: false,
-            borderColor: color,
-            backgroundColor: color,
-            tension: 0.1, 
-            pointRadius: 5
-        };
-    });
-
-    pfChart = new Chart(ctx, {
-        type: 'line',
-        data: {
-            datasets: datasets
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            scales: {
-                x: {
-                    type: 'linear',
-                    position: 'bottom',
-                    title: {
-                        display: true,
-                        text: 'Jornada'
-                    },
-                    ticks: {
-                        stepSize: 1, 
-                        callback: function(value) {
-                            if (value === 0) return 'Inicio';
-                            return value;
-                        }
-                    },
-                    min: 0 
-                },
-                y: {
-                    title: {
-                        display: true,
-                        text: 'Puntos a Favor (Acumulado)'
-                    },
-                    beginAtZero: true
-                }
-            },
-            plugins: {
-                title: {
-                    display: true,
-                    text: 'Evolución de Puntos a Favor (PF)'
-                }
-            }
-        }
-    });
 }
 
 
@@ -579,22 +519,17 @@ function displayMatchPlayerStats(matchId, jornada) {
 
 // --- SETUP DE EVENTOS ---
 document.addEventListener('DOMContentLoaded', () => {
-    // Pestañas PRINCIPALES (Clasificación/Evolución)
+    // Pestañas PRINCIPALES (Clasificación)
     const mainTabs = document.querySelectorAll('#main-tabs .tab-button');
     mainTabs.forEach(button => {
         button.addEventListener('click', () => {
             const targetTab = button.getAttribute('data-tab');
 
             mainTabs.forEach(btn => btn.classList.remove('active'));
-            document.getElementById('tab-content-classification').style.display = 'none';
-            document.getElementById('tab-content-evolution').style.display = 'none';
-
             button.classList.add('active');
-            document.getElementById(`tab-content-${targetTab}`).style.display = 'block';
 
-            if (targetTab === 'evolution') {
-                renderPointsEvolutionGraph(); 
-            } else if (targetTab === 'classification') {
+            if (targetTab === 'classification') {
+                document.getElementById('tab-content-classification').style.display = 'block';
                 renderClassificationTable(); 
             }
         });

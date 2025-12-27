@@ -146,10 +146,12 @@ function renderPlayerEvolutionCharts(player) {
 
     const labels = sortedMatchHistory.map(m => `J${m.jornada} vs ${m.opponentName}`);
     const ppgData = sortedMatchHistory.map(m => m.Puntos);
-    const t2PctData = sortedMatchHistory.map(m => m.shotsOfTwoAttempted > 0 ? ((m.shotsOfTwoSuccessful / m.shotsOfTwoAttempted) * 100).toFixed(1) : 0);
-    const t3PctData = sortedMatchHistory.map(m => m.shotsOfThreeAttempted > 0 ? ((m.shotsOfThreeSuccessful / m.shotsOfThreeAttempted) * 100).toFixed(1) : 0);
-    const reboundsData = sortedMatchHistory.map(m => m.Rebotes || 0); // Asumiendo que Rebotes existe en matchHistory
-    const assistsData = sortedMatchHistory.map(m => m.Asistencias || 0); // Asumiendo que Asistencias existe en matchHistory
+    
+    // Data for the new free throw chart
+    const ftAttemptedData = sortedMatchHistory.map(m => m.shotsOfOneAttempted || 0);
+    const ftSuccessfulData = sortedMatchHistory.map(m => m.shotsOfOneSuccessful || 0);
+    const ftPctData = sortedMatchHistory.map(m => m.shotsOfOneAttempted > 0 ? ((m.shotsOfOneSuccessful / m.shotsOfOneAttempted) * 100).toFixed(1) : 0);
+
 
     // Chart 1: Puntos por Partido (PPG)
     new Chart(document.getElementById('ppgEvolutionChart'), {
@@ -183,27 +185,27 @@ function renderPlayerEvolutionCharts(player) {
         }
     });
 
-    // Chart 2: Eficiencia de Tiro (T2% y T3%)
-    new Chart(document.getElementById('efficiencyEvolutionChart'), {
-        type: 'line',
+    // Chart 2: Free Throws (Attempted vs Successful)
+    new Chart(document.getElementById('freeThrowEvolutionChart'), {
+        type: 'bar',
         data: {
             labels: labels,
             datasets: [
                 {
-                    label: 'Tiros de 2 Puntos (%)',
-                    data: t2PctData,
-                    borderColor: 'rgba(75, 192, 192, 1)',
-                    backgroundColor: 'rgba(75, 192, 192, 0.2)',
-                    fill: false,
-                    tension: 0.3
+                    label: 'Tiros Libres Intentados',
+                    data: ftAttemptedData,
+                    backgroundColor: 'rgba(255, 99, 132, 0.2)',
+                    borderColor: 'rgba(255, 99, 132, 1)',
+                    borderWidth: 1,
+                    yAxisID: 'y'
                 },
                 {
-                    label: 'Tiros de 3 Puntos (%)',
-                    data: t3PctData,
-                    borderColor: 'rgba(153, 102, 255, 1)',
-                    backgroundColor: 'rgba(153, 102, 255, 0.2)',
-                    fill: false,
-                    tension: 0.3
+                    label: 'Tiros Libres Anotados',
+                    data: ftSuccessfulData,
+                    backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                    borderColor: 'rgba(75, 192, 192, 1)',
+                    borderWidth: 1,
+                    yAxisID: 'y'
                 }
             ]
         },
@@ -213,56 +215,22 @@ function renderPlayerEvolutionCharts(player) {
             scales: {
                 y: {
                     beginAtZero: true,
-                    max: 100
+                    type: 'linear',
+                    position: 'left',
+                    title: {
+                        display: true,
+                        text: 'Número de Tiros'
+                    }
                 }
             },
             plugins: {
                 title: {
                     display: true,
-                    text: 'Evolución de Eficiencia de Tiro (T2% y T3%)',
-                    color: '#333'
+                    text: 'Evolución de Tiros Libres por Partido'
                 }
             }
         }
     });
-
-    // Chart 3: Rebotes y Asistencias (asumiendo que existen en los datos)
-    // Se puede añadir si los datos de rebotes y asistencias están disponibles en matchHistory.
-    // Para este ejemplo, solo se muestra el esqueleto.
-    // if (document.getElementById('reboundsAssistsEvolutionChart')) {
-    //     new Chart(document.getElementById('reboundsAssistsEvolutionChart'), {
-    //         type: 'bar', // O 'line' si se prefiere
-    //         data: {
-    //             labels: labels,
-    //             datasets: [
-    //                 {
-    //                     label: 'Rebotes',
-    //                     data: reboundsData,
-    //                     backgroundColor: 'rgba(255, 159, 64, 0.6)'
-    //                 },
-    //                 {
-    //                     label: 'Asistencias',
-    //                     data: assistsData,
-    //                     backgroundColor: 'rgba(54, 162, 235, 0.6)'
-    //                 }
-    //             ]
-    //         },
-    //         options: {
-    //             responsive: true,
-    //             maintainAspectRatio: false,
-    //             scales: {
-    //                 x: { stacked: true },
-    //                 y: { stacked: true, beginAtZero: true }
-    //             },
-    //             plugins: {
-    //                 title: {
-    //                     display: true,
-    //                     text: 'Evolución de Rebotes y Asistencias',
-    //                     color: '#333'
-    //                 }
-            // }
-    //     });
-    // }
 }
 
 /**
