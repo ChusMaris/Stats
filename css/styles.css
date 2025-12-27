@@ -31,16 +31,39 @@
 
 /* --- B. RESPONSIVE (Solo para el bloqueo de columna en móvil) --- */
 @media (max-width: 768px) {
+    /* 1. Contenedores y Títulos */
     .container { padding: 0 10px; }
-    .dashboard-header h1 { font-size: 1.2em; }
     
-    .stats-table {
-        min-width: 800px; /* Fuerza el scroll lateral en móvil */
-        border-collapse: separate !important; 
-        border-spacing: 0;
+    .dashboard-header h1 { 
+        font-size: 1.1em !important; /* Texto más pequeño para el título */
+    }
+    
+    /* 2. Filtros y Combos (Categorías) */
+    .input-group {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 5px;
     }
 
-    /* BLOQUEO EXCLUSIVO DE LA COLUMNA 1 (LOGO) */
+    .input-group label {
+        font-size: 0.9em; /* Etiqueta tamaño estándar */
+    }
+
+    select {
+        width: 100% !important;
+        box-sizing: border-box;
+        font-size: 0.9em !important; /* Forzamos a que NO crezca el texto del combo */
+        padding: 6px !important;
+    }
+
+    /* 3. Tabla y Bloqueo de Columna */
+    .stats-table {
+        min-width: 800px;
+        border-collapse: separate !important;
+        border-spacing: 0;
+        font-size: 0.85em; /* Ligeramente más pequeño para que quepa más info */
+    }
+
     .stats-table th:nth-child(1),
     .stats-table td:nth-child(1) {
         position: sticky !important;
@@ -52,6 +75,12 @@
     .stats-table th:nth-child(1) {
         z-index: 11;
         background-color: var(--header-color) !important;
+    }
+
+    /* 4. Pestañas */
+    .tabs .tab-button {
+        font-size: 0.9em; /* Normalizamos el tamaño de las pestañas */
+        padding: 8px 10px;
     }
 }
 
@@ -92,6 +121,7 @@ body {
     color: #333;
     margin: 0;
     padding: 0;
+    -webkit-text-size-adjust: 100%;
 }
 
 :root {
