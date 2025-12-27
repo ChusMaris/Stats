@@ -7,46 +7,51 @@
 /* ========================================================= */
 /* --- 0. RESPONSIVE / MEDIA QUERIES --- */
 /* ========================================================= */
-@media (max-width: 768px) {
-    /* 1. Contenedor para que el scroll no rompa el diseño (se quede dentro de la card) */
-    .table-responsive {
-        width: 100%;
-        overflow-x: auto !important;
-        display: block;
-        -webkit-overflow-scrolling: touch;
-    }
+/* Evita que la grid se salga de su sitio */
+.card-table-container {
+    width: 100% !important;
+    overflow-x: auto !important; 
+    display: block;
+    -webkit-overflow-scrolling: touch;
+    position: relative;
+    box-sizing: border-box;
+}
 
+/* LOGO SIEMPRE REDONDO (Sacado de la media query) */
+.stats-table td:nth-child(1) img, 
+.team-logo {
+    width: 40px !important;
+    height: 40px !important;
+    border-radius: 50% !important; /* Círculo perfecto siempre */
+    object-fit: cover !important;
+    display: block;
+    margin: 0 auto;
+    border: 1px solid #ddd;
+}
+
+/* --- B. RESPONSIVE (Solo para el bloqueo de columna en móvil) --- */
+@media (max-width: 768px) {
+    .container { padding: 0 10px; }
+    .dashboard-header h1 { font-size: 1.2em; }
+    
     .stats-table {
-        min-width: 800px; /* Asegura que haya contenido para desplazar */
-        border-collapse: separate !important;
+        min-width: 800px; /* Fuerza el scroll lateral en móvil */
+        border-collapse: separate !important; 
         border-spacing: 0;
     }
 
-    /* 2. BLOQUEO EXCLUSIVO DE LA PRIMERA COLUMNA (LOGO) */
+    /* BLOQUEO EXCLUSIVO DE LA COLUMNA 1 (LOGO) */
     .stats-table th:nth-child(1),
     .stats-table td:nth-child(1) {
         position: sticky !important;
         left: 0;
         z-index: 10;
         background-color: white !important;
-        width: 60px; /* Ancho fijo para el logo */
-        min-width: 60px;
     }
 
     .stats-table th:nth-child(1) {
         z-index: 11;
         background-color: var(--header-color) !important;
-    }
-
-    /* 3. LOGOS EN CÍRCULO (RECUPERADO) */
-    .stats-table td:nth-child(1) img {
-        width: 40px;
-        height: 40px;
-        border-radius: 50%; /* Hace el círculo */
-        object-fit: cover;
-        border: 1px solid #ddd;
-        display: block;
-        margin: 0 auto;
     }
 }
 
