@@ -106,6 +106,11 @@ function renderPlayerAggregatedKPIs(player) {
             <span class="value">${player.stats.Faltas}</span>
             <span class="label">Faltas Totales</span>
         </div>
+        <div class="kpi-card">
+            <span class="value">${player.stats.shotsOfOneSuccessful}/${player.stats.shotsOfOneAttempted}</span>
+            <span class="label">Tiros Libres</span>
+            ${createCircularProgressBar(player.stats.shotsOfOneSuccessful, player.stats.shotsOfOneAttempted)}
+        </div>
         <!-- Añadir más KPIs según necesidad -->
     `;
     kpiContainer.innerHTML = `<div class="kpi-container">${kpisHtml}</div>`; // Reusing kpi-container class
@@ -123,7 +128,7 @@ function renderPlayerGameLog(player) {
         cardsHtml += `
             <div class="game-card card">
                 <h4>Jornada ${m.jornada} vs ${m.opponentName}</h4>
-                <p>Fecha: ${m.date}</p>
+                <p>Fecha: ${formatDateToSpanish(m.time)}</p>
                 <p>Resultado: ${m.teamScore}-${m.opponentScore} ${m.teamScore > m.opponentScore ? '(Victoria)' : '(Derrota)'}</p>
                 <div class="game-stats">
                     <div class="stat-item"><span class="stat-value">${gamePoints}</span><span class="stat-label">PTS</span></div>

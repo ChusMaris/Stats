@@ -333,7 +333,8 @@ function processAllData(categoryConfig) {
                         Puntos: pd.score || 0, Minutos: player.timePlayed || 0, Faltas: pd.faults || 0,
                         shotsOfOneSuccessful: pd.shotsOfOneSuccessful || 0, shotsOfOneAttempted: pd.shotsOfOneAttempted || 0,
                         shotsOfTwoSuccessful: pd.shotsOfTwoSuccessful || 0, shotsOfTwoAttempted: pd.shotsOfTwoAttempted || 0,
-                        shotsOfThreeSuccessful: pd.shotsOfThreeSuccessful || 0, shotsOfThreeAttempted: pd.shotsOfThreeAttempted || 0
+                        shotsOfThreeSuccessful: pd.shotsOfThreeSuccessful || 0, shotsOfThreeAttempted: pd.shotsOfThreeAttempted || 0,
+                        time: match.time // Add the time field here
                     });
                 });
             }
@@ -345,10 +346,7 @@ function processAllData(categoryConfig) {
     if (Object.keys(window.processedTeams).length > 0) {
         // Estas llamadas deben ser condicionales o manejadas por uiRenderer.js
         // para la página principal.
-        // if (typeof displayKPIs === 'function') displayKPIs(); 
-        // if (typeof renderClassificationTable === 'function') renderClassificationTable(); 
-        // populateTeamFilterDetail(Object.values(window.processedTeams)); 
-        // if (typeof toggleDashboardView === 'function') toggleDashboardView(true);
+
     }
 }
 
@@ -366,7 +364,6 @@ document.addEventListener('DOMContentLoaded', () => {
             loadDataForCategory(selectedFolder).then(() => {
                 // Lógica de renderizado para index.html después de cargar la categoría
                 populateTeamFilterDetail(Object.values(window.processedTeams)); 
-                if (typeof displayKPIs === 'function') displayKPIs(); 
                 if (typeof renderClassificationTable === 'function') renderClassificationTable(); 
                 if (typeof toggleDashboardView === 'function') toggleDashboardView(true);
             }).catch(error => console.error("Error al cargar y renderizar datos:", error));
@@ -389,7 +386,6 @@ document.addEventListener('DOMContentLoaded', () => {
             window.currentSelectedCategoryFolder = initialCategoryFolder; // Set current selected team for initial load
             loadDataForCategory(initialCategoryFolder).then(() => {
                 populateTeamFilterDetail(Object.values(window.processedTeams)); 
-                if (typeof displayKPIs === 'function') displayKPIs(); 
                 if (typeof renderClassificationTable === 'function') renderClassificationTable(); 
                 if (typeof toggleDashboardView === 'function') toggleDashboardView(true);
             }).catch(error => console.error("Error en carga inicial de datos:", error));

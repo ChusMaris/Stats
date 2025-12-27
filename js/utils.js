@@ -56,6 +56,32 @@ function formatTime(minutes) {
 }
 
 /**
+ * Formatea una cadena de fecha/hora al formato español "DD/mes/YYYY HH:MM AM/PM".
+ * @param {string} dateString - La cadena de fecha/hora en formato inglés (ej. "Oct 11, 2025 12:00:00 PM").
+ * @returns {string} La cadena de fecha/hora formateada.
+ */
+function formatDateToSpanish(dateString) {
+    if (!dateString) return 'N/D';
+
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) {
+        return 'Fecha Inválida';
+    }
+
+    const options = {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: true,
+        timeZone: 'UTC' // Assuming the input date string is in UTC. Adjust if not.
+    };
+    // Use 'es-ES' locale for Spanish formatting
+    return new Intl.DateTimeFormat('es-ES', options).format(date);
+}
+
+/**
  * Genera el HTML para mostrar la eficiencia de tiro.
  */
 function renderShotEfficiency(successful, attempted, format = 'full') {

@@ -6,61 +6,7 @@ function toggleDashboardView(show) {
     document.getElementById('dashboard-content').style.display = show ? 'block' : 'none'; 
 }
 
-function displayKPIs() {
-    const totalMatches = Object.keys(allMatchSummaries).length;
-    const totalTeams = Object.keys(processedTeams).length;
 
-    let totalGF = 0;
-    let totalGC = 0;
-    Object.values(processedTeams).forEach(t => {
-        totalGF += t.stats.GF;
-        totalGC += t.stats.GC;
-    });
-    
-    const avgGFPerMatch = totalMatches > 0 ? (totalGF + totalGC) / (totalMatches * 2) : 0; 
-    
-    // New Free Throw KPI calculation
-    let totalShotsOfOneAttempted = 0;
-    let totalShotsOfOneSuccessful = 0;
-
-    Object.values(processedTeams).forEach(team => {
-        if (team.players) {
-            Object.values(team.players).forEach(player => {
-                totalShotsOfOneAttempted += player.stats.shotsOfOneAttempted || 0;
-                totalShotsOfOneSuccessful += player.stats.shotsOfOneSuccessful || 0;
-            });
-        }
-    });
-
-    const freeThrowKpiHtml = `
-        <div class="kpi-card kpi-card-t1">
-            <div class="kpi-t1-chart">
-                ${createCircularProgressBar(totalShotsOfOneSuccessful, totalShotsOfOneAttempted)}
-            </div>
-            <div class="kpi-t1-details">
-                <div class="label">Tiros Libres</div>
-                <div class="value">${totalShotsOfOneSuccessful} / ${totalShotsOfOneAttempted}</div>
-                <div class="sub-label">(Acertados / Intentados)</div>
-            </div>
-        </div>
-    `;
-    
-    const kpis = [
-        { label: "Partidos Procesados", value: totalMatches },
-        { label: "Equipos", value: totalTeams },
-        { label: "Puntos Totales (GF+GC)", value: totalGF + totalGC },
-        { label: "Media Ptos/Partido", value: avgGFPerMatch.toFixed(1) }
-    ];
-
-    const kpiHtml = kpis.map(k => `
-        <div class="kpi-card">
-            <div class="value">${k.value}</div>
-            <div class="label">${k.label}</div>
-        </div>
-    `).join('');
-
-    document.getElementById('kpi-container').innerHTML = freeThrowKpiHtml + kpiHtml;
-}
 
 function renderClassificationTable() {
     const list = calculateClassification(allMatchSummaries);
