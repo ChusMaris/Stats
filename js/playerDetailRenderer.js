@@ -135,9 +135,9 @@ function renderPlayerGameLog(player) {
                     <div class="stat-item"><span class="stat-value">${formatTime(gameMinutes)}</span><span class="stat-label">MIN</span></div>
                     <div class="stat-item"><span class="stat-value">${gamePPM}</span><span class="stat-label">PPM</span></div>
                     <!-- Añadir más estadísticas del partido si se desea -->
-                    <div class="stat-item"><span class="stat-value">${renderShotEfficiency(m.shotsOfOneSuccessful, m.shotsOfOneAttempted, 'compact_pct')}</span><span class="stat-label">T1%</span></div>
-                    <div class="stat-item"><span class="stat-value">${renderShotEfficiency(m.shotsOfTwoSuccessful, m.shotsOfTwoAttempted, 'compact_pct')}</span><span class="stat-label">T2%</span></div>
-                    <div class="stat-item"><span class="stat-value">${renderShotEfficiency(m.shotsOfThreeSuccessful, m.shotsOfThreeAttempted, 'compact_pct')}</span><span class="stat-label">T3%</span></div>
+                    <div class="stat-item"><span class="stat-value">${createCircularProgressBar(m.shotsOfOneSuccessful, m.shotsOfOneAttempted)}</span><span class="stat-label">T1</span></div>
+                    <div class="stat-item"><span class="stat-value">${m.shotsOfTwoSuccessful}</span><span class="stat-label">T2</span></div>
+                    <div class="stat-item"><span class="stat-value">${m.shotsOfThreeSuccessful}</span><span class="stat-label">T3</span></div>
                     <div class="stat-item"><span class="stat-value">${m.Faltas}</span><span class="stat-label">FALTAS</span></div>
                 </div>
             </div>
@@ -149,7 +149,7 @@ function renderPlayerGameLog(player) {
 function renderPlayerEvolutionCharts(player) {
     const sortedMatchHistory = player.matchHistory.sort((a, b) => parseInt(a.jornada) - parseInt(b.jornada));
 
-    const labels = sortedMatchHistory.map(m => `J${m.jornada} vs ${m.opponentName}`);
+    const labels = sortedMatchHistory.map(m => `J${m.jornada}`);
     const ppgData = sortedMatchHistory.map(m => m.Puntos);
     
     // Data for the new free throw chart
