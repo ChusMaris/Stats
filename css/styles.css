@@ -3,25 +3,38 @@
 /* ========================================================= */
 /* --- 0. RESPONSIVE / MEDIA QUERIES --- */
 /* ========================================================= */
-/* --- Media Query para Dispositivos Móviles (hasta 768px) --- */
-/* ========================================================= */
-/* --- 0. RESPONSIVE / MEDIA QUERIES --- */
-/* ========================================================= */
-/* Evita que la grid se salga de su sitio */
-.card-table-container {
+/* --- A. AJUSTES GLOBALES (Fuera de Media Query) --- */
+
+/* js/styles.css */
+
+/* --- 1. ESTILOS GLOBALES (Siempre activos: logos, texto y contenedores) --- */
+
+body {
+    font-family: Arial, sans-serif;
+    background-color: #f4f4f9;
+    color: #333;
+    margin: 0;
+    padding: 0;
+    -webkit-text-size-adjust: 100%; /* Evita que el texto crezca solo en móvil */
+}
+
+/* Contenedor que evita que la grid se salga de la caja blanca */
+.card-table-container, .table-responsive {
     width: 100% !important;
-    overflow-x: auto !important; 
+    overflow-x: auto !important;
     display: block;
     -webkit-overflow-scrolling: touch;
     position: relative;
-    box-sizing: border-box;
+    padding: 0 !important;
 }
 
-/* LOGO SIEMPRE REDONDO (Sacado de la media query) */
+/* LOGO SIEMPRE REDONDO (Funciona con y sin scroll) */
 .stats-table td:nth-child(1) img, 
+.classification-table td:nth-child(1) img,
+.player-stats-table td:nth-child(1) img,
 .team-logo {
-    width: 40px !important;
-    height: 40px !important;
+    width: 35px !important;
+    height: 35px !important;
     border-radius: 50% !important; /* Círculo perfecto siempre */
     object-fit: cover !important;
     display: block;
@@ -29,58 +42,50 @@
     border: 1px solid #ddd;
 }
 
-/* --- B. RESPONSIVE (Solo para el bloqueo de columna en móvil) --- */
+/* --- 2. RESPONSIVE / MEDIA QUERIES (Solo móviles < 768px) --- */
 @media (max-width: 768px) {
-    /* 1. Contenedores y Títulos */
     .container { padding: 0 10px; }
-    
-    .dashboard-header h1 { 
-        font-size: 1.1em !important; /* Texto más pequeño para el título */
-    }
-    
-    /* 2. Filtros y Combos (Categorías) */
+    .dashboard-header h1 { font-size: 1.1em !important; }
+
+    /* Ajuste de los selectores (Categorías) para que no se salgan */
     .input-group {
         flex-direction: column;
         align-items: flex-start;
         gap: 5px;
     }
-
-    .input-group label {
-        font-size: 0.9em; /* Etiqueta tamaño estándar */
-    }
-
     select {
         width: 100% !important;
-        box-sizing: border-box;
-        font-size: 0.9em !important; /* Forzamos a que NO crezca el texto del combo */
+        font-size: 0.9em !important;
         padding: 6px !important;
     }
 
-    /* 3. Tabla y Bloqueo de Columna */
-    .stats-table {
-        min-width: 800px;
-        border-collapse: separate !important;
+    /* CONFIGURACIÓN DE BLOQUEO PARA TODAS LAS TABLAS */
+    .stats-table, .classification-table, .player-stats-table, .match-stats-table {
+        min-width: 800px !important; /* Fuerza el scroll lateral */
+        border-collapse: separate !important; /* Obligatorio para sticky */
         border-spacing: 0;
-        font-size: 0.85em; /* Ligeramente más pequeño para que quepa más info */
+        font-size: 0.85em;
     }
 
-    .stats-table th:nth-child(1),
-    .stats-table td:nth-child(1) {
+    /* BLOQUEO DE LA COLUMNA 1 (Dorsal en Stats / Logo en Clasificación) */
+    .stats-table th:nth-child(1), .stats-table td:nth-child(1),
+    .classification-table th:nth-child(1), .classification-table td:nth-child(1),
+    .player-stats-table th:nth-child(1), .player-stats-table td:nth-child(1),
+    .match-stats-table th:nth-child(1), .match-stats-table td:nth-child(1) {
         position: sticky !important;
         left: 0;
         z-index: 10;
         background-color: white !important;
+        border-right: 1px solid #eee;
     }
 
-    .stats-table th:nth-child(1) {
+    /* Aseguramos que las cabeceras azules también se queden fijas */
+    .stats-table th:nth-child(1),
+    .classification-table th:nth-child(1),
+    .player-stats-table th:nth-child(1),
+    .match-stats-table th:nth-child(1) {
         z-index: 11;
         background-color: var(--header-color) !important;
-    }
-
-    /* 4. Pestañas */
-    .tabs .tab-button {
-        font-size: 0.9em; /* Normalizamos el tamaño de las pestañas */
-        padding: 8px 10px;
     }
 }
 
