@@ -1,5 +1,8 @@
 /* js/styles.css */
 
+/* ========================================================= */
+/* --- 0. RESPONSIVE / MEDIA QUERIES --- */
+/* ========================================================= */
 /* --- Media Query para Dispositivos Móviles (hasta 768px) --- */
 @media (max-width: 768px) {
     
@@ -42,7 +45,30 @@
     }
 }
 
+/* Aplicamos overflow-x a los contenedores que albergan las tablas */
+#classification-content,
+#player-content, /* Estadísticas Agregadas */
+#match-list,
+#match-player-detail {
+    overflow-x: auto; /* Permite el scroll horizontal solo si el contenido lo excede */
+    -webkit-overflow-scrolling: touch; /* Mejora el scroll en iOS */
+}
+
+/* Aseguramos que la tabla dentro de estos contenedores tenga un ancho mínimo para forzar el scroll */
+/* Este min-width es crucial para que la tabla sea legible en móvil */
+#classification-content table, 
+#player-content table,
+#match-list table, 
+#match-player-detail table {
+    min-width: 700px; 
+    width: 100%; /* Ocupa el 100% del contenedor de scroll */
+}
+
 /* --- Estilos Generales y Estructura --- */
+/* ========================================================= */
+/* --- 0. GENERALES / BASE & VARIABLES --- */
+/* ========================================================= */
+
 body {
     font-family: Arial, sans-serif;
     background-color: #f4f4f9;
@@ -65,6 +91,9 @@ body {
     padding: 0 20px;
 }
 
+/* ========================================================= */
+/* --- 1. ENCABEZADO --- */
+/* ========================================================= */
 .dashboard-header {
     /* --- CAMBIOS SOLICITADOS (Fondo de Imagen FCBQ) --- */
     background-image: url('https://www.basquetcatala.cat/apps/web/continguts/css/plantilles/2017/img/FCBQ24_Header.png');
@@ -91,6 +120,9 @@ body {
     text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.7);
 }
 
+/* ========================================================= */
+/* --- 2. TARJETAS Y TIPOGRAFÍA GENERAL --- */
+/* ========================================================= */
 .card {
     background-color: white;
     padding: 20px;
@@ -107,6 +139,9 @@ h2, h3, h4 {
 }
 
 /* --- Input y Botones --- */
+/* ========================================================= */
+/* --- 3. ELEMENTOS DE FORMULARIO (INPUTS & BOTONES) --- */
+/* ========================================================= */
 .input-group {
     display: flex;
     gap: 10px;
@@ -142,6 +177,9 @@ select {
 
 
 /* --- KPIs --- */
+/* ========================================================= */
+/* --- 4. INDICADORES CLAVE DE RENDIMIENTO (KPIs) --- */
+/* ========================================================= */
 #kpi-container {
     display: flex;
     justify-content: space-around;
@@ -170,6 +208,9 @@ select {
 }
 
 /* --- Pestañas Principales --- */
+/* ========================================================= */
+/* --- 5. PESTAÑAS PRINCIPALES --- */
+/* ========================================================= */
 .tabs {
     display: flex;
     border-bottom: 2px solid var(--primary-color);
@@ -177,32 +218,39 @@ select {
 }
 
 .tabs .tab-button {
-    padding: 10px 15px;
+    background-color: #f0f0f0; /* Fondo por defecto */
+    border: none;
+    outline: none;
     cursor: pointer;
-    background-color: #f0f0f0;
-    border: 1px solid #ccc;
-    border-bottom: none;
-    border-radius: 5px 5px 0 0;
-    margin-right: 5px;
+    padding: 10px 15px;
+    transition: 0.3s; /* Transición suave */
+    font-size: 16px; /* Tamaño de fuente más estándar */
+    border-top-left-radius: 5px;
+    border-top-right-radius: 5px;
+    margin-right: 2px;
     font-weight: bold;
     color: #666;
 }
 
+.tabs .tab-button:hover {
+    background-color: #ddd; /* Fondo al pasar el ratón */
+}
+
 .tabs .tab-button.active {
-    background-color: white;
+    background-color: #fff;
+    border-bottom: 2px solid var(--primary-color); /* Línea azul para la pestaña activa */
     color: var(--primary-color);
-    border-color: var(--primary-color);
-    border-bottom: 2px solid white; 
+    font-weight: bold;
 }
 
 
-/* --- Contenedores de Gráficos (CRÍTICO) --- */
-#tab-content-evolution {
-    min-height: 450px; 
-    padding: 20px;
-    background-color: white;
-    border-radius: 0 8px 8px 8px;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05);
+/* Contenedores de contenido de pestañas */
+#tab-content-aggregated, #tab-content-matches, #tab-content-evolution {
+    padding: 10px 0;
+    min-height: 450px; /* Mantener para la evolución */
+    background-color: white; /* Mantener para la evolución */
+    border-radius: 0 8px 8px 8px; /* Mantener para la evolución */
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.05); /* Mantener para la evolución */
 }
 
 #pfEvolutionChart {
@@ -212,6 +260,9 @@ select {
 
 
 /* --- Tablas --- */
+/* ========================================================= */
+/* --- 6. TABLAS PRINCIPALES --- */
+/* ========================================================= */
 .stats-table {
     width: 100%;
     border-collapse: collapse;
@@ -289,23 +340,27 @@ select {
     font-weight: bold;
 }
 
-
 /* Fila de Detalle de Jugador (oculta) */
 .match-detail-row {
     background-color: #eef2f7 !important;
 }
 
+/* ========================================================= */
+/* --- 7. SUBGRID (DETALLE DE JUGADOR) --- */
+/* ========================================================= */
 /* Subgrid dentro del detalle */
 .subgrid-container {
     padding: 10px;
-    background-color: #eef2f7;
-    box-shadow: none;
+    background-color: #eef5f9; /* Fondo azul-gris muy claro */
+    box-shadow: inset 0 2px 4px rgba(0,0,0,0.04);
+    border-top: 2px solid #a8c3d9; /* Borde superior azul más oscuro */
 }
 
 .subgrid-container h4 {
-    color: #333;
-    border-bottom: 1px dashed #ccc;
-    font-size: 1.1em;
+    color: var(--primary-color); /* Color de texto primario */
+    border-bottom: 1px dashed #a8c3d9; /* Cambiar el color del borde para que coincida con el nuevo esquema */
+    font-size: 1.15em; /* Ligeramente más grande */
+    padding-bottom: 5px; /* Pequeño padding para separar del borde */
 }
 
 .subgrid-table {
@@ -314,14 +369,23 @@ select {
 }
 
 .subgrid-table thead th {
-    background-color: #d8e2ed;
-    color: #333;
+    background-color: #d1e2ed; /* Azul claro para el fondo del encabezado */
+    color: var(--primary-color); /* Color primario para el texto */
     padding: 8px 10px;
-    border-right: 1px solid #eef2f7;
+    border-right: 1px solid #eef5f9; /* Borde derecho que coincida con el fondo del contenedor */
+    border-bottom: 1px solid #a8c3d9; /* Borde inferior que coincida con el nuevo esquema */
 }
 
 .subgrid-table tbody tr {
-    background-color: transparent !important;
+    background-color: #ffffff !important; /* Fondo blanco para filas impares */
+}
+
+.subgrid-table tbody tr:nth-child(even) {
+    background-color: #f7fbfc !important; /* Fondo azul muy claro para filas pares */
+}
+
+.subgrid-table tbody tr:hover {
+    background-color: #e6f2f9 !important; /* Fondo azul claro al pasar el ratón */
 }
 
 .shot-efficiency {
@@ -370,91 +434,15 @@ select {
     background-color: #e3f2fd; /* Resaltar al pasar el ratón */
 }
 
-/* --- Estilos de Navegación (Tabs) --- */
 
-.tabs {
-    display: flex;
-    border-bottom: 2px solid #ccc;
-    margin-bottom: 15px;
-}
 
-.tab-button {
-    background-color: #f1f1f1;
-    border: none;
-    outline: none;
-    cursor: pointer;
-    padding: 10px 15px;
-    transition: 0.3s;
-    font-size: 16px;
-    border-top-left-radius: 5px;
-    border-top-right-radius: 5px;
-    margin-right: 2px;
-}
 
-.tab-button:hover {
-    background-color: #ddd;
-}
-
-.tab-button.active {
-    background-color: #fff;
-    border-bottom: 2px solid #014C78; /* Línea azul para la pestaña activa */
-    color: #014C78;
-    font-weight: bold;
-}
-
-/* Contenedores de contenido de pestañas (Tab Contents) */
-#tab-content-aggregated, #tab-content-matches, #tab-content-evolution {
-    padding: 10px 0;
-}
-
-/* --- Elementos de formulario y tarjetas --- */
-
-.card {
-    background-color: white;
-    padding: 20px;
-    border-radius: 8px;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-    margin-bottom: 20px;
-}
-
-.input-group {
-    margin-bottom: 15px;
-}
-
-.input-group label {
-    display: block;
-    margin-bottom: 5px;
-    font-weight: 600;
-    color: #555;
-}
-
-.input-group select {
-    width: 100%;
-    padding: 10px;
-    border: 1px solid #ccc;
-    border-radius: 4px;
-    box-sizing: border-box;
-}
-
-/* Estilos de KPI (si los usas, añade esta sección) */
-.kpi-container {
-    display: flex;
-    justify-content: space-around;
-    flex-wrap: wrap;
-    margin-bottom: 20px;
-}
-
-.kpi-card {
-    background-color: #e8eaf6; 
-    padding: 15px;
-    border-radius: 6px;
-    text-align: center;
-    margin: 10px;
-    flex: 1;
-    min-width: 150px;
-}
 
 /* --- Estilos para la tabla de detalle por jugador --- */
+
+/* ========================================================= */
+/* --- 8. TABLA DE DETALLE POR JUGADOR --- */
+/* ========================================================= */
 
 /* Hace que la fila de resumen sea clickable */
 .player-summary-row {
@@ -490,28 +478,11 @@ select {
     background-color: #fafafa;
 }
 
-/* Aplicamos overflow-x a los contenedores que albergan las tablas */
-#classification-content,
-#player-content, /* Estadísticas Agregadas */
-#match-list,
-#match-player-detail {
-    overflow-x: auto; /* Permite el scroll horizontal solo si el contenido lo excede */
-    -webkit-overflow-scrolling: touch; /* Mejora el scroll en iOS */
-}
 
-/* Aseguramos que la tabla dentro de estos contenedores tenga un ancho mínimo para forzar el scroll */
-/* Este min-width es crucial para que la tabla sea legible en móvil */
-#classification-content table, 
-#player-content table,
-#match-list table, 
-#match-player-detail table {
-    min-width: 700px; 
-    width: 100%; /* Ocupa el 100% del contenedor de scroll */
-}
 
-/* js/styles.css (Añadir al final) */
-
-/* --- Estilos para el Mapa de Tiros (Shot Chart) --- */
+/* ========================================================= */
+/* --- 9. MAPA DE TIROS (SHOT CHART) --- */
+/* ========================================================= */
 
 .shot-chart-container {
     position: relative; /* CRÍTICO: Permite posicionar los marcadores de tiro absolutos */
@@ -544,6 +515,10 @@ select {
     border: 2px solid white; 
     box-shadow: 0 0 4px rgba(0, 0, 0, 0.5);
 }
+
+/* ========================================================= */
+/* --- 10. TARJETAS DE JUGADOR --- */
+/* ========================================================= */
 
 /* Contenedor de las tarjetas */
 .player-cards-grid {
@@ -646,7 +621,9 @@ select {
     text-transform: uppercase;
 }
 
-/* --- Estilos para el Gráfico Circular de Progreso --- */
+/* ========================================================= */
+/* --- 11. GRÁFICO CIRCULAR DE PROGRESO --- */
+/* ========================================================= */
 .circular-chart {
     display: block;
     margin: 0 auto; /* Centrado horizontal */

@@ -41,16 +41,16 @@ const LOGO_BASE_URL = "https://d3ah0nqesr6vwc.cloudfront.net/recursos/imatges/mu
 // Ejemplo:
 // "NOMBRE DEL JUGADOR": "URL_DE_LA_FOTO.png"
 const JUGADOR_FOTOS = {
-    "VICTOR DELGADO NIETO": "https://image.singular.live/fit-in/450x450/filters:format(webp)/0d62960e1109063fb6b062e758907fb1/images/5GE9zRtQjBNRTe2XDnaa11_w585h427.png",
-    "LLUC SANCES FAURE": "https://image.singular.live/fit-in/450x450/filters:format(webp)/0d62960e1109063fb6b062e758907fb1/images/0h24eeLvFNc1GjQtLGK06D_w585h427.png",
-    "BRAYAN ALEJANDRO DOBLADO MELGAR": "https://image.singular.live/fit-in/450x450/filters:format(webp)/0d62960e1109063fb6b062e758907fb1/images/0pACKmVPSm0jFQP30X5lVH_w585h427.png",
-    "ORIOL MARTINEZ JUST": "https://image.singular.live/fit-in/450x450/filters:format(webp)/0d62960e1109063fb6b062e758907fb1/images/0MtdJ0xCeyEqbRkV0cvMLi_w585h427.png",
-    "ALER MARTINEZ CAMPO": "https://image.singular.live/fit-in/450x450/filters:format(webp)/0d62960e1109063fb6b062e758907fb1/images/7CSsFSTGCCvkwId9B5S6Jd_w585h427.png",
-    "AIDAN RUBIO DUQUE": "https://image.singular.live/fit-in/450x450/filters:format(webp)/0d62960e1109063fb6b062e758907fb1/images/0LR9D3kDJxUjDFKdD9BTfd_w585h427.png",
-    "MARIANO HERNANDEZ LOPEZ": "https://image.singular.live/fit-in/450x450/filters:format(webp)/0d62960e1109063fb6b062e758907fb1/images/3kd86FTUDFcGktRufOflZu_w585h427.png",
-    "ION MARTÍNEZ MARTÍN": "https://image.singular.live/fit-in/450x450/filters:format(webp)/0d62960e1109063fb6b062e758907fb1/images/40ODiHXOr7qDVLlkiwCRK7_w350h254.png",
-    "JAN PINO FERRÀ": "https://image.singular.live/fit-in/450x450/filters:format(webp)/0d62960e1109063fb6b062e758907fb1/images/5bL2yS3VJ08v4JktFQoX8I_w585h427.png",
-    "CESC GONZALEZ ROSALES": "https://image.singular.live/fit-in/450x450/filters:format(webp)/0d62960e1109063fb6b062e758907fb1/images/3ydTv1p8H8YwziJYpXXIWI_w585h427.png",
-    "MARC CAVERO STAROCH":"https://image.singular.live/fit-in/450x450/filters:format(webp)/0d62960e1109063fb6b062e758907fb1/images/1Ld6TewHnexqj2oKZ4XtN0_w585h427.png",
-    "MARC JOUNOU CUEVAS":"https://image.singular.live/fit-in/450x450/filters:format(webp)/0d62960e1109063fb6b062e758907fb1/images/1XkvElj8WXdgCq1Zz0nrzE_w585h427.png"
+    "VICTOR DELGADO NIETO":             "https://image.singular.live/fit-in/450x450/filters:format(webp)/0d62960e1109063fb6b062e758907fb1/images/5GE9zRtQjBNRTe2XDnaa11_w585h427.png",
+    "LLUC SANCES FAURE":                "https://image.singular.live/fit-in/450x450/filters:format(webp)/0d62960e1109063fb6b062e758907fb1/images/0h24eeLvFNc1GjQtLGK06D_w585h427.png",
+    "BRAYAN ALEJANDRO DOBLADO MELGAR":  "https://image.singular.live/fit-in/450x450/filters:format(webp)/0d62960e1109063fb6b062e758907fb1/images/0pACKmVPSm0jFQP30X5lVH_w585h427.png",
+    "ORIOL MARTINEZ JUST":              "https://image.singular.live/fit-in/450x450/filters:format(webp)/0d62960e1109063fb6b062e758907fb1/images/0MtdJ0xCeyEqbRkV0cvMLi_w585h427.png",
+    "ALER MARTINEZ CAMPO":              "https://image.singular.live/fit-in/450x450/filters:format(webp)/0d62960e1109063fb6b062e758907fb1/images/7CSsFSTGCCvkwId9B5S6Jd_w585h427.png",
+    "AIDAN RUBIO DUQUE":                "https://image.singular.live/fit-in/450x450/filters:format(webp)/0d62960e1109063fb6b062e758907fb1/images/0LR9D3kDJxUjDFKdD9BTfd_w585h427.png",
+    "MARIANO HERNANDEZ LOPEZ":          "https://image.singular.live/fit-in/450x450/filters:format(webp)/0d62960e1109063fb6b062e758907fb1/images/3kd86FTUDFcGktRufOflZu_w585h427.png",
+    "ION MARTÍNEZ MARTÍN":              "https://image.singular.live/fit-in/450x450/filters:format(webp)/0d62960e1109063fb6b062e758907fb1/images/40ODiHXOr7qDVLlkiwCRK7_w350h254.png",
+    "JAN PINO FERRÀ":                   "https://image.singular.live/fit-in/450x450/filters:format(webp)/0d62960e1109063fb6b062e758907fb1/images/5bL2yS3VJ08v4JktFQoX8I_w585h427.png",
+    "CESC GONZALEZ ROSALES":            "https://image.singular.live/fit-in/450x450/filters:format(webp)/0d62960e1109063fb6b062e758907fb1/images/3ydTv1p8H8YwziJYpXXIWI_w585h427.png",
+    "MARC CAVERO STAROCH":              "https://image.singular.live/fit-in/450x450/filters:format(webp)/0d62960e1109063fb6b062e758907fb1/images/1Ld6TewHnexqj2oKZ4XtN0_w585h427.png",
+    "MARC JOUNOU CUEVAS":               "https://image.singular.live/fit-in/450x450/filters:format(webp)/0d62960e1109063fb6b062e758907fb1/images/1XkvElj8WXdgCq1Zz0nrzE_w585h427.png"
 };
