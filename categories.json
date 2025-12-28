@@ -1,10 +1,9 @@
 {
   "categories": [
     {
-      "name": "2025/26 C.t. Pre-infantil Masculí Nivell B - 05",
-      "folder": "202526_Pre_Infantil",
+      "name": "2025 C.t. Pre-infantil Masculí Nivell B - 05",
+      "folder": "2025_Pre_Infantil",
       "is_mini_basket": true,
-      "description": "eglas de Mini-Basket (puntos por periodo).",
       "match_files": [
         "J1_P1_27_77.json", "J1_P2_38_59.json", 
         "J2_P1_82_83.json", "J2_P2_54_40.json",
@@ -19,10 +18,9 @@
       ]
     },
     {
-      "name": "2025/26 C.t. Cadet Masculí Promoció Nivell B - 05",
-      "folder": "202526_Cadet_Femeni",
+      "name": "2025 C.t. Cadet Femení Promoció Nivell D - 07",
+      "folder": "2025_Cadet_Femeni",
       "is_mini_basket": false,
-      "description": "Reglas de baloncesto estándar (3/1/0).",
       "match_files": [
         "J1_P1_36_49.json", "J1_P2_59_50.json", "J1_P3_46_43.json", 
         "J2_P1_50_53.json", "J2_P2_56_51.json",
@@ -37,10 +35,9 @@
       ]
     },
     {
-      "name": "2025/26 C.t. Cadet Femení Promoció Nivell D - 07",
-      "folder": "202526_Cadet_Masculi",
+      "name": "2025 C.t. Cadet Masculí Promoció Nivell B - 05",
+      "folder": "2025_Cadet_Masculi",
       "is_mini_basket": false,
-      "description": "Reglas de baloncesto estándar (3/1/0).",
       "match_files": [
         "J1_P1_59_54.json", "J1_P2_45_100.json", "J1_P3_44_116.json",
         "J2_P1_98_13.json", "J2_P2_53_48.json", "J2_P3_63_65.json",
