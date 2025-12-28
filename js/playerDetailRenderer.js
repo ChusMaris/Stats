@@ -134,7 +134,6 @@ function renderPlayerGameLog(player) {
                     <div class="stat-item"><span class="stat-value">${gamePoints}</span><span class="stat-label">PTS</span></div>
                     <div class="stat-item"><span class="stat-value">${formatTime(gameMinutes)}</span><span class="stat-label">MIN</span></div>
                     <div class="stat-item"><span class="stat-value">${gamePPM}</span><span class="stat-label">PPM</span></div>
-                    <!-- Añadir más estadísticas del partido si se desea -->
                     <div class="stat-item"><span class="stat-value">${createCircularProgressBar(m.shotsOfOneSuccessful, m.shotsOfOneAttempted)}</span><span class="stat-label">T1</span></div>
                     <div class="stat-item"><span class="stat-value">${m.shotsOfTwoSuccessful}</span><span class="stat-label">T2</span></div>
                     <div class="stat-item"><span class="stat-value">${m.shotsOfThreeSuccessful}</span><span class="stat-label">T3</span></div>
