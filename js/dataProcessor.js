@@ -524,8 +524,10 @@ function renderPlayerStatsTable(players, container) {
         const key = p.dorsal || p.name;
         return `
             <tr class="player-summary-row" data-player-key="${key}" onclick="togglePlayerMatchDetails('${key}', this)">
-                <td>${p.dorsal}</td><td>${p.name}</td><td>${p.stats.PJ}</td><td>${p.stats.Puntos}</td><td>${formatTime(p.stats.Minutos)}</td><td>${p.stats.Faltas}</td><td>${p.stats.FaltasConTiro}</td>
-                <td>${renderShotEfficiency(p.stats.shotsOfOneSuccessful, p.stats.shotsOfOneAttempted, 'compact_pct')}</td>
+                <td>${p.dorsal}</td><td>${p.name}</td><td>${p.stats.PJ}</td><td>${p.stats.Puntos}</td><td>${p.stats.Minutos}</td>
+                <td>${p.stats.Faltas}</td>
+                <td>${p.stats.FaltasConTiro}</td>
+                <td>${createCircularProgressBar(p.stats.shotsOfOneSuccessful, p.stats.shotsOfOneAttempted, false)}</td>                
                 <td>${renderShotEfficiency(p.stats.shotsOfTwoSuccessful, p.stats.shotsOfTwoAttempted, 'successful_only')}</td>
                 <td>${renderShotEfficiency(p.stats.shotsOfThreeSuccessful, p.stats.shotsOfThreeAttempted, 'successful_only')}</td>
             </tr>
