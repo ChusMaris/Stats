@@ -76,7 +76,6 @@ function renderPlayerDetailHeader(player) {
     document.querySelector('.player-photo').src = fotoUrl;
     document.querySelector('.player-name').textContent = player.name;
     document.querySelector('.player-dorsal').textContent = `#${player.dorsal || '??'}`;
-    document.querySelector('.player-license').textContent = `Licencia: ${player.licenseId}`;
 }
 
 function renderPlayerAggregatedKPIs(player) {
@@ -116,14 +115,18 @@ function renderPlayerAggregatedKPIs(player) {
             <span class="label">Faltas Totales</span>
         </div>
         <div class="kpi-card">
-            <span class="value">${player.stats.FaltasConTiro}/${player.stats.Faltas}</span></br>
-            <span class="label">% Faltas de Tiro</span>
-            ${createCircularProgressBar(player.stats.FaltasConTiro, player.stats.Faltas)}
+            <div class="kpi-content-wrapper">
+                <span class="value">${player.stats.FaltasConTiro}/${player.stats.Faltas}</span>
+                <span class="label">% Faltas de Tiro</span>
+            </div>
+            ${createCircularProgressBar(player.stats.FaltasConTiro, player.stats.Faltas, false)}
         </div>
         <div class="kpi-card">
-            <span class="value">${player.stats.shotsOfOneSuccessful}/${player.stats.shotsOfOneAttempted}</span></br>
-            <span class="label">Tiros Libres</span>
-            ${createCircularProgressBar(player.stats.shotsOfOneSuccessful, player.stats.shotsOfOneAttempted)}
+            <div class="kpi-content-wrapper">
+                <span class="value">${player.stats.shotsOfOneSuccessful}/${player.stats.shotsOfOneAttempted}</span>
+                <span class="label">Tiros Libres</span>
+            </div>
+            ${createCircularProgressBar(player.stats.shotsOfOneSuccessful, player.stats.shotsOfOneAttempted, true)}
         </div>
     `;
     kpiContainer.innerHTML = `<div class="kpi-container">${kpisHtml}</div>`; // Reusing kpi-container class
@@ -142,16 +145,16 @@ function renderPlayerGameLog(player) {
             <div class="game-card card">
                 <h4>Jornada ${m.jornada} vs ${m.opponentName}</h4>
                 <p>Fecha: ${formatDateToSpanish(m.time)}</p>
-                <p>Resultado: ${m.teamScore}-${m.opponentScore} ${m.teamScore > m.opponentScore ? '(Victoria)' : '(Derrota)'}</p>
+                <p>Resultado: <span class="${m.teamScore > m.opponentScore ? 'win-text' : 'loss-text'}">${m.teamScore}-${m.opponentScore}</span></p>
                 <div class="game-stats">
                     <div class="stat-item"><span class="stat-value">${gamePoints}</span><span class="stat-label">PTS</span></div>
                     <div class="stat-item"><span class="stat-value">${gameMinutes}</span><span class="stat-label">MIN</span></div>
                     <div class="stat-item"><span class="stat-value">${gamePPM}</span><span class="stat-label">PPM</span></div>
-                    <div class="stat-item"><span class="stat-value">${createCircularProgressBar(m.shotsOfOneSuccessful, m.shotsOfOneAttempted)}</span><span class="stat-label">T1</span></div>
+                    <div class="stat-item"><span class="stat-value">${createCircularProgressBar(m.shotsOfOneSuccessful, m.shotsOfOneAttempted, true)}</span><span class="stat-label">T1</span></div>
                     <div class="stat-item"><span class="stat-value">${m.shotsOfTwoSuccessful}</span><span class="stat-label">T2</span></div>
                     <div class="stat-item"><span class="stat-value">${m.shotsOfThreeSuccessful}</span><span class="stat-label">T3</span></div>
-                    <div class="stat-item"><span class="stat-value">${m.Faltas}</span><span class="stat-label">FALTAS</span></div>
-                    <div class="stat-item"><span class="stat-value">${m.FaltasConTiro}</span><span class="stat-label">FALTAS DE TIRO</span></div>
+                    <div class="stat-item"><span class="stat-value">${m.Faltas}</span><span class="stat-label">FALTAS</span></div>                    
+                    <div class="stat-item"><span class="stat-value">${createCircularProgressBar(m.FaltasConTiro, m.Faltas, false)}</span><span class="stat-label">F.T</span></div>
                 </div>
             </div>
         `;

@@ -259,6 +259,9 @@ select {
 .kpi-card .label {
     font-size: 0.9em;
     color: #666;
+    white-space: nowrap; /* Prevent text from wrapping */
+    overflow: hidden;    /* Hide overflowed content */
+    text-overflow: ellipsis; /* Display ellipsis for clipped text */
 }
 
 /* --- Pestañas Principales --- */
@@ -703,7 +706,7 @@ select {
 .circle {
     fill: none;
     stroke-width: 2.8;
-    stroke: var(--success-color); /* Color del progreso */
+    /* stroke: var(--success-color); */ /* Color del progreso - Ahora definido por JS */
     stroke-linecap: round;
     /* La animación se maneja con stroke-dasharray directamente */
 }
@@ -864,6 +867,9 @@ select {
     margin-bottom: 10px;
     border-bottom: 1px dashed #d1e2ed;
     padding-bottom: 8px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 .game-card p {
@@ -898,5 +904,16 @@ select {
     .game-cards-grid {
         grid-template-columns: 1fr; /* Apilar tarjetas de partidos en móviles */
     }
+}
+
+/* Utility classes for win/loss text color */
+.win-text {
+    color: var(--success-color);
+    font-weight: bold;
+}
+
+.loss-text {
+    color: var(--fail-color);
+    font-weight: bold;
 }
 

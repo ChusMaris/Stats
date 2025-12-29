@@ -140,12 +140,43 @@ function compareValues(key, order = 'asc', type = 'numeric') {
 }
 
 /**
- * Genera el HTML para un gráfico circular de progreso.
+ * Genera un color HSL en un gradiente de rojo a verde o verde a rojo
+ * basado en el porcentaje y si un porcentaje más alto es mejor o peor.
+ * @param {number} percentage - El porcentaje a convertir en color (0-100).
+ * @param {boolean} isHigherBetter - Si true, los porcentajes más altos son más verdes. Si false, más rojos.
+ * @returns {string} Una cadena de color HSL (ej. "hsl(120, 100%, 40%)").
  */
-function createCircularProgressBar(successful, attempted) {
+function getColorForPercentage(percentage, isHigherBetter) {
+    let hue;
+    if (isHigherBetter) {
+        // Higher is better: 0% is red (0), 100% is green (120)
+        hue = (percentage / 100) * 120;
+    } else {
+        // Higher is worse: 0% is green (120), 100% is red (0)
+        hue = 120 - ((percentage / 100) * 120);
+    }
+    // Clamp hue to valid range [0, 120]
+    hue = Math.max(0, Math.min(120, hue));
+
+    // You can adjust saturation and lightness if needed for intensity based on percentage
+    // For now, let's keep them relatively constant for a clear hue change
+    const saturation = 100; // Full saturation
+    const lightness = 40;  // Medium lightness for good visibility
+
+    return `hsl(${hue.toFixed(0)}, ${saturation}%, ${lightness}%)`;
+}
+
+/**
+ * Genera el HTML para un gráfico circular de progreso.
+ * @param {number} successful - El número de éxitos.
+ * @param {number} attempted - El número total de intentos.
+ * @param {boolean} isHigherBetter - Opcional. Si true, los porcentajes más altos son mejores (verde). Si false, más altos son peores (rojo). Por defecto es true.
+ */
+function createCircularProgressBar(successful, attempted, isHigherBetter = true) {
     const percentage = attempted > 0 ? (successful / attempted) * 100 : 0;
     const clampedPercentage = Math.max(0, Math.min(100, percentage)); // Asegura que esté entre 0 y 100
     const strokeDashArray = `${clampedPercentage.toFixed(0)} 100`;
+    const strokeColor = getColorForPercentage(clampedPercentage, isHigherBetter);
 
     return `
         <svg viewBox="0 0 36 36" class="circular-chart shot-circle">
@@ -155,6 +186,7 @@ function createCircularProgressBar(successful, attempted) {
                 a 15.9155 15.9155 0 0 1 0 -31.831"
             />
             <path class="circle"
+                stroke="${strokeColor}"
                 stroke-dasharray="${strokeDashArray}"
                 d="M18 2.0845
                 a 15.9155 15.9155 0 0 1 0 31.831

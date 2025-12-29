@@ -154,7 +154,7 @@ function displayPlayerAggregateStats() {
         return {
             dorsal: p.dorsal, Jugador: p.name, PJ: pj, Puntos: p.stats.Puntos, PPM: parseFloat(ppm), 
             'Tiempo (Total)': formatTime(minTotal), 'Min (Avg)': avgMin, 
-            'Tiros 1 (A/I)': createCircularProgressBar(p.stats.shotsOfOneSuccessful, p.stats.shotsOfOneAttempted),
+            'Tiros 1 (A/I)': createCircularProgressBar(p.stats.shotsOfOneSuccessful, p.stats.shotsOfOneAttempted, true),
             'Tiros 2': renderShotEfficiency(p.stats.shotsOfTwoSuccessful, p.stats.shotsOfTwoAttempted, 'successful_only'),
             'Tiros 3': renderShotEfficiency(p.stats.shotsOfThreeSuccessful, p.stats.shotsOfThreeAttempted, 'successful_only'),
             Faltas: p.stats.Faltas, 'T1_Ratio': tiros1Ratio, 'T2_Ratio': tiros2Ratio, 'T3_Ratio': tiros3Ratio, 'Minutos_Total': minTotal 
@@ -267,7 +267,7 @@ function togglePlayerMatchDetail(event, playerName, clickedRow) {
     player.matchHistory.forEach(match => {
         const d = match;
         const resultText = d.result || 'NP'; 
-        const t1HTML = createCircularProgressBar(d.shotsOfOneSuccessful || 0, d.shotsOfOneAttempted || 0) ;
+        const t1HTML = createCircularProgressBar(d.shotsOfOneSuccessful || 0, d.shotsOfOneAttempted || 0, true) ;
         const t2HTML = renderShotEfficiency(d.shotsOfTwoSuccessful || 0, d.shotsOfTwoAttempted || 0, 'successful_only');
         const t3HTML = renderShotEfficiency(d.shotsOfThreeSuccessful || 0, d.shotsOfThreeAttempted || 0, 'successful_only');
         const scoreDisplay = `${d.teamScore || 0}-${d.opponentScore || 0}`;
@@ -436,7 +436,7 @@ function displayMatchPlayerStats(matchId, jornada) {
 
     currentTeamData.players.forEach(p => {
         const d = p.data || {};
-        const t1HTML = createCircularProgressBar(d.shotsOfOneSuccessful || 0, d.shotsOfOneAttempted || 0) ;
+                const t1HTML = createCircularProgressBar(d.shotsOfOneSuccessful || 0, d.shotsOfOneAttempted || 0, true) ;
         const t2HTML = renderShotEfficiency(d.shotsOfTwoSuccessful || 0, d.shotsOfTwoAttempted || 0);
         const t3HTML = renderShotEfficiency(d.shotsOfThreeSuccessful || 0, d.shotsOfThreeAttempted || 0);
         
@@ -609,8 +609,7 @@ function generatePlayerMatchDetailTable(players, match) {
             <td>${p.Puntos || 0}</td>
             <td>${formatTime(p.Minutos || 0)}</td>
             <td>${p.Faltas || 0}</td>
-            <td>${createCircularProgressBar(p.shotsOfOneSuccessful || 0, p.shotsOfOneAttempted || 0)}</td>
-            <td>${renderShotEfficiency(p.shotsOfTwoSuccessful || 0, p.shotsOfTwoAttempted || 0, 'successful_only')}</td>
+                                <td>${createCircularProgressBar(p.shotsOfOneSuccessful || 0, p.shotsOfOneAttempted || 0, true)}</td>            <td>${renderShotEfficiency(p.shotsOfTwoSuccessful || 0, p.shotsOfTwoAttempted || 0, 'successful_only')}</td>
             <td>${renderShotEfficiency(p.shotsOfThreeSuccessful || 0, p.shotsOfThreeAttempted || 0, 'successful_only')}</td>
         </tr>
     `).join('');
@@ -765,7 +764,7 @@ function renderPlayerCards(players, containerId) {
                         <span class="stat-label">PTS</span>
                     </div>
                     <div class="stat-item">
-                        ${createCircularProgressBar(p.stats.shotsOfOneSuccessful, p.stats.shotsOfOneAttempted)}
+                        ${createCircularProgressBar(p.stats.shotsOfOneSuccessful, p.stats.shotsOfOneAttempted, true)}
                         <span class="stat-label">T1</span>
                     </div>
                     <div class="stat-item">
