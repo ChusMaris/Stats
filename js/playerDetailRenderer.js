@@ -117,7 +117,7 @@ function renderPlayerAggregatedKPIs(player) {
         <div class="kpi-card">
             <div class="kpi-content-wrapper">
                 <span class="value">${player.stats.FaltasConTiro}/${player.stats.Faltas}</span>
-                <span class="label">% Faltas de Tiro</span>
+                <span class="label">Faltas de Tiro</span>
             </div>
             ${createCircularProgressBar(player.stats.FaltasConTiro, player.stats.Faltas, false)}
         </div>
