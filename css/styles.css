@@ -902,7 +902,18 @@ select {
     }
 
     .game-cards-grid {
-        grid-template-columns: 1fr; /* Apilar tarjetas de partidos en móviles */
+        display: flex; /* Cambiar a flexbox para mejor control en móviles */
+        flex-wrap: wrap; /* Permitir que las tarjetas se envuelvan */
+        justify-content: center; /* Centrar las tarjetas apiladas */
+        /* grid-template-columns: 1fr; Eliminado, ya no es relevante con flexbox */
+    }
+
+    .game-card {
+        min-width: 0; /* Permite que las tarjetas se encojan más allá de su contenido intrínseco */
+    }
+
+    .game-card h4 {
+        white-space: normal; /* Permite que el texto del título se envuelva en varias líneas */
     }
 }
 
