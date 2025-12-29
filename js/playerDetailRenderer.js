@@ -12,6 +12,7 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 async function displayPlayerDetail(playerName, teamNameAsCategoryFolder) {
+    console.log("displayPlayerDetail called with:", { playerName, teamNameAsCategoryFolder });
     try {
         if (!window.categoryConfiguration || window.categoryConfiguration.length === 0) {
             await loadCategoryConfiguration();
@@ -37,10 +38,13 @@ async function displayPlayerDetail(playerName, teamNameAsCategoryFolder) {
             document.title = `Detalle de Jugador: ${player.name}`;
             renderTeamHeader(team);
             renderPlayerDetailHeader(player);
+            console.log("Player object before rendering KPIs:", player);
+            console.log("FaltasConTiro value:", player.stats.FaltasConTiro);
             renderPlayerAggregatedKPIs(player);
             renderPlayerEvolutionCharts(player); // Renderizar gráficas
             renderPlayerGameLog(player);
         } else {
+            console.error(`Error: Jugador "${playerName}" no encontrado en la categoría "${teamNameAsCategoryFolder}" o el equipo no fue procesado.`);
             document.querySelector('.player-name').textContent = `Jugador "${playerName}" no encontrado en la categoría "${teamNameAsCategoryFolder}"`;
             document.querySelector('.player-dorsal').textContent = '';
         }
@@ -72,6 +76,7 @@ function renderPlayerDetailHeader(player) {
     document.querySelector('.player-photo').src = fotoUrl;
     document.querySelector('.player-name').textContent = player.name;
     document.querySelector('.player-dorsal').textContent = `#${player.dorsal || '??'}`;
+    document.querySelector('.player-license').textContent = `Licencia: ${player.licenseId}`;
 }
 
 function renderPlayerAggregatedKPIs(player) {
@@ -87,31 +92,39 @@ function renderPlayerAggregatedKPIs(player) {
 
     kpisHtml += `
         <div class="kpi-card">
-            <span class="value">${player.stats.PJ}</span>
+            <span class="value">${player.stats.PJ}</span></br>
             <span class="label">Partidos Jugados</span>
         </div>
         <div class="kpi-card">
-            <span class="value">${player.stats.Puntos}</span>
+            <span class="value">${player.stats.Minutos}</span></br>
+            <span class="label">Minutos Jugados</span>
+        </div>
+        <div class="kpi-card">
+            <span class="value">${player.stats.Puntos}</span></br>
             <span class="label">Puntos Totales</span>
         </div>
         <div class="kpi-card">
-            <span class="value">${ppg}</span>
+            <span class="value">${ppg}</span></br>
             <span class="label">Puntos por Partido (PPG)</span>
         </div>
         <div class="kpi-card">
-            <span class="value">${ppm}</span>
+            <span class="value">${ppm}</span></br>
             <span class="label">Puntos por Minuto (PPM)</span>
         </div>
         <div class="kpi-card">
-            <span class="value">${player.stats.Faltas}</span>
+            <span class="value">${player.stats.Faltas}</span></br>
             <span class="label">Faltas Totales</span>
         </div>
         <div class="kpi-card">
-            <span class="value">${player.stats.shotsOfOneSuccessful}/${player.stats.shotsOfOneAttempted}</span>
+            <span class="value">${player.stats.FaltasConTiro}/${player.stats.Faltas}</span></br>
+            <span class="label">% Faltas de Tiro</span>
+            ${createCircularProgressBar(player.stats.FaltasConTiro, player.stats.Faltas)}
+        </div>
+        <div class="kpi-card">
+            <span class="value">${player.stats.shotsOfOneSuccessful}/${player.stats.shotsOfOneAttempted}</span></br>
             <span class="label">Tiros Libres</span>
             ${createCircularProgressBar(player.stats.shotsOfOneSuccessful, player.stats.shotsOfOneAttempted)}
         </div>
-        <!-- Añadir más KPIs según necesidad -->
     `;
     kpiContainer.innerHTML = `<div class="kpi-container">${kpisHtml}</div>`; // Reusing kpi-container class
 }
@@ -132,12 +145,13 @@ function renderPlayerGameLog(player) {
                 <p>Resultado: ${m.teamScore}-${m.opponentScore} ${m.teamScore > m.opponentScore ? '(Victoria)' : '(Derrota)'}</p>
                 <div class="game-stats">
                     <div class="stat-item"><span class="stat-value">${gamePoints}</span><span class="stat-label">PTS</span></div>
-                    <div class="stat-item"><span class="stat-value">${formatTime(gameMinutes)}</span><span class="stat-label">MIN</span></div>
+                    <div class="stat-item"><span class="stat-value">${gameMinutes}</span><span class="stat-label">MIN</span></div>
                     <div class="stat-item"><span class="stat-value">${gamePPM}</span><span class="stat-label">PPM</span></div>
                     <div class="stat-item"><span class="stat-value">${createCircularProgressBar(m.shotsOfOneSuccessful, m.shotsOfOneAttempted)}</span><span class="stat-label">T1</span></div>
                     <div class="stat-item"><span class="stat-value">${m.shotsOfTwoSuccessful}</span><span class="stat-label">T2</span></div>
                     <div class="stat-item"><span class="stat-value">${m.shotsOfThreeSuccessful}</span><span class="stat-label">T3</span></div>
                     <div class="stat-item"><span class="stat-value">${m.Faltas}</span><span class="stat-label">FALTAS</span></div>
+                    <div class="stat-item"><span class="stat-value">${m.FaltasConTiro}</span><span class="stat-label">FALTAS DE TIRO</span></div>
                 </div>
             </div>
         `;

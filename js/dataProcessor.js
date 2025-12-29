@@ -220,16 +220,28 @@ async function loadDataForCategory(folder) {
     }
     
     window.allMatchSummaries = {};
-    const promises = cat.match_files.map(fileName => 
-        fetch(`./Partidos/${folder}/${fileName}`)
+    const promises = cat.match_files.map(fileName => {
+        const parts = fileName.split('_');
+        const movesFileName = `${parts[0]}_${parts[1]}_Moves.json`;
+
+        const matchPromise = fetch(`./Partidos/${folder}/${fileName}`)
             .then(r => r.json())
             .then(data => {
                 data.fileName = fileName; 
                 const jornadaPart = fileName.split('_')[0];
                 data.jornada = jornadaPart ? jornadaPart.replace('J', '') : 'N/D';
-                window.allMatchSummaries[fileName] = data; 
-            })
-    );
+                return data;
+            });
+
+        const movesPromise = fetch(`./Partidos/${folder}/${movesFileName}`)
+            .then(r => r.ok ? r.json() : [])
+            .catch(() => []); 
+
+        return Promise.all([matchPromise, movesPromise]).then(([matchData, movesData]) => {
+            matchData.moves = movesData;
+            window.allMatchSummaries[fileName] = matchData;
+        });
+    });
     
     return Promise.all(promises).then(() => {
         processAllData(cat); // Pasar la configuración de la categoría
@@ -266,7 +278,7 @@ function processAllData(categoryConfig) {
             if (!window.processedTeams[name]) {
                 window.processedTeams[name] = {
                     name: name,
-                    stats: { J: 0, G: 0, P: 0, NP: 0, GF: 0, GC: 0, Puntos: 0 },
+                    stats: { J: 0, G: 0, P: 0, NP: 0, GF: 0, GC: 0, Puntos: 0, FaltasConTiro: 0 },
                     matches: [],
                     players: {},
                     jornadaData: {} 
@@ -315,22 +327,40 @@ function processAllData(categoryConfig) {
                     const key = player.dorsal || player.name;
                     if (!t.players[key]) {
                         t.players[key] = { 
-                            dorsal: player.dorsal, name: player.name, 
-                            stats: { Puntos: 0, PJ: 0, Minutos: 0, shotsOfOneSuccessful: 0, shotsOfOneAttempted: 0, shotsOfTwoSuccessful: 0, shotsOfTwoAttempted: 0, shotsOfThreeSuccessful: 0, shotsOfThreeAttempted: 0, Faltas: 0 }, 
+                            dorsal: player.dorsal, name: player.name, licenseId: player.actorId, // Use actorId from the match file as the licenseId
+                            stats: { Puntos: 0, PJ: 0, Minutos: 0, shotsOfOneSuccessful: 0, shotsOfOneAttempted: 0, shotsOfTwoSuccessful: 0, shotsOfTwoAttempted: 0, shotsOfThreeSuccessful: 0, shotsOfThreeAttempted: 0, Faltas: 0, FaltasConTiro: 0 }, 
                             matchHistory: [] 
                         };
                     }
                     const ps = t.players[key].stats;
                     const pd = player.data || {};
                     if (Object.keys(pd).length === 0 && !player.timePlayed) return;
-                    ps.PJ++; ps.Puntos += pd.score || 0; ps.Minutos += player.timePlayed || 0; ps.Faltas += pd.faults || 0;
+                    ps.PJ++; ps.Puntos += pd.score || 0; ps.Minutos += player.timePlayed || 0;
                     ps.shotsOfOneSuccessful += pd.shotsOfOneSuccessful || 0; ps.shotsOfOneAttempted += pd.shotsOfOneAttempted || 0;
                     ps.shotsOfTwoSuccessful += pd.shotsOfTwoSuccessful || 0; ps.shotsOfTwoAttempted += pd.shotsOfTwoAttempted || 0;
                     ps.shotsOfThreeSuccessful += pd.shotsOfThreeSuccessful || 0; ps.shotsOfThreeAttempted += pd.shotsOfThreeAttempted || 0;
                     
+                    let faltasPersonalesThisMatch = [];
+                    if (match.moves) {
+                        faltasPersonalesThisMatch = match.moves.filter(
+                            m => m.actorName === player.name && m.move.startsWith('Personal')
+                        );
+                    }
+
+                    const faltasTotalesThisMatch = faltasPersonalesThisMatch.length;
+                    const faltasConTiroThisMatch = faltasPersonalesThisMatch.filter(
+                        m => m.move.startsWith('Personal 1 tir lliure') || m.move.startsWith('Personal 2 tirs lliures')
+                    ).length;
+
+                    t.stats.FaltasConTiro += faltasConTiroThisMatch;
+                    ps.Faltas += faltasTotalesThisMatch;
+                    ps.FaltasConTiro += faltasConTiroThisMatch;
+
                     t.players[key].matchHistory.push({
                         jornada, opponentName: opponent.name, teamScore: score, opponentScore: oppScore, result: res,
-                        Puntos: pd.score || 0, Minutos: player.timePlayed || 0, Faltas: pd.faults || 0,
+                        Puntos: pd.score || 0, Minutos: player.timePlayed || 0,
+                        Faltas: faltasTotalesThisMatch,
+                        FaltasConTiro: faltasConTiroThisMatch,
                         shotsOfOneSuccessful: pd.shotsOfOneSuccessful || 0, shotsOfOneAttempted: pd.shotsOfOneAttempted || 0,
                         shotsOfTwoSuccessful: pd.shotsOfTwoSuccessful || 0, shotsOfTwoAttempted: pd.shotsOfTwoAttempted || 0,
                         shotsOfThreeSuccessful: pd.shotsOfThreeSuccessful || 0, shotsOfThreeAttempted: pd.shotsOfThreeAttempted || 0,
@@ -494,14 +524,14 @@ function renderPlayerStatsTable(players, container) {
         const key = p.dorsal || p.name;
         return `
             <tr class="player-summary-row" data-player-key="${key}" onclick="togglePlayerMatchDetails('${key}', this)">
-                <td>${p.dorsal}</td><td>${p.name}</td><td>${p.stats.PJ}</td><td>${p.stats.Puntos}</td><td>${formatTime(p.stats.Minutos)}</td><td>${p.stats.Faltas}</td>
+                <td>${p.dorsal}</td><td>${p.name}</td><td>${p.stats.PJ}</td><td>${p.stats.Puntos}</td><td>${formatTime(p.stats.Minutos)}</td><td>${p.stats.Faltas}</td><td>${p.stats.FaltasConTiro}</td>
                 <td>${renderShotEfficiency(p.stats.shotsOfOneSuccessful, p.stats.shotsOfOneAttempted, 'compact_pct')}</td>
                 <td>${renderShotEfficiency(p.stats.shotsOfTwoSuccessful, p.stats.shotsOfTwoAttempted, 'successful_only')}</td>
                 <td>${renderShotEfficiency(p.stats.shotsOfThreeSuccessful, p.stats.shotsOfThreeAttempted, 'successful_only')}</td>
             </tr>
-            <tr class="player-detail-row" id="detail-row-${key}" style="display: none;"><td colspan="9" class="player-detail-content" style="padding: 0;"></td></tr>`;
+            <tr class="player-detail-row" id="detail-row-${key}" style="display: none;"><td colspan="10" class="player-detail-content" style="padding: 0;"></td></tr>`;
     }).join('');
-    container.innerHTML = `<h4>Estadísticas Agregadas</h4><table class="player-stats-table"><thead><tr><th>#</th><th>Nombre</th><th>PJ</th><th>Pts</th><th>Min</th><th>F</th><th>T1</th><th>T2</th><th>T3</th></tr></thead><tbody>${rows}</tbody></table>`;
+    container.innerHTML = `<h4>Estadísticas Agregadas</h4><table class="player-stats-table"><thead><tr><th>#</th><th>Nombre</th><th>PJ</th><th>Pts</th><th>Min</th><th>F</th><th>F.T.</th><th>T1</th><th>T2</th><th>T3</th></tr></thead><tbody>${rows}</tbody></table>`;
 }
 
 function togglePlayerMatchDetails(playerKey, clickedRow) {
@@ -522,9 +552,9 @@ function togglePlayerMatchDetails(playerKey, clickedRow) {
 }
 
 function generateMatchHistoryTable(matchHistory) {
-    const header = `<thead><tr style="background-color: #f0f0f0;"><th>J</th><th>Oponente</th><th>Resultado</th><th>Ptos</th><th>Min</th><th>Faltas</th><th>T1</th><th>T2</th><th>T3</th></tr></thead>`;
+    const header = `<thead><tr style="background-color: #f0f0f0;"><th>J</th><th>Oponente</th><th>Resultado</th><th>Ptos</th><th>Min</th><th>Faltas</th><th>F.T.</th><th>T1</th><th>T2</th><th>T3</th></tr></thead>`;
     const rows = matchHistory.map(m => `
-        <tr><td>J${m.jornada}</td><td>${m.opponentName}</td><td>${m.teamScore}-${m.opponentScore}</td><td>${m.Puntos}</td><td>${formatTime(m.Minutos)}</td><td>${m.Faltas}</td><td>${renderShotEfficiency(m.shotsOfOneSuccessful, m.shotsOfOneAttempted, 'compact_pct')}</td><td>${renderShotEfficiency(m.shotsOfTwoSuccessful, m.shotsOfTwoAttempted, 'successful_only')}</td><td>${renderShotEfficiency(m.shotsOfThreeSuccessful, m.shotsOfThreeAttempted, 'successful_only')}</td></tr>
+        <tr><td>J${m.jornada}</td><td>${m.opponentName}</td><td>${m.teamScore}-${m.opponentScore}</td><td>${m.Puntos}</td><td>${formatTime(m.Minutos)}</td><td>${m.Faltas}</td><td>${m.FaltasConTiro}</td><td>${renderShotEfficiency(m.shotsOfOneSuccessful, m.shotsOfOneAttempted, 'compact_pct')}</td><td>${renderShotEfficiency(m.shotsOfTwoSuccessful, m.shotsOfTwoAttempted, 'successful_only')}</td><td>${renderShotEfficiency(m.shotsOfThreeSuccessful, m.shotsOfThreeAttempted, 'successful_only')}</td></tr>
     `).join('');
     return `<div style="padding: 10px;"><table class="match-history-subtable player-stats-table">${header}<tbody>${rows}</tbody></table></div>`;
 }

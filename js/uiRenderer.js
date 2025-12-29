@@ -758,12 +758,11 @@ function renderPlayerCards(players, containerId) {
                         <span class="stat-label">PJ</span>
                     </div>
                     <div class="stat-item">
+                        <span class="stat-value">${p.stats.Minutos}</span>
+                        <span class="stat-label">MIN</span>
+                    </div><div class="stat-item">
                         <span class="stat-value">${p.stats.Puntos}</span>
                         <span class="stat-label">PTS</span>
-                    </div>
-                    <div class="stat-item">
-                        <span class="stat-value">${p.stats.PJ > 0 ? (p.stats.Puntos / p.stats.PJ).toFixed(1) : 0}</span>
-                        <span class="stat-label">PPG</span>
                     </div>
                     <div class="stat-item">
                         ${createCircularProgressBar(p.stats.shotsOfOneSuccessful, p.stats.shotsOfOneAttempted)}
