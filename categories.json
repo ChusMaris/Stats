@@ -56,16 +56,16 @@
       "folder": "2025_Pre_Infantil_PF_B06",
       "is_mini_basket": true,
       "match_files": [
-        ".json", ".json", ".json",
-        ".json", ".json", ".json",
-        ".json", ".json", ".json",
-        ".json", ".json", ".json",
-        ".json", ".json", ".json",
-        ".json", ".json", ".json",
-        ".json", ".json", ".json",
-        ".json", ".json", ".json",
-        ".json", ".json", ".json",
-        ".json", ".json", ".json"
+        "J1_P1_74_24.json", "J1_P2_49_62.json", 
+        "J2_P1_38_40.json", "J2_P2_74_39.json", 
+        "J3_P1_72_43.json", "J3_P2_43_55.json", 
+        "J4_P1_52_51.json", "J4_P2_24_67.json", 
+        "J5_P1_54_87.json", "J5_P2_77_27.json", 
+                            "J6_P2_66_38.json", 
+        "J7_P1_31_48.json", "J7_P2_40_68.json", 
+        "J8_P1_28_65.json", "J8_P2_59_44.json", 
+        "J9_P1_56_38.json", "J9_P2_61_11.json", 
+        "J10_P1_83_50.json", "J10_P2_30_80.json"
       ]
     },
     {
