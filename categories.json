@@ -18,6 +18,23 @@
       ]
     },
     {
+      "name": "2025 C.t. Pre-infantil Masculí Nivell B - 03",
+      "folder": "2025_Pre_Infantil_PF_B03",
+      "is_mini_basket": true,
+      "match_files": [
+        "J1_P1_45_62.json", "J1_P2_58_63.json", "J1_P3_59_63.json",
+        "J2_P1_60_45.json", "J2_P2_61_66.json", "J2_P3_53_45.json",
+                            "J3_P2_37_72.json", "J3_P3_60_70.json",
+        "J4_P1_71_31.json", "J4_P2_58_68.json", "J4_P3_78_67.json",
+        "J5_P1_42_81.json", "J5_P2_73_29.json", "J5_P3_57_53.json",
+        "J6_P1_53_60.json", "J6_P2_65_60.json", "J6_P3_59_70.json",
+        "J7_P1_58_44.json", "J7_P2_60_64.json", "J7_P3_42_87.json",
+        "J8_P1_65_32.json", "J8_P2_60_42.json", "J8_P3_81_62.json",
+        "J9_P1_65_52.json", "J9_P2_73_65.json", "J9_P3_71_62.json",
+        "J10_P1_54_50.json", "J10_P2_39_54.json", "J10_P3_82_72.json"
+      ]
+    },
+    {
       "name": "2025 C.t. Pre-infantil Masculí Nivell B - 05",
       "folder": "2025_Pre_Infantil_PF_B05",
       "is_mini_basket": true,
@@ -32,6 +49,23 @@
         "J8_P1_69_51.json", "J8_P2_51_36.json",
         "J9_P1_51_50.json", "J9_P2_80_31.json",
         "J10_P1_42_92.json", "J10_P2_46_47.json"
+      ]
+    },
+    {
+      "name": "2025 C.t. Pre-infantil Masculí Nivell B - 06",
+      "folder": "2025_Pre_Infantil_PF_B06",
+      "is_mini_basket": true,
+      "match_files": [
+        ".json", ".json", ".json",
+        ".json", ".json", ".json",
+        ".json", ".json", ".json",
+        ".json", ".json", ".json",
+        ".json", ".json", ".json",
+        ".json", ".json", ".json",
+        ".json", ".json", ".json",
+        ".json", ".json", ".json",
+        ".json", ".json", ".json",
+        ".json", ".json", ".json"
       ]
     },
     {
