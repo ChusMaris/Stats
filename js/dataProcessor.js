@@ -520,20 +520,24 @@ function renderTeamDetails(team) {
 
 function renderPlayerStatsTable(players, container) {
     if (!container || players.length === 0) return;
-    const rows = players.sort((a, b) => b.stats.Puntos - a.stats.Puntos).map(p => {
+    const rows = players.sort((a, b) => (b.stats.PJ > 0 ? b.stats.Puntos / b.stats.PJ : 0) - (a.stats.PJ > 0 ? a.stats.Puntos / a.stats.PJ : 0)).map(p => {
         const key = p.dorsal || p.name;
+        const ppg = p.stats.PJ > 0 ? (p.stats.Puntos / p.stats.PJ).toFixed(1) : '0.0';
+        const mpg = p.stats.PJ > 0 ? (p.stats.Minutos / p.stats.PJ).toFixed(1) : '0.0';
+        const fpg = p.stats.PJ > 0 ? (p.stats.Faltas / p.stats.PJ).toFixed(1) : '0.0';
+        const ftPercent = p.stats.Faltas > 0 ? ((p.stats.FaltasConTiro / p.stats.Faltas) * 100).toFixed(1) + '%' : '0.0%';
         return `
             <tr class="player-summary-row" data-player-key="${key}" onclick="togglePlayerMatchDetails('${key}', this)">
-                <td>${p.dorsal}</td><td>${p.name}</td><td>${p.stats.PJ}</td><td>${p.stats.Puntos}</td><td>${p.stats.Minutos}</td>
-                <td>${p.stats.Faltas}</td>
-                <td>${p.stats.FaltasConTiro}</td>
+                <td>${p.dorsal}</td><td>${p.name}</td><td>${p.stats.PJ}</td><td>${ppg}</td><td>${mpg}</td>
+                <td>${fpg}</td>
+                <td>${ftPercent}</td>
                 <td>${createCircularProgressBar(p.stats.shotsOfOneSuccessful, p.stats.shotsOfOneAttempted, false)}</td>                
                 <td>${renderShotEfficiency(p.stats.shotsOfTwoSuccessful, p.stats.shotsOfTwoAttempted, 'successful_only')}</td>
                 <td>${renderShotEfficiency(p.stats.shotsOfThreeSuccessful, p.stats.shotsOfThreeAttempted, 'successful_only')}</td>
             </tr>
             <tr class="player-detail-row" id="detail-row-${key}" style="display: none;"><td colspan="10" class="player-detail-content" style="padding: 0;"></td></tr>`;
     }).join('');
-    container.innerHTML = `<h4>Estadísticas Agregadas</h4><table class="player-stats-table"><thead><tr><th>#</th><th>Nombre</th><th>PJ</th><th>Pts</th><th>Min</th><th>F</th><th>F.T.</th><th>T1</th><th>T2</th><th>T3</th></tr></thead><tbody>${rows}</tbody></table>`;
+    container.innerHTML = `<h4>Estadísticas Agregadas</h4><table class="player-stats-table"><thead><tr><th>#</th><th>Nombre</th><th>PJ</th><th>PPG</th><th>MPG</th><th>FPG</th><th>F.T.</th><th>T1</th><th>T2</th><th>T3</th></tr></thead><tbody>${rows}</tbody></table>`;
 }
 
 function togglePlayerMatchDetails(playerKey, clickedRow) {

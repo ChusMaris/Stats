@@ -734,19 +734,22 @@ function renderPlayerCards(players, containerId) {
     const container = document.getElementById(containerId);
     if (!container) return;
 
-    const sortedPlayers = players.sort((a, b) => b.stats.Puntos - a.stats.Puntos);
+    const sortedPlayers = players.sort((a, b) => (b.stats.PJ > 0 ? b.stats.Puntos / b.stats.PJ : 0) - (a.stats.PJ > 0 ? a.stats.Puntos / a.stats.PJ : 0));
 
     const cardsHtml = sortedPlayers.map(p => {
         const key = p.name.toUpperCase().trim();
         // Usamos el objeto JUGADOR_FOTOS definido en config.js o dataProcessor.js
         const fotoUrl = (typeof JUGADOR_FOTOS !== 'undefined' && JUGADOR_FOTOS[key]) 
                         ? JUGADOR_FOTOS[key] 
-                        : "https://www.w3schools.com/howto/img_avatar.png";
+                        : "./img/img_avatar.png";
+
+        const mpg = p.stats.PJ > 0 ? (p.stats.Minutos / p.stats.PJ).toFixed(1) : '0.0';
+        const ppg = p.stats.PJ > 0 ? (p.stats.Puntos / p.stats.PJ).toFixed(1) : '0.0';
 
         return `
             <div class="player-card" style="cursor: pointer;" onclick="goToPlayerDetail('${encodeURIComponent(p.name)}', '${encodeURIComponent(window.currentSelectedCategoryFolder)}')">
                 <div class="card-photo-container">
-                    <img src="${fotoUrl}" alt="${p.name}" onerror="this.src='https://www.w3schools.com/howto/img_avatar.png'">
+                    <img src="${fotoUrl}" alt="${p.name}" onerror="this.src='./img/img_avatar.png'">
                 </div>
                 <div class="card-dorsal">#${p.dorsal || '??'}</div>
                 <div class="card-name">${p.name}</div>
@@ -757,11 +760,11 @@ function renderPlayerCards(players, containerId) {
                         <span class="stat-label">PJ</span>
                     </div>
                     <div class="stat-item">
-                        <span class="stat-value">${p.stats.Minutos}</span>
-                        <span class="stat-label">MIN</span>
+                        <span class="stat-value">${mpg}</span>
+                        <span class="stat-label">MPG</span>
                     </div><div class="stat-item">
-                        <span class="stat-value">${p.stats.Puntos}</span>
-                        <span class="stat-label">PTS</span>
+                        <span class="stat-value">${ppg}</span>
+                        <span class="stat-label">PPG</span>
                     </div>
                     <div class="stat-item">
                         ${createCircularProgressBar(p.stats.shotsOfOneSuccessful, p.stats.shotsOfOneAttempted, true)}
