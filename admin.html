@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Panel de Carga - Supabase</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="js/config.js"></script>
+    
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 40px; background-color: #f0f2f5; color: #333; }
+        .container { max-width: 600px; margin: auto; background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); }
+        h1 { color: #1e293b; font-size: 24px; margin-bottom: 20px; border-bottom: 2px solid #e2e8f0; padding-bottom: 10px; }
+        .field { margin-bottom: 15px; }
+        label { display: block; font-weight: 600; margin-bottom: 5px; color: #475569; }
+        input[type="text"], input[type="file"] { width: 100%; padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px; box-sizing: border-box; }
+        button { width: 100%; padding: 12px; background-color: #3b82f6; color: white; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; transition: background 0.3s; margin-top: 20px; }
+        button:hover { background-color: #2563eb; }
+        #log { margin-top: 20px; padding: 15px; background: #f8fafc; border-radius: 6px; font-family: monospace; font-size: 12px; max-height: 200px; overflow-y: auto; border: 1px solid #e2e8f0; }
+        .success { color: #16a34a; }
+        .error { color: #dc2626; }
+    </style>
+</head>
+<body>
+    
+<div class="upload-section">
+    <h2>Panel de Administración - Carga de Partidos</h2>
+    
+    <div class="form-group">
+        <input type="text" id="temporadaInput" placeholder="Temporada (ej: 2024/25)" class="form-control">
+        <input type="text" id="categoriaInput" placeholder="Categoría (C.t. Pre-Infantil Masculí)" class="form-control">
+        <input type="text" id="competicionInput" placeholder="Competición / Fase (Primera Fase - Nivell B - 05)" class="form-control">
+    </div>
+
+    <div class="file-group">
+        <label>Archivos de Datos (J1_P1.json, etc.):</label>
+        <input type="file" id="archivoPrincipal" accept=".json" multiple class="file-input">
+        
+        <label>Archivos de Movimientos (Moves.json):</label>
+        <input type="file" id="archivoMovimientos" accept=".json" multiple class="file-input">
+    </div>
+
+    <button id="btnSubir" onclick="procesarSeleccionMultiple()" class="btn-primary">
+        🚀 Subir Partidos Seleccionados
+    </button>
+
+    <div id="progressContainer" style="display:none; margin-top:20px; width:100%; background:#f0f0f0; border-radius: 8px; overflow: hidden;">
+        <div id="progressBar" style="width:0%; height:25px; background: #2ecc71; text-align:center; color:white; line-height: 25px; transition: width 0.3s ease;">0%</div>
+    </div>
+
+    <div id="log" class="log-container" style="margin-top:20px; background: #2c3e50; color: #ecf0f1; padding: 15px; border-radius: 5px; height: 300px; overflow-y: auto; font-family: 'Courier New', monospace;">
+        > Esperando selección de archivos...
+    </div>
+</div>
+
+<script src="js/uploader.js"></script>
+</body>
+</html>

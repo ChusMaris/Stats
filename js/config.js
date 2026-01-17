@@ -1,3 +1,38 @@
+
+// --- DataBase Conncetion ---
+// 1. Datos de conexión
+const SUPABASE_URL = 'https://zvojniiaftqwdaggfvma.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inp2b2puaWlhZnRxd2RhZ2dmdm1hIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjgwNTE0MDYsImV4cCI6MjA4MzYyNzQwNn0.9Xht9Z_Bmfp05U6G-_JrETIqsE87RFd-JXQMpaHrmzM';
+
+let supabaseClient = null;
+
+// Función para inicializar
+
+const initDB = () => {
+    if (typeof supabase !== 'undefined') {
+        // CORRECCIÓN: Usar los nombres exactos SUPABASE_URL y SUPABASE_KEY
+        supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        window.supabaseClient = supabaseClient; // Lo hacemos global para otros archivos
+        console.log("✅ Cliente Supabase creado.");
+    } else {
+        setTimeout(initDB, 100);
+    }
+};
+
+initDB();
+
+async function confirmarConexion() {
+    try {
+        const { data, error } = await supabaseClient.from('clubs').select('*').limit(1);
+        if (error) throw error;
+        console.log("🚀 Conexión total: Tablas accesibles.");
+    } catch (err) {
+        console.error("❌ Error de acceso a tablas:", err.message);
+    }
+}
+
+// initDB();
+
 // --- VARIABLES GLOBALES ---
 // Se exportan para ser usadas en otros módulos JS.
 
