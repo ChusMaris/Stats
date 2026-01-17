@@ -74,7 +74,15 @@ const TEAM_LOGOS = {
     "CB LA SALLE HORTA VERD": "https://d3ah0nqesr6vwc.cloudfront.net/recursos/imatges/multimedia/957da0af0c0f9565.jpg",
     "CBSGR CADET MASCULÍ 1ER ANY": "https://d3ah0nqesr6vwc.cloudfront.net/recursos/imatges/multimedia/21bV1Yo6TuM8JWsr.jpg",
     "CREU ALTA SABADELL VERMELL": "https://d3ah0nqesr6vwc.cloudfront.net/recursos/imatges/multimedia/kEBOlgH8osiUN4Xm.png",
-    "BASQUET ATENEU MONTSERRAT CADET GROC MASCULI":"https://d3ah0nqesr6vwc.cloudfront.net/recursos/imatges/multimedia/080125.png"
+    "BASQUET ATENEU MONTSERRAT CADET GROC MASCULI":"https://d3ah0nqesr6vwc.cloudfront.net/recursos/imatges/multimedia/080125.png",
+    // C.t. Júnior Masculí Promoció 25/26
+    "CB.CIUTAT VELLA B": "https://d3ah0nqesr6vwc.cloudfront.net/recursos/imatges/multimedia/KmGmVzcqMjPdpzPa.png",
+    "C.B. PREMIÀ DE DALT - JM": "https://d3ah0nqesr6vwc.cloudfront.net/recursos/imatges/multimedia/470501c35b9f6445.jpg",
+    "BÀSQUET CEISSA C": "https://d3ah0nqesr6vwc.cloudfront.net/recursos/imatges/multimedia/WzRrXOxawXTv4aQk.png",
+    "SANT QUIRZE BÀSQUET CLUB": "https://d3ah0nqesr6vwc.cloudfront.net/recursos/imatges/multimedia/a51a2d7b65d48eca.jpg",
+    "CE VILA OLIMPICA GROC": "https://d3ah0nqesr6vwc.cloudfront.net/recursos/imatges/multimedia/081478.jpg",
+    "UE BARBERA B": "https://d3ah0nqesr6vwc.cloudfront.net/recursos/imatges/multimedia/7c0e1fd78df5df18.jpg"
+
 };
 
 const LOGO_BASE_URL = "https://d3ah0nqesr6vwc.cloudfront.net/recursos/imatges/multimedia/originals/";

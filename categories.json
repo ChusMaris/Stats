@@ -77,6 +77,23 @@
       ]
     },
     {
+      "name": "2025 C.t. Cadet Femení Promoció Nivell D - 07",
+      "folder": "2025_Cadet_Femeni",
+      "is_mini_basket": false,
+      "match_files": [
+        "J1_P1_36_49.json", "J1_P2_59_50.json", "J1_P3_46_43.json", 
+        "J2_P1_50_53.json", "J2_P2_56_51.json",
+        "J3_P1_60_44.json", "J3_P2_63_36.json", "J3_P3_42_36.json",
+        "J4_P1_36_44.json",                     "J4_P3_36_48.json",
+        "J5_P1_63_36.json", "J5_P2_60_29.json", "J5_P3_50_37.json",
+        "J6_P1_48_54.json", "J6_P2_44_41.json", "J6_P3_73_39.json",
+        "J7_P1_49_45.json", "J7_P2_30_70.json", "J7_P3_44_48.json", 
+        "J8_P1_36_49.json", "J8_P2_46_57.json", "J8_P3_39_20.json",
+        "J9_P1_32_46.json", "J9_P2_37_32.json", "J9_P3_61_32.json",
+        "J10_P1_29_58.json"
+      ]
+    },
+    {
       "name": "2025 C.t. Cadet Masculí Promoció Nivell PF B - 05",
       "folder": "2025_Cadet_Masculi",
       "is_mini_basket": false,
@@ -102,20 +119,11 @@
       ]
     },
     {
-      "name": "2025 C.t. Cadet Femení Promoció Nivell D - 07",
-      "folder": "2025_Cadet_Femeni",
+      "name": "2026 C.t. Júnior Masculí Promoció SF C2 - 03",
+      "folder": "2026_Junior_Masculi_SF_C2_03",
       "is_mini_basket": false,
       "match_files": [
-        "J1_P1_36_49.json", "J1_P2_59_50.json", "J1_P3_46_43.json", 
-        "J2_P1_50_53.json", "J2_P2_56_51.json",
-        "J3_P1_60_44.json", "J3_P2_63_36.json", "J3_P3_42_36.json",
-        "J4_P1_36_44.json",                     "J4_P3_36_48.json",
-        "J5_P1_63_36.json", "J5_P2_60_29.json", "J5_P3_50_37.json",
-        "J6_P1_48_54.json", "J6_P2_44_41.json", "J6_P3_73_39.json",
-        "J7_P1_49_45.json", "J7_P2_30_70.json", "J7_P3_44_48.json", 
-        "J8_P1_36_49.json", "J8_P2_46_57.json", "J8_P3_39_20.json",
-        "J9_P1_32_46.json", "J9_P2_37_32.json", "J9_P3_61_32.json",
-        "J10_P1_29_58.json"
+        "J1_P1_38_45.json", "J1_P2_44_35.json"
       ]
     }
   ]
