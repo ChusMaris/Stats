@@ -101,6 +101,14 @@
         "J9_P1_76_67.json", "J9_P2_35_85.json", "J9_P3_42_133.json",
         "J10_P1_56_44.json", "J10_P2_87_36.json", "J10_P3_150_41.json"
       ]
+    },
+    {
+      "name": "2026 C.t. Pre-infantil Masculí Nivell B1 - 04 *",
+      "folder": "2026_Pre_Infantil_SF_B04",
+      "is_mini_basket": false,
+      "match_files": [
+        "J1_P1_55_50.json"
+      ]
     }
   ]
 }
