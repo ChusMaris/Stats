@@ -56,6 +56,7 @@ const TEAM_LOGOS = {
     "U.E. HORTA": "https://d3ah0nqesr6vwc.cloudfront.net/recursos/imatges/multimedia/Escut_UEH_Petit.jpg",
     "S. E. SANT JOAN DE MATA A": "https://d3ah0nqesr6vwc.cloudfront.net/recursos/imatges/multimedia/abfd69ff5503fca6.jpg",
     "UE SANT CUGAT - OCCIDENT VERMELL": "https://d3ah0nqesr6vwc.cloudfront.net/recursos/imatges/multimedia/UpCK3S80e1XdLJyi.jpg",
+    "BASKET ESPLUGUES NEGRE":"https://d3ah0nqesr6vwc.cloudfront.net/recursos/imatges/multimedia/originals/HiACPliaQTGbh2IW.jpg",
     // C.t. Cadet Masculí Promoció 2025/26
     "FREDERIC MISTRAL" :"https://d3ah0nqesr6vwc.cloudfront.net/recursos/imatges/multimedia/1d8ILrDIUR0abB0n.png",
     "BC SANT JOAN DESPI 1" : "https://d3ah0nqesr6vwc.cloudfront.net/recursos/imatges/multimedia/20109f7cc6773182.jpg",
@@ -68,6 +69,12 @@ const TEAM_LOGOS = {
     "DSB COLEGIO ALEMÁN DE BARCELONA NEGRE":"https://d3ah0nqesr6vwc.cloudfront.net/recursos/imatges/multimedia/rIhzwDG3LCPAcVTd.jpg",
     "CE VILA OLIMPICA":"https://d3ah0nqesr6vwc.cloudfront.net/recursos/imatges/multimedia/081478.jpg",
     "CES BOSCO ROCAFORT NAIFARLLEURE":"https://d3ah0nqesr6vwc.cloudfront.net/recursos/imatges/multimedia/twfqU4TZPAXNqQtM.jpg",
+    "BASQUETPIASABADELL BLAU": "https://d3ah0nqesr6vwc.cloudfront.net/recursos/imatges/multimedia/311de5414816c871.jpg",
+    "MANYANET SANT ANDREU": "https://d3ah0nqesr6vwc.cloudfront.net/recursos/imatges/multimedia/11288cc18dfb27a2.jpg",
+    "CB LA SALLE HORTA VERD": "https://d3ah0nqesr6vwc.cloudfront.net/recursos/imatges/multimedia/957da0af0c0f9565.jpg",
+    "CBSGR CADET MASCULÍ 1ER ANY": "https://d3ah0nqesr6vwc.cloudfront.net/recursos/imatges/multimedia/21bV1Yo6TuM8JWsr.jpg",
+    "CREU ALTA SABADELL VERMELL": "https://d3ah0nqesr6vwc.cloudfront.net/recursos/imatges/multimedia/kEBOlgH8osiUN4Xm.png",
+    "BASQUET ATENEU MONTSERRAT CADET GROC MASCULI":"https://d3ah0nqesr6vwc.cloudfront.net/recursos/imatges/multimedia/080125.png"
 };
 
 const LOGO_BASE_URL = "https://d3ah0nqesr6vwc.cloudfront.net/recursos/imatges/multimedia/originals/";

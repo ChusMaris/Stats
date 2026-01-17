@@ -1,7 +1,7 @@
 {
   "categories": [
     {
-      "name": "2025 C.t. Pre-infantil Masculí Nivell B - 01",
+      "name": "2025 C.t. Pre-infantil Masculí Nivell PF B - 01",
       "folder": "2025_Pre_Infantil_PF_B01",
       "is_mini_basket": true,
       "match_files": [
@@ -18,7 +18,7 @@
       ]
     },
     {
-      "name": "2025 C.t. Pre-infantil Masculí Nivell B - 03",
+      "name": "2025 C.t. Pre-infantil Masculí Nivell PF B - 03",
       "folder": "2025_Pre_Infantil_PF_B03",
       "is_mini_basket": true,
       "match_files": [
@@ -35,7 +35,7 @@
       ]
     },
     {
-      "name": "2025 C.t. Pre-infantil Masculí Nivell B - 05 *",
+      "name": "2025 C.t. Pre-infantil Masculí Nivell PF B - 05 *",
       "folder": "2025_Pre_Infantil_PF_B05",
       "is_mini_basket": true,
       "match_files": [
@@ -52,7 +52,7 @@
       ]
     },
     {
-      "name": "2025 C.t. Pre-infantil Masculí Nivell B - 06",
+      "name": "2025 C.t. Pre-infantil Masculí Nivell PF B - 06",
       "folder": "2025_Pre_Infantil_PF_B06",
       "is_mini_basket": true,
       "match_files": [
@@ -66,6 +66,39 @@
         "J8_P1_28_65.json", "J8_P2_59_44.json", 
         "J9_P1_56_38.json", "J9_P2_61_11.json", 
         "J10_P1_83_50.json", "J10_P2_30_80.json"
+      ]
+    },
+    {
+      "name": "2026 C.t. Pre-infantil Masculí Nivell SF B1 - 04 *",
+      "folder": "2026_Pre_Infantil_SF_B04",
+      "is_mini_basket": false,
+      "match_files": [
+        "J1_P1_55_50.json"
+      ]
+    },
+    {
+      "name": "2025 C.t. Cadet Masculí Promoció Nivell PF B - 05",
+      "folder": "2025_Cadet_Masculi",
+      "is_mini_basket": false,
+      "match_files": [
+        "J1_P1_59_54.json", "J1_P2_45_100.json", "J1_P3_44_116.json",
+        "J2_P1_98_13.json", "J2_P2_53_48.json", "J2_P3_63_65.json",
+        "J3_P1_48_62.json", "J3_P2_15_115.json", "J3_P3_47_49.json",
+        "J4_P1_145_9.json", "J4_P2_32_75.json", "J4_P3_100_26.json",
+        "J5_P1_63_41.json", "J5_P2_55_91.json", "J5_P3_35_71.json",
+        "J6_P1_102_24.json", "J6_P2_72_39.json", "J6_P3_71_67.json",
+        "J7_P1_49_61.json", "J7_P2_58_72.json", "J7_P3_20_96.json",
+        "J8_P1_87_51.json", "J8_P2_75_50.json", "J8_P3_125_13.json",
+        "J9_P1_76_67.json", "J9_P2_35_85.json", "J9_P3_42_133.json",
+        "J10_P1_56_44.json", "J10_P2_87_36.json", "J10_P3_150_41.json"
+      ]
+    },
+    {
+      "name": "2026 C.t. Cadet Masculí Promoció Nivell SF B1 - 05",
+      "folder": "2026_Cadet_Masculi_SF_B05",
+      "is_mini_basket": false,
+      "match_files": [
+        "J1_P1_92_34.json", "J1_P2_63_34.json"
       ]
     },
     {
@@ -83,31 +116,6 @@
         "J8_P1_36_49.json", "J8_P2_46_57.json", "J8_P3_39_20.json",
         "J9_P1_32_46.json", "J9_P2_37_32.json", "J9_P3_61_32.json",
         "J10_P1_29_58.json"
-      ]
-    },
-    {
-      "name": "2025 C.t. Cadet Masculí Promoció Nivell B - 05",
-      "folder": "2025_Cadet_Masculi",
-      "is_mini_basket": false,
-      "match_files": [
-        "J1_P1_59_54.json", "J1_P2_45_100.json", "J1_P3_44_116.json",
-        "J2_P1_98_13.json", "J2_P2_53_48.json", "J2_P3_63_65.json",
-        "J3_P1_48_62.json", "J3_P2_15_115.json", "J3_P3_47_49.json",
-        "J4_P1_145_9.json", "J4_P2_32_75.json", "J4_P3_100_26.json",
-        "J5_P1_63_41.json", "J5_P2_55_91.json", "J5_P3_35_71.json",
-        "J6_P1_102_24.json", "J6_P2_72_39.json", "J6_P3_71_67.json",
-        "J7_P1_49_61.json", "J7_P2_58_72.json", "J7_P3_20_96.json",
-        "J8_P1_87_51.json", "J8_P2_75_50.json", "J8_P3_125_13.json",
-        "J9_P1_76_67.json", "J9_P2_35_85.json", "J9_P3_42_133.json",
-        "J10_P1_56_44.json", "J10_P2_87_36.json", "J10_P3_150_41.json"
-      ]
-    },
-    {
-      "name": "2026 C.t. Pre-infantil Masculí Nivell B1 - 04 *",
-      "folder": "2026_Pre_Infantil_SF_B04",
-      "is_mini_basket": false,
-      "match_files": [
-        "J1_P1_55_50.json"
       ]
     }
   ]

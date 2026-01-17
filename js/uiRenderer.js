@@ -44,7 +44,7 @@ function renderClassificationTable() {
         html += `
             <tr>
                 <td>${logoImg}</td>
-                <td style="text-align: left; display: flex; align-items: center; padding: 8px 10px;">
+                <td style="text-align: left; padding: 8px 10px;">
                     <span style="min-width: 25px; font-weight: bold; color: #666;">${index + 1}.</span>
                     <span style="font-weight: 500;">${t.name}</span>
                 </td>
@@ -337,8 +337,10 @@ function makeTableSortable(tableId, dataArray) {
                         : '';
 
                     row.insertCell().innerHTML = logoImg; // New cell for logo
-                    row.insertCell().innerHTML = `<span style="min-width: 25px; font-weight: bold; color: #666;">${index + 1}.</span> <span style="font-weight: 500;">${d.name}</span>`; // Cell for rank and name
-                    row.cells[1].style.textAlign = 'left'; // Set text-align for the name cell
+                    const nameCell = row.insertCell();
+                    nameCell.innerHTML = `<span style="min-width: 25px; font-weight: bold; color: #666;">${index + 1}.</span> <span style="font-weight: 500;">${d.name}</span>`;
+                    nameCell.style.textAlign = 'left';
+                    nameCell.style.padding = '8px 10px';
 
                     row.insertCell().textContent = d.J;
                     row.insertCell().textContent = d.G;

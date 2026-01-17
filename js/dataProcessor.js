@@ -531,7 +531,7 @@ function renderPlayerStatsTable(players, container) {
                 <td>${p.dorsal}</td><td>${p.name}</td><td>${p.stats.PJ}</td><td>${ppg}</td><td>${mpg}</td>
                 <td>${fpg}</td>
                 <td>${ftPercent}</td>
-                <td>${createCircularProgressBar(p.stats.shotsOfOneSuccessful, p.stats.shotsOfOneAttempted, false)}</td>                
+                <td>${createCircularProgressBar(p.stats.shotsOfOneSuccessful, p.stats.shotsOfOneAttempted, true)}</td>                
                 <td>${renderShotEfficiency(p.stats.shotsOfTwoSuccessful, p.stats.shotsOfTwoAttempted, 'successful_only')}</td>
                 <td>${renderShotEfficiency(p.stats.shotsOfThreeSuccessful, p.stats.shotsOfThreeAttempted, 'successful_only')}</td>
             </tr>

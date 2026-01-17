@@ -36,11 +36,11 @@ function renderPlayerCards(players, containerId) {
 
     const cardsHtml = players.sort((a, b) => b.stats.Puntos - a.stats.Puntos).map(p => {
         const key = p.name.toUpperCase().trim();
-        const fotoUrl = (typeof JUGADOR_FOTOS !== 'undefined' && JUGADOR_FOTOS[key]) || "https://www.w3schools.com/howto/img_avatar.png";
+        const fotoUrl = (typeof JUGADOR_FOTOS !== 'undefined' && JUGADOR_FOTOS[key]) || "img/img_avatar.png";
 
         return `
             <div class="player-card" onclick="goToPlayerDetail('${p.name}')">
-                <div class="card-photo-container"><img src="${fotoUrl}" onerror="this.src='https://www.w3schools.com/howto/img_avatar.png'"></div>
+                <div class="card-photo-container"><img src="${fotoUrl}" onerror="this.src='img/img_avatar.png'"></div>
                 <div class="card-dorsal">#${p.dorsal || '??'}</div>
                 <div class="card-name">${p.name}</div>
                 <div class="card-stats-grid">

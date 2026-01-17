@@ -71,7 +71,7 @@ function renderTeamHeader(team) {
 
 function renderPlayerDetailHeader(player) {
     const key = player.name.toUpperCase().trim();
-    const fotoUrl = (typeof JUGADOR_FOTOS !== 'undefined' && JUGADOR_FOTOS[key]) || "https://www.w3schools.com/howto/img_avatar.png";
+    const fotoUrl = (typeof JUGADOR_FOTOS !== 'undefined' && JUGADOR_FOTOS[key]) || "img/img_avatar.png";
 
     document.querySelector('.player-photo').src = fotoUrl;
     document.querySelector('.player-name').textContent = player.name;
