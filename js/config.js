@@ -83,6 +83,16 @@ const TEAM_LOGOS = {
     "CE VILA OLIMPICA GROC": "https://d3ah0nqesr6vwc.cloudfront.net/recursos/imatges/multimedia/081478.jpg",
     "UE BARBERA B": "https://d3ah0nqesr6vwc.cloudfront.net/recursos/imatges/multimedia/7c0e1fd78df5df18.jpg"
 
+
+// Primera Fase - Nivell C - 01   --> UE BARBERA B
+// Primera Fase - Nivell C - 02   --> C.B. PREMIÀ DE DALT - JM
+// Primera Fase - Nivell C - 04 * --> Brafa, CE VILA OLIMPICA GROC
+// Primera Fase - Nivell C - 07   --> BÀSQUET CEISSA C, CB.CIUTAT VELLA B
+// Primera Fase - Nivell C - 08   --> SANT QUIRZE BÀSQUET CLUB
+
+
+
+
 };
 
 const LOGO_BASE_URL = "https://d3ah0nqesr6vwc.cloudfront.net/recursos/imatges/multimedia/originals/";
