@@ -153,6 +153,23 @@
       ]
     },
     {
+      "name": "2025 C.t. Júnior Masculí Promoció PF C - 04",
+      "folder": "2025_Junior_Masculi_PF_C04",
+      "is_mini_basket": false,
+      "match_files": [
+        "J1_P1_52_28.json", "J1_P2_90_30.json",
+        "J2_P1_32_65.json", "J2_P2_39_52.json",
+        "J3_P1_44_47.json", "J3_P2_56_44.json",
+        "J4_P1_74_35.json", "J4_P2_93_22.json",
+        "J5_P1_30_63.json", "J5_P2_39_64.json",
+        "J6_P1_38_54.json", "J6_P2_53_56.json",
+        "J7_P1_63_46.json", "J7_P2_61_45.json",
+        "J8_P1_68_40.json", "J8_P2_64_59.json",
+        "J9_P1_40_72.json", "J9_P2_40_53.json",
+        "J10_P1_122_34.json", "J10_P2_87_36.json"
+      ]
+    },
+    {
       "name": "2026 C.t. Júnior Masculí Promoció SF C2 - 03",
       "folder": "2026_Junior_Masculi_SF_C2_03",
       "is_mini_basket": false,
