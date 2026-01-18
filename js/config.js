@@ -57,12 +57,17 @@ const TEAM_LOGOS = {
     "S. E. SANT JOAN DE MATA A": "https://d3ah0nqesr6vwc.cloudfront.net/recursos/imatges/multimedia/abfd69ff5503fca6.jpg",
     "UE SANT CUGAT - OCCIDENT VERMELL": "https://d3ah0nqesr6vwc.cloudfront.net/recursos/imatges/multimedia/UpCK3S80e1XdLJyi.jpg",
     "BASKET ESPLUGUES NEGRE":"https://d3ah0nqesr6vwc.cloudfront.net/recursos/imatges/multimedia/originals/HiACPliaQTGbh2IW.jpg",
+    "VEDRUNA GRÀCIA NEGRE": "https://d3ah0nqesr6vwc.cloudfront.net/recursos/imatges/multimedia/LerEcUSvawgBl8Br.jpg",
+    "JOVENTUT SANT VICENÇ": "https://d3ah0nqesr6vwc.cloudfront.net/recursos/imatges/multimedia/WrcF1O8hCcAsNJyh.png",
+    "C.E.THAU": "https://d3ah0nqesr6vwc.cloudfront.net/recursos/imatges/multimedia/n6WLGtgHbF4H4HHz.jpg",
+
     // C.t. Cadet Masculí Promoció 2025/26
     "FREDERIC MISTRAL" :"https://d3ah0nqesr6vwc.cloudfront.net/recursos/imatges/multimedia/1d8ILrDIUR0abB0n.png",
     "BC SANT JOAN DESPI 1" : "https://d3ah0nqesr6vwc.cloudfront.net/recursos/imatges/multimedia/20109f7cc6773182.jpg",
     "CB. CORNELLA BLANC":"https://d3ah0nqesr6vwc.cloudfront.net/recursos/imatges/multimedia/j2LwSwBtxYb0pTPG.png",
     "C.B. PRAT - AIGÜES DEL PRAT A":"https://d3ah0nqesr6vwc.cloudfront.net/recursos/imatges/multimedia/I2SPExEujKkx9zzD.png",
     "CB MONTPEDRÓS B":"https://d3ah0nqesr6vwc.cloudfront.net/recursos/imatges/multimedia/B8ATeYPENu2NvrE2.png",
+    
     // C.t. Cadet Femení Promoció 2025/26
     "BÀSQUET CEISSA B": "https://d3ah0nqesr6vwc.cloudfront.net/recursos/imatges/multimedia/WzRrXOxawXTv4aQk.png",
     "EUROPEAN INT. SCHOOL OF BARCELONA":"https://d3ah0nqesr6vwc.cloudfront.net/recursos/imatges/multimedia/YdxDw9HIyibYQzyZ.png",
@@ -75,6 +80,7 @@ const TEAM_LOGOS = {
     "CBSGR CADET MASCULÍ 1ER ANY": "https://d3ah0nqesr6vwc.cloudfront.net/recursos/imatges/multimedia/21bV1Yo6TuM8JWsr.jpg",
     "CREU ALTA SABADELL VERMELL": "https://d3ah0nqesr6vwc.cloudfront.net/recursos/imatges/multimedia/kEBOlgH8osiUN4Xm.png",
     "BASQUET ATENEU MONTSERRAT CADET GROC MASCULI":"https://d3ah0nqesr6vwc.cloudfront.net/recursos/imatges/multimedia/080125.png",
+    
     // C.t. Júnior Masculí Promoció 25/26
     "CB.CIUTAT VELLA B": "https://d3ah0nqesr6vwc.cloudfront.net/recursos/imatges/multimedia/KmGmVzcqMjPdpzPa.png",
     "C.B. PREMIÀ DE DALT - JM": "https://d3ah0nqesr6vwc.cloudfront.net/recursos/imatges/multimedia/470501c35b9f6445.jpg",
@@ -85,14 +91,6 @@ const TEAM_LOGOS = {
     "BÀSQUET NOU BARRIS" : "https://d3ah0nqesr6vwc.cloudfront.net/recursos/imatges/multimedia/8IYL5UTDpk72FyjF.png",
     "CB RIPOLLET B" : "https://d3ah0nqesr6vwc.cloudfront.net/recursos/imatges/multimedia/GlmsFIcBfYPHXyC6.jpg",
     "AULA ESCOLA EUROPEA B" : "https://d3ah0nqesr6vwc.cloudfront.net/recursos/imatges/multimedia/UXpNsKJZO2GGNXPH.png"
-
-
-// Primera Fase - Nivell C - 07   --> BÀSQUET CEISSA C, CB.CIUTAT VELLA B
-// Primera Fase - Nivell C - 08   --> SANT QUIRZE BÀSQUET CLUB
-
-
-
-
 };
 
 const LOGO_BASE_URL = "https://d3ah0nqesr6vwc.cloudfront.net/recursos/imatges/multimedia/originals/";
