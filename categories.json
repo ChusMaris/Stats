@@ -136,6 +136,23 @@
       ]
     },
     {
+      "name": "2025 C.t. Júnior Masculí Promoció PF C - 02",
+      "folder": "2025_Junior_Masculi_PF_C02",
+      "is_mini_basket": false,
+      "match_files": [
+        "J1_P1_51_37.json", "J1_P2_47_41.json", "J1_P3_72_26.json",
+        "J2_P1_51_44.json", "J2_P2_30_43.json", "J2_P3_43_41.json",
+        "J3_P1_49_68.json", "J3_P2_59_63.json", "J3_P3_47_49.json",
+        "J4_P1_39_36.json", "J4_P2_60_55.json", "J4_P3_49_43.json",
+        "J5_P1_39_61.json", "J5_P2_45_52.json", "J5_P3_47_42.json",
+        "J6_P1_67_56.json", "J6_P2_43_70.json", "J6_P3_69_55.json",
+        "J7_P1_61_68.json", "J7_P2_53_51.json", "J7_P3_53_48.json",
+        "J8_P1_74_51.json", "J8_P2_75_80.json", "J8_P3_79_38.json",
+        "J9_P1_0_2.json", "J9_P2_64_43.json", "J9_P3_68_47.json",
+        "J10_P1_59_56.json", "J10_P2_65_42.json", "J10_P3_77_53.json"
+      ]
+    },
+    {
       "name": "2026 C.t. Júnior Masculí Promoció SF C2 - 03",
       "folder": "2026_Junior_Masculi_SF_C2_03",
       "is_mini_basket": false,
