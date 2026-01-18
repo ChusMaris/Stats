@@ -148,7 +148,7 @@
         "J6_P1_67_56.json", "J6_P2_43_70.json", "J6_P3_69_55.json",
         "J7_P1_61_68.json", "J7_P2_53_51.json", "J7_P3_53_48.json",
         "J8_P1_74_51.json", "J8_P2_75_80.json", "J8_P3_79_38.json",
-        "J9_P1_0_2.json", "J9_P2_64_43.json", "J9_P3_68_47.json",
+        "J9_P1_0_2.json",   "J9_P2_64_43.json", "J9_P3_68_47.json",
         "J10_P1_59_56.json", "J10_P2_65_42.json", "J10_P3_77_53.json"
       ]
     },
@@ -167,6 +167,23 @@
         "J8_P1_68_40.json", "J8_P2_64_59.json",
         "J9_P1_40_72.json", "J9_P2_40_53.json",
         "J10_P1_122_34.json", "J10_P2_87_36.json"
+      ]
+    },
+    {
+      "name": "2025 C.t. Júnior Masculí Promoció PF C - 07",
+      "folder": "2025_Junior_Masculi_PF_C07",
+      "is_mini_basket": false,
+      "match_files": [
+        "J1_P1_63_59.json",  "J1_P2_35_30.json",  "J1_P3_36_72.json",
+        "J2_P1_77_31.json",  "J2_P2_37_82.json",  "J2_P3_90_51.json",
+        "J3_P1_25_109.json", "J3_P2_30_42.json",  "J3_P3_40_46.json",
+        "J4_P1_59_60.json",  "J4_P2_110_20.json", "J4_P3_49_19.json",
+        "J5_P1_53_74.json",  "J5_P2_35_57.json",  "J5_P3_46_63.json",
+        "J6_P1_67_56.json",  "J6_P2_44_30.json",  "J6_P3_78_31.json",
+        "J7_P1_57_80.json",  "J7_P2_77_47.json",  "J7_P3_56_75.json",
+        "J8_P1_48_11.json",  "J8_P2_58_55.json",  "J8_P3_78_28.json",
+        "J9_P1_39_56.json",  "J9_P2_47_45.json",  "J9_P3_44_79.json",
+        "J10_P1_64_32.json", "J10_P2_87_40.json", "J10_P3_68_52 .json"
       ]
     },
     {
