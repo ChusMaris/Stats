@@ -174,6 +174,21 @@ async function loadCategoryConfiguration() {
                 option.textContent = cat.name; 
                 selector.appendChild(option);
             });
+
+            // --- NUEVO: Selección por defecto ---
+            const categoriaPorDefecto = "2025/26 C.t. Pre-infantil Masculí - SF - Nivell B1 - 04 *";
+            
+            // Buscamos si existe una opción con ese nombre exacto
+            for (let i = 0; i < selector.options.length; i++) {
+                if (selector.options[i].text.trim() === categoriaPorDefecto) {
+                    selector.selectedIndex = i;
+                    
+                    // Importante: Disparamos el evento 'change' manualmente 
+                    // para que la tabla se cargue sola al entrar
+                    selector.dispatchEvent(new Event('change'));
+                    break;
+                }
+            }
         }
 
     } catch (error) {

@@ -71,7 +71,7 @@
     {
       "name": "2025/26 C.t. Pre-infantil Masculí - SF - Nivell B1 - 04 *",
       "folder": "2026_Pre_Infantil_SF_B04",
-      "is_mini_basket": false,
+      "is_mini_basket": true,
       "match_files": [
         "J1_P1_55_50.json", "J1_P2_74_35.json",
         "J2_P1_55_46.json", "J2_P2_62_61.json"
