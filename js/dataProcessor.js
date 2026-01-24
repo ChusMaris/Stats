@@ -88,49 +88,27 @@ function calculateClassification(summaries) {
     }));
 
     return teamsArray.sort((a, b) => {
-        // 1. Criterio principal: Puntos totales
+        // 1. PUNTOS TOTALES
         if (b.Ptos !== a.Ptos) return b.Ptos - a.Ptos;
 
-        // 2. Desempate Particular (FCBQ)
-        // Buscamos todos los equipos empatados a los mismos puntos
-        const tiedTeams = teamsArray.filter(t => t.Ptos === a.Ptos).map(t => t.name);
+        // 2. DIFERENCIA DE PUNTOS GENERAL (PF - PC)
+        // En la J2 de la FCBQ, Vedruna (+38) es 1º por esto, 
+        // superando el empate con Brafa (-4) y Esplugues (-4).
+        if (b.diff !== a.diff) return b.diff - a.diff;
 
-        if (tiedTeams.length > 2) {
-            // Empate Múltiple: Clasificación interna entre los implicados
-            const getInternal = (name) => {
-                let iPtos = 0, iDiff = 0;
-                const team = teamsArray.find(t => t.name === name);
-                team._matches.forEach(m => {
-                    if (tiedTeams.includes(m.opponentName)) {
-                        iPtos += (m.result === 'Ganado' ? 2 : 1);
-                        iDiff += (m.score - m.opponentScore);
-                    }
-                });
-                return { iPtos, iDiff };
-            };
-
-            const statsA = getInternal(a.name);
-            const statsB = getInternal(b.name);
-
-            if (statsB.iPtos !== statsA.iPtos) return statsB.iPtos - statsA.iPtos;
-            if (statsB.iDiff !== statsA.iDiff) return statsB.iDiff - statsA.iDiff;
-        } else {
-            // Empate Doble: Enfrentamiento directo
-            const matchDirecto = a._matches.find(m => m.opponentName === b.name);
-            if (matchDirecto) {
-                if (matchDirecto.result === 'Ganado') return -1;
-                if (matchDirecto.result === 'Perdido') return 1;
-            }
+        // 3. ENFRENTAMIENTO DIRECTO (Solo si empatan en Puntos y Diferencia General)
+        // Esto es lo que pone a Brafa (ganador J1) por delante de Esplugues.
+        const matchDirecto = a._matches.find(m => m.opponentName === b.name);
+        if (matchDirecto) {
+            if (matchDirecto.result === 'Ganado') return -1;
+            if (matchDirecto.result === 'Perdido') return 1;
         }
 
-        // 3. Diferencia General (si persiste el empate)
-        if (isMiniBasket) {
-            if (b.PF !== a.PF) return b.PF - a.PF;
-            return a.PC - b.PC;
-        } else {
-            if (b.diff !== a.diff) return b.diff - a.diff;
-            return b.PF - a.PF;
-        }
+        // 4. MÁS PUNTOS A FAVOR (PF) GENERAL
+        if (b.PF !== a.PF) return b.PF - a.PF;
+
+        // 5. CRITERIO ALFABÉTICO (Último recurso)
+        return a.name.localeCompare(b.name);
     });
 }
 
