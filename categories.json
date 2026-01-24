@@ -1,7 +1,7 @@
 {
   "categories": [
     {
-      "name": "2025 C.t. Pre-infantil Masculí Nivell PF B - 01",
+      "name": "2025/26 C.t. Pre-infantil Masculí - PF - Nivell B - 01",
       "folder": "2025_Pre_Infantil_PF_B01",
       "is_mini_basket": true,
       "match_files": [
@@ -18,7 +18,7 @@
       ]
     },
     {
-      "name": "2025 C.t. Pre-infantil Masculí Nivell PF B - 03",
+      "name": "2025/26 C.t. Pre-infantil Masculí - PF - Nivell B - 03",
       "folder": "2025_Pre_Infantil_PF_B03",
       "is_mini_basket": true,
       "match_files": [
@@ -35,7 +35,7 @@
       ]
     },
     {
-      "name": "2025 C.t. Pre-infantil Masculí Nivell PF B - 05 *",
+      "name": "2025/26 C.t. Pre-infantil Masculí - PF - Nivell B - 05 *",
       "folder": "2025_Pre_Infantil_PF_B05",
       "is_mini_basket": true,
       "match_files": [
@@ -52,7 +52,7 @@
       ]
     },
     {
-      "name": "2025 C.t. Pre-infantil Masculí Nivell PF B - 06",
+      "name": "2025/26 C.t. Pre-infantil Masculí - PF - Nivell B - 06",
       "folder": "2025_Pre_Infantil_PF_B06",
       "is_mini_basket": true,
       "match_files": [
@@ -69,7 +69,7 @@
       ]
     },
     {
-      "name": "2026 C.t. Pre-infantil Masculí Nivell SF B1 - 04 *",
+      "name": "2025/26 C.t. Pre-infantil Masculí - SF - Nivell B1 - 04 *",
       "folder": "2026_Pre_Infantil_SF_B04",
       "is_mini_basket": false,
       "match_files": [
@@ -77,9 +77,8 @@
         "J2_P1_55_46.json", "J2_P2_62_61.json"
       ]
     },
-
     {
-      "name": "2025 C.t. Cadet Femení Promoció Nivell D - 07",
+      "name": "2025/26 C.t. Cadet Femení Promoció - PF - Nivell D - 07",
       "folder": "2025_Cadet_Femeni",
       "is_mini_basket": false,
       "match_files": [
@@ -97,7 +96,7 @@
     },
 
     {
-      "name": "2025 C.t. Cadet Masculí Promoció Nivell PF B - 05",
+      "name": "2025/26 C.t. Cadet Masculí Promoció - PF - Nivell B - 05",
       "folder": "2025_Cadet_Masculi",
       "is_mini_basket": false,
       "match_files": [
@@ -114,7 +113,7 @@
       ]
     },
     {
-      "name": "2026 C.t. Cadet Masculí Promoció Nivell SF B1 - 05",
+      "name": "2025/26 C.t. Cadet Masculí Promoció - SF - Nivell B1 - 05",
       "folder": "2026_Cadet_Masculi_SF_B05",
       "is_mini_basket": false,
       "match_files": [
@@ -122,9 +121,8 @@
         "J2_P1_62_83.json"
       ]
     },
-
     {
-      "name": "2025 C.t. Júnior Masculí Promoció PF C - 01",
+      "name": "2025/26 C.t. Júnior Masculí Promoció - PF - Nivell C - 01",
       "folder": "2025_Junior_Masculi_PF_C01",
       "is_mini_basket": false,
       "match_files": [
@@ -141,7 +139,7 @@
       ]
     },
     {
-      "name": "2025 C.t. Júnior Masculí Promoció PF C - 02",
+      "name": "2025/26 C.t. Júnior Masculí Promoció - PF - Nivell C - 02",
       "folder": "2025_Junior_Masculi_PF_C02",
       "is_mini_basket": false,
       "match_files": [
@@ -158,7 +156,7 @@
       ]
     },
     {
-      "name": "2025 C.t. Júnior Masculí Promoció PF C - 04",
+      "name": "2025/26 C.t. Júnior Masculí Promoció - PF - Nivell C - 04",
       "folder": "2025_Junior_Masculi_PF_C04",
       "is_mini_basket": false,
       "match_files": [
@@ -175,7 +173,7 @@
       ]
     },
     {
-      "name": "2025 C.t. Júnior Masculí Promoció PF C - 07",
+      "name": "2025/26 C.t. Júnior Masculí Promoció - PF - Nivell C - 07",
       "folder": "2025_Junior_Masculi_PF_C07",
       "is_mini_basket": false,
       "match_files": [
@@ -192,7 +190,7 @@
       ]
     },
     {
-      "name": "2025 C.t. Júnior Masculí Promoció PF C - 08",
+      "name": "2025/26 C.t. Júnior Masculí Promoció - PF - Nivell C - 08",
       "folder": "2025_Junior_Masculi_PF_C08",
       "is_mini_basket": false,
       "match_files": [
@@ -209,11 +207,12 @@
       ]
     },
     {
-      "name": "2026 C.t. Júnior Masculí Promoció SF C2 - 03",
+      "name": "2025/26 C.t. Júnior Masculí Promoció - SF - Nivell C2 - 03",
       "folder": "2026_Junior_Masculi_SF_C2_03",
       "is_mini_basket": false,
       "match_files": [
-        "J1_P1_38_45.json", "J1_P2_44_35.json"
+        "J1_P1_38_45.json", "J1_P2_44_35.json",
+        "J2_P1_49_37.json"
       ]
     }
   ]
