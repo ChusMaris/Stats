@@ -1,0 +1,28 @@
+Quiero crear una aplicación web de estadísticas de baloncesto, son de la federación catalana de baloncesto, 
+hay categorías mini y normales, la diferencia entre ellas son la manera de puntuar y de ordenar la clasificación, 
+tendrás que mirar las reglas de la federación para ordernar correctamente la clasificación. Los datos los proporcionaré descargando
+dos ficheros json de cada paritdo, uno con los datos de los partidos, jugadores, etc. y otro fichero con el detalle de los tiros de
+cada jugador en el partido. Quiero un método para imprtar toda la información de los excels en una base de datos postgresql, que
+usaré en supabas, con lo que tendrás que modelar la base de datos, generarme los scripts para crearla y el método para importar
+los partidos. En la carga de cada parido se le especificará la temporada, la categoría y el nivel.
+A nivel de structura de base de datos, hay que tener en cuenta que existen clubs, que tienen categorías y en cada categoría tienen
+equipos. Los jugadores en cada temporada irán cambiando de categoría, y pueden venir o irse jugadores.
+A nivel de estadísticas, me gustaría tener estadísticas a nivel de competición, a nivel de partido y a nivel de jugador, teniendo
+en cuenta la liga actual, o la trayectoria de cada jugador. Quiero enfrentamientos entre clubs, si se han enfrentado o no. Posibilidades
+de victoria o derrota en futuros paritdos, para ello necesitaremos guardar el calendario de los partidos de la liga.
+Te adjunto un fichero json de cada para que pueda analizarlos e interpretarlos.
+
+
+-- nano banana
+
+víste al juegado con la equipación adjunta. Quiero una foto de estudio para la ficha del jugador. 
+Con el fondo de la imagen en blanco. 
+Quiero que no le modifiques los rasgos faciales, quiero la cara original.
+
+
+-- Logos
+
+Fondo : https://postimg.cc/sGfStzb6
+Brafa : https://postimg.cc/1gHkNfT3
+
+Thau : https://postimg.cc/1nsNqPRm
