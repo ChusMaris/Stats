@@ -346,13 +346,13 @@ function processAllData(categoryConfig) {
                     ).length;
 
                     t.stats.FaltasConTiro += faltasConTiroThisMatch;
-                    ps.Faltas += faltasTotalesThisMatch;
+                    ps.Faltas += pd.faults || 0;
                     ps.FaltasConTiro += faltasConTiroThisMatch;
 
                     t.players[key].matchHistory.push({
                         jornada, opponentName: opponent.name, teamScore: score, opponentScore: oppScore, result: res,
                         Puntos: pd.score || 0, Minutos: player.timePlayed || 0,
-                        Faltas: faltasTotalesThisMatch,
+                        Faltas: pd.faults || 0,
                         FaltasConTiro: faltasConTiroThisMatch,
                         shotsOfOneSuccessful: pd.shotsOfOneSuccessful || 0, shotsOfOneAttempted: pd.shotsOfOneAttempted || 0,
                         shotsOfTwoSuccessful: pd.shotsOfTwoSuccessful || 0, shotsOfTwoAttempted: pd.shotsOfTwoAttempted || 0,
