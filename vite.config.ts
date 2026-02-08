@@ -8,4 +8,7 @@ export default defineConfig({
   // './' permite que la app funcione en cualquier subdirectorio (ej: usuario.github.io/repo)
   // en lugar de asumir que está en la raíz del dominio.
   base: './',
+  optimizeDeps: {
+    include: ['recharts', 'echarts', 'zrender'],
+  },
 })

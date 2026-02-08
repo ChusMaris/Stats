@@ -1,3 +1,4 @@
+
 export interface Temporada {
   id: number | string;
   nombre: string;
@@ -87,7 +88,7 @@ export interface EstadisticaJugadorPartido {
   t3_intentados?: number;
   t3_anotados?: number;
   t3_fallados?: number;
-  faltas_personales?: number;
+  faltas_cometidas?: number;
   faltas_recibidas?: number;
   faltas_ataque?: number;
   tecnicas?: number;
@@ -98,6 +99,7 @@ export interface EstadisticaJugadorPartido {
   minuto?: number; // Sometimes stored as minutes played
   minutos?: number; // Potential alias
   min?: number; // Potential alias
+  tiempo_jugado?: string | number; // New field from DB
 }
 
 export interface PartidoMovimiento {

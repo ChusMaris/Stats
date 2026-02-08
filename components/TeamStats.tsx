@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { EstadisticaJugadorPartido, PlayerAggregatedStats, PartidoMovimiento, Plantilla } from '../types';
 import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
-import { User, Grid, Table, AlertTriangle } from 'lucide-react';
+import { User, Calendar, Table, AlertTriangle, LayoutGrid, List } from 'lucide-react';
 import PlayerModal from './PlayerModal';
 
 interface TeamStatsProps {
@@ -13,65 +13,78 @@ interface TeamStatsProps {
   esMini: boolean;
 }
 
+const MiniDonut = ({ value }: { value: number }) => {
+  const size = 36;
+  const strokeWidth = 3;
+  const radius = (size - strokeWidth) / 2;
+  const circumference = 2 * Math.PI * radius;
+  // Ensure value is between 0 and 100
+  const normalizedValue = Math.min(100, Math.max(0, value));
+  const offset = circumference - (normalizedValue / 100) * circumference;
+  
+  let color = '#e5e7eb'; // gray-200 default for 0 or empty
+  if (value > 0 || (value === 0 && normalizedValue === 0)) { // Logic check: if 0% but attempted, it's red? Let's stick to standard thresholds
+     if (normalizedValue === 0) color = '#d1d5db'; // gray-300
+     else if (normalizedValue < 50) color = '#ef4444'; // red-500
+     else if (normalizedValue < 70) color = '#f59e0b'; // amber-500
+     else color = '#10b981'; // emerald-500
+  }
+  
+  return (
+      <div className="relative flex items-center justify-center" style={{ width: size, height: size }}>
+          <svg width={size} height={size} className="transform -rotate-90">
+              <circle
+                  cx={size / 2}
+                  cy={size / 2}
+                  r={radius}
+                  stroke="#f3f4f6"
+                  strokeWidth={strokeWidth}
+                  fill="transparent"
+              />
+              <circle
+                  cx={size / 2}
+                  cy={size / 2}
+                  r={radius}
+                  stroke={color}
+                  strokeWidth={strokeWidth}
+                  fill="transparent"
+                  strokeDasharray={circumference}
+                  strokeDashoffset={offset}
+                  strokeLinecap="round"
+              />
+          </svg>
+          <span className="absolute text-[11px] font-bold text-gray-600">{Math.round(normalizedValue)}%</span>
+      </div>
+  );
+};
+
 const TeamStats: React.FC<TeamStatsProps> = ({ equipoId, matches, plantilla, stats, movements = [], esMini }) => {
-  const [activeTab, setActiveTab] = useState<'matches' | 'grid' | 'cards'>('matches');
+  // Estado principal: Partidos o Jugadores
+  const [activeTab, setActiveTab] = useState<'matches' | 'players'>('matches');
+  // Estado secundario: Vista dentro de Jugadores (Tabla o Tarjetas/Jugadores)
+  const [playerViewMode, setPlayerViewMode] = useState<'table' | 'cards'>('table');
+  
   const [selectedPlayer, setSelectedPlayer] = useState<PlayerAggregatedStats | null>(null);
 
-  // Helper para conversión de tiempo
-  const parseMinuto = (minuto: any): number => {
-    try {
-      if (minuto === undefined || minuto === null) return 0;
-      if (typeof minuto === 'number') return minuto * 60;
-      const str = String(minuto).trim();
-      if (!str) return 0;
-      if (str.includes(':')) {
-          const parts = str.split(':');
-          const m = parseInt(parts[0], 10) || 0;
-          const s = parseInt(parts[1], 10) || 0;
-          return m * 60 + s;
-      }
-      const val = parseFloat(str);
-      return isNaN(val) ? 0 : val * 60;
-    } catch (e) { return 0; }
-  };
+  // Helper para normalizar el tiempo jugado (puede venir como 'MM:SS' string o número)
+  const parseTiempoJugado = (tiempo: string | number | undefined): number => {
+    if (!tiempo) return 0;
+    
+    // Si ya es un número (minutos)
+    if (typeof tiempo === 'number') return tiempo;
 
-  const calculateMinutesFromMoves = (playerId: string | number, matchId: string | number, playerMoves: PartidoMovimiento[]): number => {
-    try {
-      if (!playerMoves || !Array.isArray(playerMoves)) return 0;
-      const rawMoves = playerMoves.filter(m => m && String(m.partido_id) === String(matchId) && String(m.jugador_id) === String(playerId));
-      const subMoves = rawMoves.filter(m => {
-          const d = (m.descripcion || m.tipo_movimiento || '').toLowerCase();
-          return d.includes('entra') || d.includes('surt');
-      });
-      if (subMoves.length === 0) return 0;
-      
-      let totalSeconds = 0;
-      let lastInTime: number | null = null;
-      let isOnCourt = false;
-      const PERIOD_DURATION_SECONDS = esMini ? 6 * 60 : 10 * 60;
-
-      subMoves.forEach(m => {
-          const action = (m.descripcion || m.tipo_movimiento || '').toLowerCase();
-          const currentTime = parseMinuto(m.minuto);
-          if (action.includes('entra')) {
-              lastInTime = currentTime;
-              isOnCourt = true;
-          } else if (action.includes('surt')) {
-              if (isOnCourt && lastInTime !== null) {
-                  totalSeconds += Math.abs(lastInTime - currentTime);
-                  isOnCourt = false;
-                  lastInTime = null;
-              } else {
-                  const startOfSegment = Math.max(currentTime, PERIOD_DURATION_SECONDS);
-                  totalSeconds += Math.max(0, startOfSegment - currentTime);
-                  isOnCourt = false;
-                  lastInTime = null;
-              }
-          }
-      });
-      if (isOnCourt && lastInTime !== null) totalSeconds += Math.max(0, lastInTime);
-      return totalSeconds / 60;
-    } catch (e) { return 0; }
+    // Si es string "MM:SS" o "MM"
+    if (typeof tiempo === 'string') {
+        const parts = tiempo.split(':');
+        if (parts.length === 2) {
+            const min = parseInt(parts[0], 10) || 0;
+            const sec = parseInt(parts[1], 10) || 0;
+            return min + (sec / 60);
+        } else if (parts.length === 1) {
+            return parseFloat(parts[0]) || 0;
+        }
+    }
+    return 0;
   };
 
   // Procesamiento de partidos
@@ -92,7 +105,7 @@ const TeamStats: React.FC<TeamStatsProps> = ({ equipoId, matches, plantilla, sta
           const t2 = teamStatsInMatch.reduce((sum, s) => sum + (s.t2_intentados || 0), 0); 
           const t3 = teamStatsInMatch.reduce((sum, s) => sum + (s.t3_intentados || 0), 0);
           const fouls = teamStatsInMatch.reduce((sum, s) => 
-              sum + (s.faltas_personales || 0) + (s.tecnicas || 0) + (s.antideportivas || 0), 0
+              sum + (s.faltas_cometidas || 0) + (s.tecnicas || 0) + (s.antideportivas || 0), 0
           );
           
           const t1Pct = t1I > 0 ? (t1A / t1I) * 100 : 0;
@@ -130,12 +143,15 @@ const TeamStats: React.FC<TeamStatsProps> = ({ equipoId, matches, plantilla, sta
               const gp = matchIds.length;
               const totalPts = pStats.reduce((sum, s) => sum + (s.puntos || 0), 0);
               
-              let totalMins = 0;
-              matchIds.forEach(mId => {
-                   totalMins += calculateMinutesFromMoves(p.jugador_id, mId, movements);
-              });
+              // Cálculo de minutos totales para MPG (Minutes Per Game)
+              const totalMins = pStats.reduce((sum, s) => sum + parseTiempoJugado(s.tiempo_jugado), 0);
+              
+              const mpg = gp > 0 ? totalMins / gp : 0;
 
-              const totalFouls = pStats.reduce((sum, s) => sum + (s.faltas_personales || 0), 0);
+              // Cálculo de PPM solicitado: Puntos Totales / Media de Minutos (MPG)
+              const ppm = mpg > 0 ? totalPts / mpg : 0;
+
+              const totalFouls = pStats.reduce((sum, s) => sum + (s.faltas_cometidas || 0), 0);
               const t1A = pStats.reduce((sum, s) => sum + (s.t1_anotados || 0), 0);
               const t1I = pStats.reduce((sum, s) => sum + (s.t1_intentados || 0), 0);
               const t2A = pStats.reduce((sum, s) => sum + (s.t2_anotados || 0), 0);
@@ -159,9 +175,9 @@ const TeamStats: React.FC<TeamStatsProps> = ({ equipoId, matches, plantilla, sta
                   totalTiros3Intentados: t3I,
                   totalTiros3Anotados: t3A,
                   ppg: gp > 0 ? totalPts / gp : 0,
-                  mpg: gp > 0 ? totalMins / gp : 0,
+                  mpg: mpg,
                   fpg: gp > 0 ? totalFouls / gp : 0,
-                  ppm: totalMins > 0 ? totalPts / totalMins : 0
+                  ppm: ppm
               } as PlayerAggregatedStats;
           } catch (err) {
               console.error("Error processing player", p, err);
@@ -186,57 +202,65 @@ const TeamStats: React.FC<TeamStatsProps> = ({ equipoId, matches, plantilla, sta
       return (
           <div className="p-8 bg-amber-50 border border-amber-200 rounded-xl text-amber-700 flex flex-col items-center">
               <AlertTriangle className="mb-2" />
-              <p className="font-bold">Datos no disponibles</p>
+              <p className="font-bold text-lg">Datos no disponibles</p>
           </div>
       );
   }
 
   return (
     <div className="mt-8 animate-fade-in">
+      {/* Pestañas Principales */}
       <div className="flex border-b border-gray-200 mb-6 overflow-x-auto scrollbar-hide">
-        <button onClick={() => setActiveTab('matches')} className={`flex items-center gap-2 px-6 py-3 font-medium text-sm transition-colors border-b-2 whitespace-nowrap ${activeTab === 'matches' ? 'border-fcbq-blue text-fcbq-blue' : 'border-transparent text-gray-500 hover:text-gray-700'}`}>
-          <Grid size={18} /> Partidos
+        <button 
+          onClick={() => setActiveTab('matches')} 
+          className={`flex items-center gap-2 px-6 py-3 font-medium text-base transition-colors border-b-2 whitespace-nowrap ${activeTab === 'matches' ? 'border-fcbq-blue text-fcbq-blue' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
+        >
+          <Calendar size={20} /> Partidos
         </button>
-        <button onClick={() => setActiveTab('grid')} className={`flex items-center gap-2 px-6 py-3 font-medium text-sm transition-colors border-b-2 whitespace-nowrap ${activeTab === 'grid' ? 'border-fcbq-blue text-fcbq-blue' : 'border-transparent text-gray-500 hover:text-gray-700'}`}>
-          <Table size={18} /> Tabla
-        </button>
-        <button onClick={() => setActiveTab('cards')} className={`flex items-center gap-2 px-6 py-3 font-medium text-sm transition-colors border-b-2 whitespace-nowrap ${activeTab === 'cards' ? 'border-fcbq-blue text-fcbq-blue' : 'border-transparent text-gray-500 hover:text-gray-700'}`}>
-          <User size={18} /> Jugadores
+        <button 
+          onClick={() => setActiveTab('players')} 
+          className={`flex items-center gap-2 px-6 py-3 font-medium text-base transition-colors border-b-2 whitespace-nowrap ${activeTab === 'players' ? 'border-fcbq-blue text-fcbq-blue' : 'border-transparent text-gray-500 hover:text-gray-700'}`}
+        >
+          <User size={20} /> Jugadores
         </button>
       </div>
 
       <div className="bg-white rounded-lg shadow p-4 min-h-[300px]">
+        {/* Vista: Partidos */}
         {activeTab === 'matches' && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {teamMatches.length === 0 && <p className="text-gray-500 col-span-full text-center py-10 italic">No hay registros de partidos.</p>}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-fade-in">
+            {teamMatches.length === 0 && <p className="text-gray-500 col-span-full text-center py-10 italic text-lg">No hay registros de partidos.</p>}
             {teamMatches.map((match) => (
               <div key={match.id} className="border border-gray-100 rounded-xl overflow-hidden hover:shadow-md transition-shadow bg-white flex flex-col">
                 <div className="bg-gray-50 p-4 border-b border-gray-100 flex justify-between items-center">
                     <div className="flex flex-col items-center w-1/3 text-center">
-                        <span className="text-[10px] font-bold text-gray-400 uppercase mb-1">{match.isLocal ? 'Local' : 'Visitante'}</span>
-                        <span className={`text-2xl font-bold ${match.teamScore > match.oppScore ? 'text-fcbq-blue' : 'text-gray-600'}`}>{match.teamScore}</span>
+                        <span className="text-xs font-bold text-gray-400 uppercase mb-1">{match.isLocal ? 'Local' : 'Visitante'}</span>
+                        <span className={`text-3xl font-bold ${match.teamScore > match.oppScore ? 'text-fcbq-blue' : 'text-gray-600'}`}>{match.teamScore}</span>
                     </div>
                     <div className="flex flex-col items-center w-1/3 text-gray-300">
-                        <span className="text-[10px] font-bold">VS</span>
-                        <div className="text-[10px] mt-1 text-center font-bold text-gray-400 leading-tight uppercase truncate w-full">{match.opponent}</div>
+                        <span className="text-xs font-bold">VS</span>
+                        <div className="text-xs mt-1 text-center font-bold text-gray-400 leading-tight uppercase truncate w-full">{match.opponent}</div>
+                        <div className="text-[10px] text-gray-500 font-medium mt-1">
+                            {match.fecha_hora ? new Date(match.fecha_hora).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit', year: '2-digit' }) : ''}
+                        </div>
                     </div>
                     <div className="flex flex-col items-center w-1/3 text-center">
-                        <span className="text-[10px] font-bold text-gray-400 uppercase mb-1">Rival</span>
-                        <span className={`text-2xl font-bold ${match.oppScore > match.teamScore ? 'text-fcbq-blue' : 'text-gray-600'}`}>{match.oppScore}</span>
+                        <span className="text-xs font-bold text-gray-400 uppercase mb-1">Rival</span>
+                        <span className={`text-3xl font-bold ${match.oppScore > match.teamScore ? 'text-fcbq-blue' : 'text-gray-600'}`}>{match.oppScore}</span>
                     </div>
                 </div>
                 <div className="p-4 grid grid-cols-2 gap-4 flex-1">
                     <div className="flex flex-col items-center justify-center">
-                        <span className="text-[10px] text-gray-400 font-bold mb-1 uppercase">T. Libres ({Math.round(match.stats.t1Pct)}%)</span>
-                        <div className="w-14 h-14 relative">
+                        <span className="text-xs text-gray-400 font-bold mb-1 uppercase">T. Libres</span>
+                        <div className="w-20 h-20 relative">
                             <ResponsiveContainer width="100%" height="100%">
-                                <PieChart>
+                                <PieChart margin={{ top: 0, right: 0, bottom: 0, left: 0 }}>
                                     <Pie 
                                         data={[{value: match.stats.t1A}, {value: Math.max(0, match.stats.t1I - match.stats.t1A)}]} 
                                         cx="50%" 
                                         cy="50%" 
-                                        innerRadius={17} 
-                                        outerRadius={25} 
+                                        innerRadius="60%" 
+                                        outerRadius="85%" 
                                         cornerRadius={3}
                                         paddingAngle={2}
                                         startAngle={90} 
@@ -249,10 +273,13 @@ const TeamStats: React.FC<TeamStatsProps> = ({ equipoId, matches, plantilla, sta
                                     </Pie>
                                 </PieChart>
                             </ResponsiveContainer>
+                            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                                <span className="text-xs font-bold text-gray-600">{Math.round(match.stats.t1Pct)}%</span>
+                            </div>
                         </div>
-                        <span className="text-[10px] text-gray-400 mt-1 font-mono font-bold">{match.stats.t1A}/{match.stats.t1I}</span>
+                        <span className="text-xs text-gray-400 mt-1 font-mono font-bold">{match.stats.t1A}/{match.stats.t1I}</span>
                     </div>
-                    <div className="flex flex-col justify-center gap-1 text-[11px]">
+                    <div className="flex flex-col justify-center gap-2 text-xs">
                         <div className="flex justify-between border-b border-gray-50 pb-1"><span className="text-gray-400 uppercase">T2 Total</span><span className="font-bold text-gray-700">{match.stats.t2}</span></div>
                         <div className="flex justify-between border-b border-gray-50 pb-1"><span className="text-gray-400 uppercase">T3 Total</span><span className="font-bold text-gray-700">{match.stats.t3}</span></div>
                         <div className="flex justify-between"><span className="text-gray-400 uppercase">Faltas</span><span className="font-bold text-red-500">{match.stats.fouls}</span></div>
@@ -263,78 +290,128 @@ const TeamStats: React.FC<TeamStatsProps> = ({ equipoId, matches, plantilla, sta
           </div>
         )}
 
-        {activeTab === 'grid' && (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm text-left">
-              <thead className="text-[10px] text-gray-400 uppercase bg-gray-50 border-b">
-                <tr>
-                  <th className="px-4 py-3">Jugador</th>
-                  <th className="px-4 py-3 text-center">PJ</th>
-                  <th className="px-4 py-3 text-center">PPG</th>
-                  <th className="px-4 py-3 text-center">MPG</th>
-                  <th className="px-4 py-3 text-center">FPG</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100">
-                {playerStats.map((player) => (
-                  <tr key={player.jugadorId} className="hover:bg-blue-50 cursor-pointer transition" onClick={() => setSelectedPlayer(player)}>
-                    <td className="px-4 py-3 font-medium flex items-center gap-3">
-                        <span className="w-6 h-6 rounded-full bg-fcbq-blue text-white text-[10px] flex items-center justify-center shrink-0">{player.dorsal}</span>
-                        <span className="truncate text-gray-700 font-bold uppercase text-xs">{player.nombre}</span>
-                    </td>
-                    <td className="px-4 py-3 text-center text-gray-600">{player.partidosJugados}</td>
-                    <td className="px-4 py-3 text-center font-black text-gray-800">{player.ppg.toFixed(1)}</td>
-                    <td className="px-4 py-3 text-center text-gray-400">{player.mpg.toFixed(1)}</td>
-                    <td className="px-4 py-3 text-center text-red-400">{player.fpg.toFixed(1)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-
-        {activeTab === 'cards' && (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {playerStats.map((player) => (
-              <div 
-                  key={player.jugadorId} 
-                  onClick={() => setSelectedPlayer(player)} 
-                  className="bg-white rounded-2xl p-5 border border-slate-100 shadow-[0_2px_15px_-3px_rgba(0,0,0,0.07),0_10px_20px_-2px_rgba(0,0,0,0.04)] hover:shadow-xl transition-all duration-300 cursor-pointer relative group flex flex-col items-center"
-              >
-                <div className="absolute top-4 right-4 bg-slate-100 text-slate-500 font-bold text-xs px-2.5 py-1 rounded-lg">
-                    #{player.dorsal}
+        {/* Vista: Jugadores (Contenedor con sub-navegación) */}
+        {activeTab === 'players' && (
+          <div className="animate-fade-in">
+             <div className="flex justify-end mb-4">
+                <div className="inline-flex bg-gray-100 p-1 rounded-lg">
+                    <button 
+                        onClick={() => setPlayerViewMode('table')}
+                        className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-bold uppercase transition-all ${playerViewMode === 'table' ? 'bg-white text-fcbq-blue shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                    >
+                        <Table size={16} /> Tabla
+                    </button>
+                    <button 
+                        onClick={() => setPlayerViewMode('cards')}
+                        className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-bold uppercase transition-all ${playerViewMode === 'cards' ? 'bg-white text-fcbq-blue shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
+                    >
+                        <LayoutGrid size={16} /> Jugadores
+                    </button>
                 </div>
+             </div>
 
-                <div className="w-24 h-24 rounded-full p-1 border border-slate-100 bg-white mb-3 shadow-sm relative group-hover:scale-105 transition-transform duration-300">
-                    <div className="w-full h-full rounded-full overflow-hidden bg-slate-50 flex items-center justify-center">
-                        <img 
-                            src={player.fotoUrl || "https://image.singular.live/fit-in/450x450/filters:format(webp)/0d62960e1109063fb6b062e758907fb1/images/41uEQx58oj4zwPoOkM6uEO_w585h427.png"} 
-                            className="w-full h-full object-cover" 
-                            alt={player.nombre} 
-                        />
-                    </div>
+             {/* Sub-vista: Tabla */}
+             {playerViewMode === 'table' && (
+                <div className="overflow-x-auto animate-fade-in">
+                    <table className="w-full text-base text-left">
+                    <thead className="text-xs text-gray-500 font-bold uppercase border-b bg-transparent">
+                        <tr>
+                        <th className="px-4 py-3 text-center text-gray-400 w-12">#</th>
+                        <th className="px-4 py-3">Jugador</th>
+                        <th className="px-4 py-3 text-center">PJ</th>
+                        <th className="px-4 py-3 text-center">PPG</th>
+                        <th className="px-4 py-3 text-center">MPG</th>
+                        <th className="px-4 py-3 text-center">PPM</th>
+                        <th className="px-4 py-3 text-center">FPG</th>
+                        <th className="px-4 py-3 text-center">% T1</th>
+                        </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100">
+                        {playerStats.map((player) => {
+                            const t1Pct = player.totalTirosLibresIntentados > 0 
+                                ? (player.totalTirosLibresAnotados / player.totalTirosLibresIntentados) * 100 
+                                : 0;
+                            return (
+                                <tr key={player.jugadorId} className="hover:bg-blue-50/50 cursor-pointer transition group" onClick={() => setSelectedPlayer(player)}>
+                                    <td className="px-4 py-4 text-center text-gray-500 font-mono text-xl">{player.dorsal}</td>
+                                    <td className="px-4 py-4">
+                                        <div className="flex items-center gap-4">
+                                            <div className="w-12 h-12 rounded-full bg-gray-100 overflow-hidden border border-gray-100 shrink-0">
+                                                <img 
+                                                    src={player.fotoUrl || "https://image.singular.live/fit-in/450x450/filters:format(webp)/0d62960e1109063fb6b062e758907fb1/images/41uEQx58oj4zwPoOkM6uEO_w585h427.png"} 
+                                                    className="w-full h-full object-cover" 
+                                                    alt={player.nombre} 
+                                                />
+                                            </div>
+                                            <span className="font-semibold text-gray-700 uppercase tracking-tight group-hover:text-fcbq-blue transition-colors text-sm md:text-base">
+                                                {player.nombre}
+                                            </span>
+                                        </div>
+                                    </td>
+                                    <td className="px-4 py-4 text-center text-gray-600">{player.partidosJugados}</td>
+                                    <td className="px-4 py-4 text-center">
+                                        <span className="font-bold text-fcbq-blue text-lg">{player.ppg.toFixed(1)}</span>
+                                    </td>
+                                    <td className="px-4 py-4 text-center text-gray-500">{player.mpg.toFixed(1)}</td>
+                                    <td className="px-4 py-4 text-center text-gray-500">{player.ppm.toFixed(2)}</td>
+                                    <td className="px-4 py-4 text-center text-gray-500">{player.fpg.toFixed(1)}</td>
+                                    <td className="px-4 py-4 flex justify-center">
+                                        <MiniDonut value={t1Pct} />
+                                    </td>
+                                </tr>
+                            );
+                        })}
+                    </tbody>
+                    </table>
                 </div>
+             )}
 
-                <h3 className="font-bold text-slate-800 text-sm uppercase tracking-wide mb-6 truncate w-full text-center px-2">
-                    {player.nombre}
-                </h3>
+             {/* Sub-vista: Tarjetas (Jugadores) */}
+             {playerViewMode === 'cards' && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 animate-fade-in">
+                    {playerStats.map((player) => (
+                    <div 
+                        key={player.jugadorId} 
+                        onClick={() => setSelectedPlayer(player)} 
+                        className="bg-white rounded-2xl p-5 border border-slate-100 shadow-[0_2px_15px_-3px_rgba(0,0,0,0.07),0_10px_20px_-2px_rgba(0,0,0,0.04)] hover:shadow-xl transition-all duration-300 cursor-pointer relative group flex flex-col items-center"
+                    >
+                        <div className="absolute top-4 right-4 bg-slate-100 text-slate-500 font-bold text-sm px-2.5 py-1 rounded-lg">
+                            #{player.dorsal}
+                        </div>
 
-                <div className="grid grid-cols-3 w-full border-t border-slate-50 pt-4">
-                    <div className="flex flex-col items-center border-r border-slate-100">
-                        <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-1">PTS</span>
-                        <span className="text-lg font-black text-fcbq-blue leading-none">{player.totalPuntos}</span>
+                        <div className="w-28 h-28 rounded-full p-1 border border-slate-100 bg-white mb-3 shadow-sm relative group-hover:scale-105 transition-transform duration-300">
+                            <div className="w-full h-full rounded-full overflow-hidden bg-slate-50 flex items-center justify-center">
+                                <img 
+                                    src={player.fotoUrl || "https://image.singular.live/fit-in/450x450/filters:format(webp)/0d62960e1109063fb6b062e758907fb1/images/41uEQx58oj4zwPoOkM6uEO_w585h427.png"} 
+                                    className="w-full h-full object-cover" 
+                                    alt={player.nombre} 
+                                
+                                />
+                            </div>
+                        </div>
+
+                        <h3 className="font-bold text-slate-800 text-base uppercase tracking-wide mb-6 truncate w-full text-center px-2">
+                            {player.nombre}
+                        </h3>
+
+                        <div className="grid grid-cols-3 w-full border-t border-slate-50 pt-4">
+                            <div className="flex flex-col items-center border-r border-slate-100">
+                                <span className="text-xs text-slate-400 font-bold uppercase tracking-wider mb-1">PTS</span>
+                                <span className="text-xl font-black text-fcbq-blue leading-none">{player.totalPuntos}</span>
+                            </div>
+                            <div className="flex flex-col items-center border-r border-slate-100">
+                                <span className="text-xs text-slate-400 font-bold uppercase tracking-wider mb-1">PPG</span>
+                                <span className="text-xl font-black text-slate-700 leading-none">{player.ppg.toFixed(1)}</span>
+                            </div>
+                            <div className="flex flex-col items-center">
+                                <span className="text-xs text-slate-400 font-bold uppercase tracking-wider mb-1">MPG</span>
+                                <span className="text-xl font-black text-slate-700 leading-none">{player.mpg.toFixed(1)}</span>
+                            </div>
+                        </div>
                     </div>
-                    <div className="flex flex-col items-center border-r border-slate-100">
-                        <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-1">PPG</span>
-                        <span className="text-lg font-black text-slate-700 leading-none">{player.ppg.toFixed(1)}</span>
-                    </div>
-                    <div className="flex flex-col items-center">
-                        <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-1">MPG</span>
-                        <span className="text-lg font-black text-slate-700 leading-none">{player.mpg.toFixed(1)}</span>
-                    </div>
+                    ))}
                 </div>
-              </div>
-            ))}
+             )}
           </div>
         )}
       </div>

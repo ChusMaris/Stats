@@ -173,7 +173,7 @@ const App: React.FC = () => {
         <div className="container mx-auto px-4 flex items-center justify-between">
             <div className="flex items-center gap-3 overflow-hidden">
                 <div 
-                  className={`bg-white rounded-full flex items-center justify-center text-fcbq-blue font-bold border-2 border-fcbq-accent transition-all duration-300 overflow-hidden ${isScrolled ? 'w-8 h-8 text-lg' : 'w-10 h-10 text-xl'}`}
+                  className={`bg-white rounded-full flex items-center justify-center text-fcbq-blue font-bold border-2 border-fcbq-accent transition-all duration-300 overflow-hidden ${isScrolled ? 'w-9 h-9 text-lg' : 'w-11 h-11 text-xl'}`}
                 >
                     {teamLogoUrl ? (
                       <img 
@@ -190,15 +190,15 @@ const App: React.FC = () => {
                 <div className="flex flex-col justify-center">
                     {isScrolled && activeCompetitionName ? (
                          <div className="animate-fade-in leading-tight">
-                            <span className="text-[10px] md:text-xs text-blue-200 uppercase font-semibold block tracking-wider">
+                            <span className="text-xs md:text-sm text-blue-200 uppercase font-semibold block tracking-wider">
                                 {activeCategoryName}
                             </span>
-                            <h1 className="text-base md:text-lg font-bold truncate max-w-[250px] md:max-w-md">
+                            <h1 className="text-lg md:text-xl font-bold truncate max-w-[250px] md:max-w-md">
                                 {activeCompetitionName}
                             </h1>
                          </div>
                     ) : (
-                        <h1 className="text-xl md:text-2xl font-bold tracking-tight animate-fade-in">Brafa Stats</h1>
+                        <h1 className="text-xl md:text-3xl font-bold tracking-tight animate-fade-in">Brafa Stats</h1>
                     )}
                 </div>
             </div>
@@ -210,40 +210,40 @@ const App: React.FC = () => {
         <div className="container mx-auto px-4">
             <div className="grid grid-cols-1 md:grid-cols-12 gap-6 items-end">
                 <div className="md:col-span-3">
-                    <label className="block mb-2 text-xs font-bold tracking-wide text-gray-500 uppercase">Temporada</label>
+                    <label className="block mb-2 text-sm font-bold tracking-wide text-gray-500 uppercase">Temporada</label>
                     <div className="relative">
                         <select 
                             value={selectedTemporada}
                             onChange={(e) => setSelectedTemporada(e.target.value)}
-                            className="bg-slate-50 border border-slate-200 text-gray-700 text-sm rounded-lg focus:ring-fcbq-blue focus:border-fcbq-blue block w-full p-2.5 appearance-none shadow-sm font-medium"
+                            className="bg-slate-50 border border-slate-200 text-gray-700 text-base rounded-lg focus:ring-fcbq-blue focus:border-fcbq-blue block w-full p-2.5 appearance-none shadow-sm font-medium"
                         >
                             <option value="" disabled>SELECCIONAR TEMPORADA</option>
                             {temporadas.map(t => <option key={t.id} value={t.id}>{t.nombre}</option>)}
                         </select>
-                        <ChevronDown className="absolute right-3 top-3 text-gray-400 pointer-events-none" size={16} />
+                        <ChevronDown className="absolute right-3 top-3.5 text-gray-400 pointer-events-none" size={18} />
                     </div>
                 </div>
                 <div className="md:col-span-4">
-                    <label className="block mb-2 text-xs font-bold tracking-wide text-gray-500 uppercase">Categoría</label>
+                    <label className="block mb-2 text-sm font-bold tracking-wide text-gray-500 uppercase">Categoría</label>
                     <div className="relative">
                         <select 
                             value={selectedCategoria}
                             onChange={(e) => setSelectedCategoria(e.target.value)}
-                            className="bg-slate-50 border border-slate-200 text-gray-700 text-sm rounded-lg focus:ring-fcbq-blue focus:border-fcbq-blue block w-full p-2.5 appearance-none shadow-sm font-medium"
+                            className="bg-slate-50 border border-slate-200 text-gray-700 text-base rounded-lg focus:ring-fcbq-blue focus:border-fcbq-blue block w-full p-2.5 appearance-none shadow-sm font-medium"
                         >
                             <option value="" disabled>SELECCIONAR CATEGORÍA</option>
                             {categorias.map(c => <option key={c.id} value={c.id}>{c.nombre}</option>)}
                         </select>
-                        <ChevronDown className="absolute right-3 top-3 text-gray-400 pointer-events-none" size={16} />
+                        <ChevronDown className="absolute right-3 top-3.5 text-gray-400 pointer-events-none" size={18} />
                     </div>
                 </div>
                 <div className="md:col-span-5">
-                    <label className="block mb-2 text-xs font-bold tracking-wide text-gray-500 uppercase">Competición</label>
+                    <label className="block mb-2 text-sm font-bold tracking-wide text-gray-500 uppercase">Competición</label>
                     <div className="relative">
                         <select 
                             value={selectedCompeticion}
                             onChange={(e) => setSelectedCompeticion(e.target.value)}
-                            className="bg-slate-50 border border-slate-200 text-gray-700 text-sm rounded-lg focus:ring-fcbq-blue focus:border-fcbq-blue block w-full p-2.5 appearance-none shadow-sm font-medium disabled:bg-gray-100 disabled:text-gray-400"
+                            className="bg-slate-50 border border-slate-200 text-gray-700 text-base rounded-lg focus:ring-fcbq-blue focus:border-fcbq-blue block w-full p-2.5 appearance-none shadow-sm font-medium disabled:bg-gray-100 disabled:text-gray-400"
                             disabled={loadingCompetitions || !selectedTemporada || !selectedCategoria}
                         >
                             <option value="" disabled>
@@ -254,9 +254,9 @@ const App: React.FC = () => {
                         </select>
                         <div className="absolute inset-y-0 right-0 flex items-center px-3 pointer-events-none">
                             {loadingCompetitions ? (
-                                <Loader2 size={16} className="animate-spin text-gray-400" />
+                                <Loader2 size={18} className="animate-spin text-gray-400" />
                             ) : (
-                                <ChevronDown className="text-gray-400" size={16} />
+                                <ChevronDown className="text-gray-400" size={18} />
                             )}
                         </div>
                     </div>
@@ -270,9 +270,9 @@ const App: React.FC = () => {
         
         {errorMsg && (
           <div className="bg-red-50 border-l-4 border-red-500 p-4 mb-6 rounded-r shadow-sm flex items-start gap-3">
-             <AlertCircle className="text-red-500 shrink-0 mt-0.5" size={20} />
+             <AlertCircle className="text-red-500 shrink-0 mt-0.5" size={24} />
              <div>
-               <p className="font-bold text-red-800">Atención</p>
+               <p className="font-bold text-red-800 text-base">Atención</p>
                <p className="text-sm text-red-700">{errorMsg}</p>
              </div>
           </div>
@@ -281,19 +281,19 @@ const App: React.FC = () => {
         {/* Loading State for Main Data */}
         {isLoading && !viewData && (
              <div className="bg-white rounded-lg shadow-sm p-12 text-center border border-gray-200 flex flex-col items-center justify-center min-h-[300px]">
-                <Loader2 size={48} className="text-fcbq-blue animate-spin mb-4" />
-                <h3 className="text-xl font-bold text-gray-800">Cargando datos...</h3>
-                <p className="text-gray-500 mt-2">Obteniendo clasificación y partidos.</p>
+                <Loader2 size={56} className="text-fcbq-blue animate-spin mb-4" />
+                <h3 className="text-2xl font-bold text-gray-800">Cargando datos...</h3>
+                <p className="text-gray-500 mt-2 text-lg">Obteniendo clasificación y partidos.</p>
              </div>
         )}
 
         {!viewData && !isLoading && !errorMsg && (
              <div className="bg-white rounded-lg shadow-sm p-12 text-center border border-gray-200 mt-8">
                 <div className="inline-block p-4 bg-blue-50 rounded-full mb-4">
-                    <Trophy size={48} className="text-fcbq-blue" />
+                    <Trophy size={56} className="text-fcbq-blue" />
                 </div>
-                <h3 className="text-xl font-bold text-gray-800">Selecciona una competición</h3>
-                <p className="text-gray-500 mt-2">Usa los filtros superiores para ver los datos.</p>
+                <h3 className="text-2xl font-bold text-gray-800">Selecciona una competición</h3>
+                <p className="text-gray-500 mt-2 text-lg">Usa los filtros superiores para ver los datos.</p>
              </div>
         )}
 
@@ -302,13 +302,13 @@ const App: React.FC = () => {
                 {/* Header Competition */}
                 <div className="flex items-center gap-2 mb-4 mt-4">
                     <div className="h-8 w-2 bg-fcbq-accent rounded-full"></div>
-                    <h2 className="text-2xl font-bold text-gray-800">{viewData.competicion?.nombre}</h2>
+                    <h2 className="text-2xl md:text-3xl font-bold text-gray-800">{viewData.competicion?.nombre}</h2>
                 </div>
 
                 {/* Standings */}
                 <section>
                     <div className="flex justify-between items-end mb-4 ml-1">
-                      <h3 className="text-lg font-semibold text-gray-600">Clasificación</h3>
+                      <h3 className="text-xl font-semibold text-gray-600">Clasificación</h3>
                     </div>
                     {viewData.equipos.length > 0 ? (
                         <Standings 
@@ -319,11 +319,11 @@ const App: React.FC = () => {
                             selectedTeamId={selectedTeamId}
                         />
                     ) : (
-                        <div className="bg-white p-6 rounded-lg shadow text-center text-gray-500">
+                        <div className="bg-white p-6 rounded-lg shadow text-center text-gray-500 text-lg">
                             No hay equipos registrados en esta competición.
                         </div>
                     )}
-                    <p className="text-xs text-gray-400 mt-2 italic">* Haz click en un equipo para ver estadísticas detalladas.</p>
+                    <p className="text-sm text-gray-400 mt-2 italic">* Haz click en un equipo para ver estadísticas detalladas.</p>
                 </section>
 
                 {/* Team Details Section */}
@@ -331,12 +331,12 @@ const App: React.FC = () => {
                     <section id="team-details" className="scroll-mt-24">
                          <div className="flex items-center justify-between mb-4 mt-12 border-b pb-2">
                              <div>
-                                <h3 className="text-xl font-bold text-fcbq-blue">
+                                <h3 className="text-2xl font-bold text-fcbq-blue">
                                     {viewData.equipos.find(e => e.id === selectedTeamId)?.nombre_especifico}
                                 </h3>
-                                <p className="text-sm text-gray-500">Estadísticas detalladas</p>
+                                <p className="text-base text-gray-500">Estadísticas detalladas</p>
                              </div>
-                             {loadingTeam && <Loader2 className="animate-spin text-fcbq-blue" />}
+                             {loadingTeam && <Loader2 className="animate-spin text-fcbq-blue" size={24} />}
                          </div>
 
                          {teamDetails ? (
@@ -349,7 +349,7 @@ const App: React.FC = () => {
                                 esMini={viewData.competicion?.categorias?.es_mini || false}
                              />
                          ) : (
-                            !loadingTeam && <div className="p-8 text-center text-gray-500 bg-white rounded-lg border border-dashed">Selecciona un equipo para ver datos.</div>
+                            !loadingTeam && <div className="p-8 text-center text-gray-500 bg-white rounded-lg border border-dashed text-lg">Selecciona un equipo para ver datos.</div>
                          )}
                     </section>
                 )}
@@ -357,7 +357,7 @@ const App: React.FC = () => {
         )}
       </main>
 
-      <footer className="bg-slate-900 text-slate-400 py-8 text-center text-sm">
+      <footer className="bg-slate-900 text-slate-400 py-10 text-center text-base">
         <p>&copy; {new Date().getFullYear()} Brafa Stats. Datos no oficiales para uso analítico.</p>
       </footer>
     </div>

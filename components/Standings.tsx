@@ -88,18 +88,18 @@ const Standings: React.FC<StandingsProps> = ({ equipos, partidos, esMini, onSele
 
   return (
     <div className="overflow-x-auto bg-white rounded-lg shadow-md border border-gray-100">
-      <table className="w-full text-sm text-left text-gray-700">
-        <thead className="text-xs uppercase bg-fcbq-blue text-white">
+      <table className="w-full text-base text-left text-gray-700">
+        <thead className="text-sm uppercase bg-fcbq-blue text-white">
           <tr>
-            <th className="px-4 py-3 rounded-tl-lg">Pos</th>
-            <th className="px-4 py-3">Equipo</th>
-            <th className="px-4 py-3 text-center">PTS</th>
-            <th className="px-4 py-3 text-center">PJ</th>
-            <th className="px-4 py-3 text-center">PG</th>
-            <th className="px-4 py-3 text-center">PP</th>
-            <th className="px-4 py-3 text-center hidden md:table-cell">PF</th>
-            <th className="px-4 py-3 text-center hidden md:table-cell">PC</th>
-            <th className="px-4 py-3 text-center hidden md:table-cell rounded-tr-lg">DIF</th>
+            <th className="pl-4 pr-2 py-4 text-left w-1 whitespace-nowrap rounded-tl-lg">Pos</th>
+            <th className="px-4 py-4">Equipo</th>
+            <th className="px-4 py-4 text-center">PTS</th>
+            <th className="px-4 py-4 text-center">PJ</th>
+            <th className="px-4 py-4 text-center">PG</th>
+            <th className="px-4 py-4 text-center">PP</th>
+            <th className="px-4 py-4 text-center hidden md:table-cell">PF</th>
+            <th className="px-4 py-4 text-center hidden md:table-cell">PC</th>
+            <th className="px-4 py-4 text-center hidden md:table-cell rounded-tr-lg">DIF</th>
           </tr>
         </thead>
         <tbody>
@@ -109,25 +109,25 @@ const Standings: React.FC<StandingsProps> = ({ equipos, partidos, esMini, onSele
               onClick={() => onSelectTeam(team.equipoId)}
               className={`border-b hover:bg-blue-50 cursor-pointer transition-colors ${selectedTeamId === team.equipoId ? 'bg-blue-100 font-semibold' : ''}`}
             >
-              <td className="px-4 py-3 text-center font-bold text-fcbq-blue">{index + 1}</td>
-              <td className="px-4 py-3 font-medium flex items-center gap-2">
+              <td className="pl-4 pr-2 py-4 text-left font-bold text-fcbq-blue">{index + 1}</td>
+              <td className="px-4 py-4 font-medium flex items-center gap-3">
                 {team.clubLogo && (
-                  <img src={team.clubLogo} alt="" className="w-6 h-6 object-contain" />
+                  <img src={team.clubLogo} alt="" className="w-8 h-8 object-contain" />
                 )}
                 <span className="truncate max-w-[150px] md:max-w-xs">{team.nombre}</span>
               </td>
-              <td className="px-4 py-3 text-center font-bold">{team.puntos}</td>
-              <td className="px-4 py-3 text-center">{team.pj}</td>
-              <td className="px-4 py-3 text-center text-green-600">{team.pg}</td>
-              <td className="px-4 py-3 text-center text-red-600">{team.pp}</td>
-              <td className="px-4 py-3 text-center hidden md:table-cell text-gray-500">{team.pf}</td>
-              <td className="px-4 py-3 text-center hidden md:table-cell text-gray-500">{team.pc}</td>
-              <td className="px-4 py-3 text-center hidden md:table-cell text-gray-500">{team.diff}</td>
+              <td className="px-4 py-4 text-center font-bold">{team.puntos}</td>
+              <td className="px-4 py-4 text-center">{team.pj}</td>
+              <td className="px-4 py-4 text-center text-green-600">{team.pg}</td>
+              <td className="px-4 py-4 text-center text-red-600">{team.pp}</td>
+              <td className="px-4 py-4 text-center hidden md:table-cell text-gray-500">{team.pf}</td>
+              <td className="px-4 py-4 text-center hidden md:table-cell text-gray-500">{team.pc}</td>
+              <td className="px-4 py-4 text-center hidden md:table-cell text-gray-500">{team.diff}</td>
             </tr>
           ))}
           {standings.length === 0 && (
             <tr>
-              <td colSpan={9} className="px-4 py-12 text-center text-gray-400">Sin datos de clasificación disponibles para esta selección.</td>
+              <td colSpan={9} className="px-4 py-12 text-center text-gray-400 text-lg">Sin datos de clasificación disponibles para esta selección.</td>
             </tr>
           )}
         </tbody>
