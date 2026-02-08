@@ -1,25 +1,31 @@
 {
   "name": "db-stats",
+  "homepage": "https://chusmaris.github.io/DBStats/",
   "private": true,
   "version": "0.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
-    "preview": "vite preview"
+    "build": "tsc && vite build",
+    "preview": "vite preview",
+    "predeploy": "npm run build",
+    "deploy": "gh-pages -d dist"
   },
   "dependencies": {
+    "@supabase/supabase-js": "2.39.0",
+    "@vitejs/plugin-react": "^5.1.3",
     "lucide-react": "0.563.0",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
     "recharts": "3.0.0-alpha.9",
-    "@supabase/supabase-js": "2.39.0",
-    "vite": "^7.3.1",
-    "@vitejs/plugin-react": "^5.1.3"
+    "vite": "^7.3.1"
   },
   "devDependencies": {
     "@types/node": "^22.14.0",
+    "@types/react": "^18.2.0",
+    "@types/react-dom": "^18.2.0",
     "@vitejs/plugin-react": "^5.0.0",
+    "gh-pages": "^6.3.0",
     "typescript": "~5.8.2",
     "vite": "^6.2.0"
   }
