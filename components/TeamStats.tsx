@@ -12,6 +12,20 @@ interface TeamStatsProps {
   esMini: boolean;
 }
 
+const formatDate = (dateStr: string | null | undefined): string => {
+  if (!dateStr) return 'Pendiente';
+  try {
+    const date = new Date(dateStr);
+    if (isNaN(date.getTime())) return 'Pendiente';
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const year = date.getFullYear();
+    return `${day}/${month}/${year}`;
+  } catch {
+    return 'Pendiente';
+  }
+};
+
 const getPctColor = (pct: number) => {
   if (pct < 40) return '#ef4444'; // Rojo
   if (pct < 65) return '#f59e0b'; // Naranja/Ámbar
@@ -159,7 +173,7 @@ const TeamStats: React.FC<TeamStatsProps> = ({ equipoId, matches, plantilla, sta
           const totalMins = pStats.reduce((sum, s) => sum + parseTiempoJugado(s.tiempo_jugado), 0);
           const mpg = gp > 0 ? totalMins / gp : 0;
           const ppm = mpg > 0 ? totalPts / mpg : 0;
-          const totalFouls = pStats.reduce((sum, s) => sum + (s.faltas_cometidas || 0), 0);
+          const totalFouls = pStats.reduce((sum, s) => sum + (s.faltas_cometidas || 0) + (s.tecnicas || 0) + (s.antideportivas || 0), 0);
           const t1A = pStats.reduce((sum, s) => sum + (s.t1_anotados || 0), 0);
           const t1I = pStats.reduce((sum, s) => sum + (s.t1_intentados || 0), 0);
           return {
@@ -247,7 +261,7 @@ const TeamStats: React.FC<TeamStatsProps> = ({ equipoId, matches, plantilla, sta
                 <div className="bg-slate-50/70 p-4 border-b border-slate-100">
                     <div className="flex justify-between items-center mb-4">
                          <span className="bg-slate-200 text-slate-600 text-[9px] font-black px-2 py-0.5 rounded uppercase tracking-widest">Jornada {match.jornada}</span>
-                         <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">{match.fecha_hora ? new Date(match.fecha_hora).toLocaleDateString('es-ES', { day: '2-digit', month: '2-digit' }) : 'Pendiente'}</span>
+                         <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">{formatDate(match.fecha_hora)}</span>
                     </div>
                     <div className="flex items-center justify-between">
                         <div className="flex flex-col items-center w-1/3">
