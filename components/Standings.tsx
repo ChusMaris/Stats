@@ -111,15 +111,19 @@ const Standings: React.FC<StandingsProps> = ({ equipos, partidos, esMini, onSele
             >
               <td className="pl-4 pr-2 py-4 text-left font-bold text-fcbq-blue">{index + 1}</td>
               <td className="px-4 py-4 font-medium flex items-center gap-3">
-                {team.clubLogo && (
-                  <img src={team.clubLogo} alt="" className="w-8 h-8 object-contain" />
-                )}
-                <span className="truncate max-w-[150px] md:max-w-xs">{team.nombre}</span>
+                <div className="w-9 h-9 rounded-full overflow-hidden border border-slate-200 flex items-center justify-center bg-white shadow-sm shrink-0">
+                  {team.clubLogo ? (
+                    <img src={team.clubLogo} alt="" className="w-full h-full object-contain rounded-full" />
+                  ) : (
+                    <div className="w-full h-full flex items-center justify-center bg-slate-50 text-[10px] text-slate-300 font-bold">LOGO</div>
+                  )}
+                </div>
+                <span className="truncate max-w-[120px] sm:max-w-[200px] md:max-w-xs uppercase tracking-tight font-bold text-slate-700">{team.nombre}</span>
               </td>
               <td className="px-4 py-4 text-center font-bold">{team.puntos}</td>
               <td className="px-4 py-4 text-center">{team.pj}</td>
-              <td className="px-4 py-4 text-center text-green-600">{team.pg}</td>
-              <td className="px-4 py-4 text-center text-red-600">{team.pp}</td>
+              <td className="px-4 py-4 text-center text-green-600 font-bold">{team.pg}</td>
+              <td className="px-4 py-4 text-center text-red-600 font-bold">{team.pp}</td>
               <td className="px-4 py-4 text-center hidden md:table-cell text-gray-500">{team.pf}</td>
               <td className="px-4 py-4 text-center hidden md:table-cell text-gray-500">{team.pc}</td>
               <td className="px-4 py-4 text-center hidden md:table-cell text-gray-500">{team.diff}</td>
