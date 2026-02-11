@@ -181,6 +181,11 @@ const TeamStats: React.FC<TeamStatsProps> = ({ equipoId, matches, plantilla, sta
           const totalFouls = pStats.reduce((sum, s) => sum + (s.faltas_cometidas || 0) + (s.tecnicas || 0) + (s.antideportivas || 0), 0);
           const t1A = pStats.reduce((sum, s) => sum + (s.t1_anotados || 0), 0);
           const t1I = pStats.reduce((sum, s) => sum + (s.t1_intentados || 0), 0);
+          const t2A = pStats.reduce((sum, s) => sum + (s.t2_anotados || 0), 0);
+          const t2I = pStats.reduce((sum, s) => sum + (s.t2_intentados || 0), 0);
+          const t3A = pStats.reduce((sum, s) => sum + (s.t3_anotados || 0), 0);
+          const t3I = pStats.reduce((sum, s) => sum + (s.t3_intentados || 0), 0);
+
           return {
               jugadorId: p.jugador_id,
               nombre,
@@ -192,6 +197,10 @@ const TeamStats: React.FC<TeamStatsProps> = ({ equipoId, matches, plantilla, sta
               totalFaltas: totalFouls,
               totalTirosLibresIntentados: t1I,
               totalTirosLibresAnotados: t1A,
+              totalTiros2Intentados: t2I,
+              totalTiros2Anotados: t2A,
+              totalTiros3Intentados: t3I,
+              totalTiros3Anotados: t3A,
               ppg: gp > 0 ? totalPts / gp : 0,
               mpg: mpg,
               fpg: gp > 0 ? totalFouls / gp : 0,
@@ -430,6 +439,7 @@ const TeamStats: React.FC<TeamStatsProps> = ({ equipoId, matches, plantilla, sta
       {selectedPlayer && (
         <PlayerModal 
             player={selectedPlayer} 
+            equipoId={equipoId}
             matches={matches}
             matchStats={(stats || []).filter(s => s && String(s.jugador_id) === String(selectedPlayer.jugadorId))}
             movements={movements}
