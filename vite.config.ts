@@ -5,5 +5,5 @@ import react from '@vitejs/plugin-react'
 export default defineConfig({
   plugins: [react()],
   // La ruta base debe coincidir con el nombre de tu repositorio en GitHub
-  base: '/DBStats/',
+  base: '/Stats/',
 })
