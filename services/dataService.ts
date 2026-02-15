@@ -319,7 +319,29 @@ export const fetchTeamStats = async (competicionId: number | string, equipoId: n
     
     if (matchesResponse.error) throw matchesResponse.error;
 
-    const matchIds = (matchesResponse.data || []).map(m => m.id);
+    // --- PATCH: Fix Jornada from Calendar table ---
+    // Fetch calendar entries to map correct jornada numbers
+    const calendarResponse = await supabase
+        .from('calendario')
+        .select('jornada, equipo_local_id, equipo_visitante_id')
+        .eq('competicion_id', competicionId);
+        
+    const calendarEntries = calendarResponse.data || [];
+
+    const matches = (matchesResponse.data || []).map(m => {
+         // Find corresponding calendar entry by teams
+         const found = calendarEntries.find(c => 
+            String(c.equipo_local_id) === String(m.equipo_local_id) && 
+            String(c.equipo_visitante_id) === String(m.equipo_visitante_id)
+         );
+         
+         if (found) {
+             return { ...m, jornada: found.jornada };
+         }
+         return m;
+    });
+
+    const matchIds = matches.map(m => m.id);
 
     const plantillaResponse = await supabase
         .from('plantillas')
@@ -455,7 +477,7 @@ export const fetchTeamStats = async (competicionId: number | string, equipoId: n
     }));
 
     return {
-        matches: matchesResponse.data,
+        matches: matches, // Use patched matches
         plantilla: plantillaResponse.data,
         stats: finalStats,
         movements: movementsData
@@ -853,13 +875,13 @@ export const getTeamScoutingReport = async (competicionId: number | string, equi
         const names = realThreats.map(p => `${p.nombre} #${p.dorsal}`).slice(0, 3).join(', ');
         insights.push(`🐉 TRIDENTE OFENSIVO: Tienen 3 jugadores con capacidad probada de anotar >${THREAT_THRESHOLD} PPG (${names}).`);
     } else if (realThreats.length === 2) {
-        insights.push(`⚡ DÚO DINÁMICO: ${realThreats[0].nombre} y ${realThreats[1].nombre} concentran todo el peligro ofensivo.`);
+        insights.push(`⚡ DÚO DINÁMICO: ${realThreats[0].nombre} (#${realThreats[0].dorsal}) y ${realThreats[1].nombre} (#${realThreats[1].dorsal}) concentran todo el peligro ofensivo.`);
     } else if (realThreats.length === 1) {
         const threat = realThreats[0];
         if (topScorer && topScorer.pointsShare && topScorer.pointsShare > 30) {
-            insights.push(`👑 SISTEMA HELIOCÉNTRICO: ${topScorer.nombre} anota el ${topScorer.pointsShare.toFixed(0)}% de los puntos del equipo. Frenarle es ganar el partido.`);
+            insights.push(`👑 SISTEMA HELIOCÉNTRICO: ${topScorer.nombre} (#${topScorer.dorsal}) anota el ${topScorer.pointsShare.toFixed(0)}% de los puntos del equipo. Frenarle es ganar el partido.`);
         } else {
-             insights.push(`⭐ Referencia Clara: ${threat.nombre} es su única arma ofensiva consistente.`);
+             insights.push(`⭐ Referencia Clara: ${threat.nombre} (#${threat.dorsal}) es su única arma ofensiva consistente.`);
         }
     } else {
         insights.push("🛡️ Anotación Coral: No presentan individualidades dominantes (>11.5 PPG). El peligro viene del colectivo.");
@@ -868,17 +890,17 @@ export const getTeamScoutingReport = async (competicionId: number | string, equi
     // 3. ANÁLISIS DE IMPACTO (+/-) (NEW)
     const impactPlayer = playerStats.find(p => p.avgMasMenos && p.avgMasMenos > 8 && p.partidosJugados >= 3);
     if (impactPlayer) {
-         insights.push(`🚀 FACTOR GANADOR: Cuando ${impactPlayer.nombre} está en pista, el equipo arrasa (+${impactPlayer.avgMasMenos!.toFixed(1)} de diferencial medio).`);
+         insights.push(`🚀 FACTOR GANADOR: Cuando ${impactPlayer.nombre} (#${impactPlayer.dorsal}) está en pista, el equipo arrasa (+${impactPlayer.avgMasMenos!.toFixed(1)} de diferencial medio).`);
     }
 
     const emptyStats = playerStats.find(p => p.ppg > 10 && p.avgMasMenos && p.avgMasMenos < -2 && p.partidosJugados >= 3);
     if (emptyStats) {
-         insights.push(`⚠️ ESTADÍSTICA VACÍA: ${emptyStats.nombre} anota mucho (${emptyStats.ppg.toFixed(1)}), pero el equipo pierde con él en pista (${emptyStats.avgMasMenos!.toFixed(1)}).`);
+         insights.push(`⚠️ ESTADÍSTICA VACÍA: ${emptyStats.nombre} (#${emptyStats.dorsal}) anota mucho (${emptyStats.ppg.toFixed(1)}), pero el equipo pierde con él en pista (${emptyStats.avgMasMenos!.toFixed(1)}).`);
     }
 
     const glueGuyPM = playerStats.find(p => p.ppg < 6 && p.avgMasMenos && p.avgMasMenos > 5 && p.partidosJugados >= 3);
     if (glueGuyPM) {
-         insights.push(`🧱 CEMENTO: ${glueGuyPM.nombre} no anota mucho, pero hace ganar al equipo (+${glueGuyPM.avgMasMenos!.toFixed(1)}). Imprescindible en defensa/intangibles.`);
+         insights.push(`🧱 CEMENTO: ${glueGuyPM.nombre} (#${glueGuyPM.dorsal}) no anota mucho, pero hace ganar al equipo (+${glueGuyPM.avgMasMenos!.toFixed(1)}). Imprescindible en defensa/intangibles.`);
     }
 
     // 4. DETECTORES DE ARQUETIPOS DE JUGADOR (DATA MINING)
@@ -889,7 +911,7 @@ export const getTeamScoutingReport = async (competicionId: number | string, equi
          insights.push(`🔄 JUGADOR VINCULADO: ${linkedPlayer.nombre} (#${linkedPlayer.dorsal}) juega principalmente en otra categoría (${linkedPlayer.parallelStats?.gamesPlayed} partidos allí). No fiarse de sus estadísticas reducidas aquí.`);
          // Add warning if they are very good in the other category
          if (linkedPlayer.parallelStats && linkedPlayer.parallelStats.ppg > 15) {
-             insights.push(`⚠️ ALERTA DE REFUERZO: ${linkedPlayer.nombre} promedia ${linkedPlayer.parallelStats.ppg.toFixed(1)} puntos en su categoría principal. Es mucho más peligroso de lo que parece.`);
+             insights.push(`⚠️ ALERTA DE REFUERZO: ${linkedPlayer.nombre} (#${linkedPlayer.dorsal}) promedia ${linkedPlayer.parallelStats.ppg.toFixed(1)} puntos en su categoría principal. Es mucho más peligroso de lo que parece.`);
          }
     }
 
@@ -928,7 +950,7 @@ export const getTeamScoutingReport = async (competicionId: number | string, equi
     // "Veteran Presence" (Veteranía) - Enhanced with minutes check
     const veteran = playerStats.find(p => p.careerStats && p.careerStats.gamesPlayed > 50);
     if (veteran) {
-        insights.push(`🎓 VETERANÍA: ${veteran.nombre} aporta experiencia (${veteran.careerStats?.gamesPlayed} partidos y ${(veteran.careerStats?.totalMinutes || 0).toFixed(0)} minutos registrados).`);
+        insights.push(`🎓 VETERANÍA: ${veteran.nombre} (#${veteran.dorsal}) aporta experiencia (${veteran.careerStats?.gamesPlayed} partidos y ${(veteran.careerStats?.totalMinutes || 0).toFixed(0)} minutos registrados).`);
     }
 
     const onFirePlayer = sortedByPpg.find(p => p.last3PPG && p.ppg > 5 && p.last3PPG > (p.ppg * 1.35));
