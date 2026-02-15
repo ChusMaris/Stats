@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useRef } from 'react';
 import { Equipo, Partido } from '../types';
-import { Calendar, Clock, Plus, Save, AlertCircle, CheckCircle2, Pencil, Trash2, X, Filter } from 'lucide-react';
+import { Calendar, Clock, Plus, Save, AlertCircle, CheckCircle2, Pencil, Trash2, X, Filter, Eye, EyeOff } from 'lucide-react';
 import { createCalendarioEntry, updateCalendarioEntry, updatePartidoEntry, deleteMatch } from '../services/dataService';
 
 interface CalendarAdminProps {
@@ -21,6 +21,8 @@ const CalendarAdmin: React.FC<CalendarAdminProps> = ({ equipos, competicionId, m
   
   // State for filtering the list
   const [filterTeamId, setFilterTeamId] = useState<string>('');
+  // New State: Default hidden played matches
+  const [showPlayedMatches, setShowPlayedMatches] = useState(false);
   
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
@@ -45,10 +47,22 @@ const CalendarAdmin: React.FC<CalendarAdminProps> = ({ equipos, competicionId, m
       return new Date(a.fecha_hora || 0).getTime() - new Date(b.fecha_hora || 0).getTime();
   });
 
-  // Filter matches based on selection
+  // Filter matches based on selection AND Played Status
   const filteredMatches = allMatchesSorted.filter(m => {
-      if (!filterTeamId) return true;
-      return String(m.equipo_local_id) === filterTeamId || String(m.equipo_visitante_id) === filterTeamId;
+      // 1. Check Team Filter
+      if (filterTeamId) {
+          if (String(m.equipo_local_id) !== filterTeamId && String(m.equipo_visitante_id) !== filterTeamId) {
+              return false;
+          }
+      }
+      
+      // 2. Check Played Status Filter
+      if (!showPlayedMatches) {
+          const isPlayed = m.puntos_local !== null && m.puntos_local !== undefined;
+          if (isPlayed) return false;
+      }
+
+      return true;
   });
 
   // Efecto para Auto-Scroll
@@ -390,8 +404,8 @@ const CalendarAdmin: React.FC<CalendarAdminProps> = ({ equipos, competicionId, m
 
         {/* Lista de Partidos Completa (Columna Derecha) */}
         <div className="lg:col-span-1 flex flex-col h-[600px] lg:h-[640px] bg-white rounded-xl shadow-lg border border-slate-100 overflow-hidden order-2 lg:order-2">
-            <div className="bg-slate-50 p-4 border-b border-slate-100 shrink-0 z-10">
-                <div className="flex items-center justify-between mb-2">
+            <div className="bg-slate-50 p-4 border-b border-slate-100 shrink-0 z-10 space-y-3">
+                <div className="flex items-center justify-between">
                     <h3 className="font-bold text-slate-700">Calendario Completo</h3>
                     <div className="bg-white p-1 rounded border border-slate-200">
                         <Filter size={14} className="text-slate-400" />
@@ -401,20 +415,32 @@ const CalendarAdmin: React.FC<CalendarAdminProps> = ({ equipos, competicionId, m
                 <select 
                     value={filterTeamId}
                     onChange={(e) => setFilterTeamId(e.target.value)}
-                    className="w-full text-xs font-bold p-2 rounded border border-slate-200 bg-white text-slate-600 focus:ring-2 focus:ring-fcbq-blue outline-none mb-1"
+                    className="w-full text-xs font-bold p-2 rounded border border-slate-200 bg-white text-slate-600 focus:ring-2 focus:ring-fcbq-blue outline-none"
                 >
                     <option value="">TODOS LOS EQUIPOS</option>
                     {sortedEquipos.map(e => (
                         <option key={e.id} value={e.id}>{e.nombre_especifico}</option>
                     ))}
                 </select>
-                <p className="text-[10px] text-slate-400 mt-1">
+
+                <button 
+                    onClick={() => setShowPlayedMatches(!showPlayedMatches)}
+                    className={`w-full flex items-center justify-center gap-2 px-3 py-1.5 rounded text-xs font-bold transition-all border ${showPlayedMatches ? 'bg-fcbq-blue text-white border-fcbq-blue' : 'bg-white text-slate-500 border-slate-200 hover:bg-slate-50'}`}
+                >
+                    {showPlayedMatches ? <Eye size={12} /> : <EyeOff size={12} />}
+                    {showPlayedMatches ? 'Ocultar Partidos Jugados' : 'Ver Partidos Jugados'}
+                </button>
+
+                <p className="text-[10px] text-slate-400 text-center">
                     {filteredMatches.length} partidos encontrados
                 </p>
             </div>
+            
             <div ref={listRef} className="flex-1 overflow-y-auto p-2 space-y-2 bg-slate-50/30">
                 {filteredMatches.length === 0 && (
-                    <p className="text-center text-slate-400 py-8 text-sm italic">No hay partidos con el filtro seleccionado.</p>
+                    <p className="text-center text-slate-400 py-8 text-sm italic">
+                        {filterTeamId ? 'No hay partidos para este equipo.' : 'No hay partidos pendientes.'}
+                    </p>
                 )}
                 {filteredMatches.map(m => {
                     const isPlayed = m.puntos_local !== null && m.puntos_local !== undefined;

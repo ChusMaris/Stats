@@ -18,7 +18,3 @@ View your app in AI Studio: https://ai.studio/apps/drive/15XPohXdlbhkKA6rXpZS-IW
 2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
 3. Run the app:
    `npm run dev`
-
-
-
-en el análisis deportivo que haces de cada equipo, cuando nombres a un jugador, añade también el número del jugador. También quiero que hagas un análisis del propio partido, teniendo en cuenta todos los resultados de los dos equipos y de la clasificación, comparación de jugadores para ver hacia donde se puede ir el partido. Quiero un análisis deportivo con fundamentos, nada de tonterías.

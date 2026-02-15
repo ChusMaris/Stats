@@ -1,3 +1,4 @@
+
 import React, { useMemo } from 'react';
 import { Equipo, TeamStanding } from '../types';
 
@@ -143,9 +144,9 @@ const Standings: React.FC<StandingsProps> = ({ equipos, partidos, esMini, onSele
             <th className="px-4 py-4 text-center">PJ</th>
             <th className="px-4 py-4 text-center">PG</th>
             <th className="px-4 py-4 text-center">PP</th>
-            <th className="px-4 py-4 text-center hidden md:table-cell">PF</th>
-            <th className="px-4 py-4 text-center hidden md:table-cell">PC</th>
-            <th className="px-4 py-4 text-center hidden md:table-cell rounded-tr-lg">DIF</th>
+            <th className="px-4 py-4 text-center">PF</th>
+            <th className="px-4 py-4 text-center">PC</th>
+            <th className="px-4 py-4 text-center rounded-tr-lg">DIF</th>
           </tr>
         </thead>
         <tbody>
@@ -170,9 +171,9 @@ const Standings: React.FC<StandingsProps> = ({ equipos, partidos, esMini, onSele
               <td className="px-4 py-4 text-center">{team.pj}</td>
               <td className="px-4 py-4 text-center text-green-600 font-bold">{team.pg}</td>
               <td className="px-4 py-4 text-center text-red-600 font-bold">{team.pp}</td>
-              <td className="px-4 py-4 text-center hidden md:table-cell text-gray-500">{team.pf}</td>
-              <td className="px-4 py-4 text-center hidden md:table-cell text-gray-500">{team.pc}</td>
-              <td className="px-4 py-4 text-center hidden md:table-cell text-gray-500">{team.diff}</td>
+              <td className="px-4 py-4 text-center text-gray-500">{team.pf}</td>
+              <td className="px-4 py-4 text-center text-gray-500">{team.pc}</td>
+              <td className="px-4 py-4 text-center text-gray-500">{team.diff}</td>
             </tr>
           ))}
           {standings.length === 0 && (

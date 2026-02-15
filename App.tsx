@@ -222,16 +222,13 @@ const AppContent: React.FC = () => {
                         <span className="hidden md:inline">Estadísticas</span>
                     </NavLink>
                     
-                    {/* HIDE MATCH CENTER LINK IF NOT ADMIN */}
-                    {isAdmin && (
-                        <NavLink 
-                            to="/match-center" 
-                            className={({ isActive }) => `flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-bold transition-all ${isActive ? 'bg-white text-fcbq-blue shadow-sm' : 'text-blue-100 hover:bg-white/10'}`}
-                        >
-                            <CalendarDays size={18} />
-                            <span className="hidden md:inline">Match Center</span>
-                        </NavLink>
-                    )}
+                    <NavLink 
+                        to="/match-center" 
+                        className={({ isActive }) => `flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-bold transition-all ${isActive ? 'bg-white text-fcbq-blue shadow-sm' : 'text-blue-100 hover:bg-white/10'}`}
+                    >
+                        <CalendarDays size={18} />
+                        <span className="hidden md:inline">Match Center</span>
+                    </NavLink>
                 </nav>
             </div>
         </div>

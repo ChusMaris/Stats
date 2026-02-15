@@ -87,6 +87,7 @@ export interface EstadisticaJugadorPartido {
   jugador_id: number | string;
   puntos: number;
   valoracion?: number;
+  mas_menos?: number; // Added Plus-Minus field
   asistencias?: number;
   robos?: number;
   tapones_favor?: number;
@@ -176,11 +177,13 @@ export interface PlayerAggregatedStats {
   totalTiros2Anotados: number;
   totalTiros3Intentados: number;
   totalTiros3Anotados: number;
+  totalMasMenos?: number; // Accumulated +/-
   // Averages
   ppg: number;
   mpg: number;
   fpg: number;
   ppm: number;
+  avgMasMenos?: number; // Average +/- per game
   // Analysis
   t1Pct?: number; // Only Free Throws have percentage
   // Removed t3Pct, tsPct, eFgPct as requested (no attempt data for T2/T3)

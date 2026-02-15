@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo } from 'react';
 import { EstadisticaJugadorPartido, PlayerAggregatedStats, PartidoMovimiento, Plantilla } from '../types';
 import { User, Calendar, Table, LayoutGrid, ArrowUpDown, ChevronUp, ChevronDown } from 'lucide-react';
@@ -177,15 +178,18 @@ const TeamStats: React.FC<TeamStatsProps> = ({ equipoId, matches, plantilla, sta
           const totalMins = pStats.reduce((sum, s) => sum + parseTiempoJugado(s.tiempo_jugado), 0);
           const mpg = gp > 0 ? totalMins / gp : 0;
           
-          // Calculo PPM
-          const minutosPorPartido = esMini ? 48 : 40;
-          const minutosTotalesPosibles = gp * minutosPorPartido;
-          const ppm = minutosTotalesPosibles > 0 ? totalPts / minutosTotalesPosibles : 0;
+          // Calculo PPM Original (Puntos por Minuto Teórico de Partido)
+          // 48 min para Mini, 40 min para el resto
+          const gameDuration = esMini ? 48 : 40;
+          const ppm = gp > 0 ? (totalPts / gp) / gameDuration : 0;
           
           const totalFouls = pStats.reduce((sum, s) => sum + (s.faltas_cometidas || 0) + (s.tecnicas || 0) + (s.antideportivas || 0), 0);
           
           // Calculo Faltas de Tiro
           const totalFaltasTiro = pMovements.filter(m => SHOOTING_FOUL_IDS.includes(String(m.tipo_movimiento))).length;
+
+          // Aggregation Plus Minus
+          const totalMasMenos = pStats.reduce((sum, s) => sum + (s.mas_menos || 0), 0);
 
           const t1A = pStats.reduce((sum, s) => sum + (s.t1_anotados || 0), 0);
           const t1I = pStats.reduce((sum, s) => sum + (s.t1_intentados || 0), 0);
@@ -210,6 +214,8 @@ const TeamStats: React.FC<TeamStatsProps> = ({ equipoId, matches, plantilla, sta
               totalTiros2Anotados: t2A,
               totalTiros3Intentados: t3I,
               totalTiros3Anotados: t3A,
+              totalMasMenos: totalMasMenos, // ADDED
+              avgMasMenos: gp > 0 ? totalMasMenos / gp : 0, // ADDED
               ppg: gp > 0 ? totalPts / gp : 0,
               mpg: mpg,
               fpg: gp > 0 ? totalFouls / gp : 0,
@@ -382,7 +388,7 @@ const TeamStats: React.FC<TeamStatsProps> = ({ equipoId, matches, plantilla, sta
                             <TableHeader label="MPG" column="mpg" />
                             <TableHeader label="PPM" column="ppm" />
                             <TableHeader label="FPG" column="fpg" />
-                            <TableHeader label="F.Tiro" column="totalFaltasTiro" />
+                            <TableHeader label="+/-" column="avgMasMenos" />
                             <TableHeader label="% T1" column="t1Pct" />
                         </tr>
                     </thead>
@@ -403,7 +409,9 @@ const TeamStats: React.FC<TeamStatsProps> = ({ equipoId, matches, plantilla, sta
                                 <td className="px-4 py-4 text-center text-gray-500">{player.mpg.toFixed(1)}</td>
                                 <td className="px-4 py-4 text-center text-gray-500">{player.ppm.toFixed(2)}</td>
                                 <td className="px-4 py-4 text-center text-gray-500">{player.fpg.toFixed(1)}</td>
-                                <td className="px-4 py-4 text-center text-gray-500 font-semibold">{player.totalFaltasTiro}</td>
+                                <td className={`px-4 py-4 text-center font-bold ${player.avgMasMenos > 0 ? 'text-green-600' : player.avgMasMenos < 0 ? 'text-red-500' : 'text-gray-400'}`}>
+                                    {player.avgMasMenos > 0 ? '+' : ''}{player.avgMasMenos.toFixed(1)}
+                                </td>
                                 <td className="px-4 py-4 flex justify-center">
                                     <MiniDonut value={(player as any).t1Pct} />
                                 </td>
@@ -435,8 +443,10 @@ const TeamStats: React.FC<TeamStatsProps> = ({ equipoId, matches, plantilla, sta
                                 <span className="text-xl font-black text-slate-700 leading-none">{player.ppg.toFixed(1)}</span>
                             </div>
                             <div className="flex flex-col items-center">
-                                <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-1">MPG</span>
-                                <span className="text-xl font-black text-slate-700 leading-none">{player.mpg.toFixed(1)}</span>
+                                <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-1">+/-</span>
+                                <span className={`text-xl font-black leading-none ${player.avgMasMenos > 0 ? 'text-green-600' : player.avgMasMenos < 0 ? 'text-red-500' : 'text-slate-700'}`}>
+                                    {player.avgMasMenos > 0 ? '+' : ''}{player.avgMasMenos.toFixed(1)}
+                                </span>
                             </div>
                         </div>
                     </div>

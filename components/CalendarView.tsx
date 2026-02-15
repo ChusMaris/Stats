@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { Partido, ScoutingReport, Equipo, PlayerAggregatedStats } from '../types';
-import { Calendar, Clock, MapPin, BrainCircuit, Info, Target, ChevronUp, Coffee, Swords, Gauge, ScrollText, User, Search, Crosshair, AlertTriangle, TrendingUp, ShieldAlert, Zap, Flame, Activity, Link2, ExternalLink } from 'lucide-react';
+import { Calendar, Clock, MapPin, BrainCircuit, Info, Target, ChevronUp, Coffee, Swords, Gauge, ScrollText, User, Search, Crosshair, AlertTriangle, TrendingUp, ShieldAlert, Zap, Flame, Activity, Link2, ExternalLink, Eye, EyeOff } from 'lucide-react';
 import { getTeamScoutingReport } from '../services/dataService';
 
 interface CalendarViewProps {
@@ -53,6 +53,9 @@ const CalendarView: React.FC<CalendarViewProps> = ({ matches, competicionId, equ
   const [analysis, setAnalysis] = useState<{ [key: string]: ScoutingReport }>({});
   const [loadingAnalysis, setLoadingAnalysis] = useState<string | null>(null);
   const [visibleReport, setVisibleReport] = useState<string | null>(null);
+  
+  // Filter state: Default to FALSE (Hide finished rounds)
+  const [showFinishedRounds, setShowFinishedRounds] = useState(false);
 
   // 1. Agrupar partidos por jornada
   const matchesByJornada = matches.reduce((acc, match) => {
@@ -67,6 +70,17 @@ const CalendarView: React.FC<CalendarViewProps> = ({ matches, competicionId, equ
 
   const jornadas = Object.keys(matchesByJornada).map(Number).sort((a, b) => a - b);
   
+  // 2. Filter Jornadas based on completion status
+  const displayedJornadas = jornadas.filter(jornada => {
+      if (showFinishedRounds) return true; // Show all if toggle is ON
+      
+      const rMatches = matchesByJornada[jornada];
+      // Check if ALL matches in this round are played
+      const isRoundComplete = rMatches.every(m => m.puntos_local !== null && m.puntos_local !== undefined);
+      
+      return !isRoundComplete; // Show only if NOT complete
+  });
+
   const handleAnalyze = async (matchId: string | number, teamId: string | number, rivalId: string | number) => {
     const key = String(matchId);
     if (visibleReport === key) {
@@ -102,17 +116,37 @@ const CalendarView: React.FC<CalendarViewProps> = ({ matches, competicionId, equ
 
   return (
     <div className="space-y-6 max-w-4xl mx-auto pb-12">
-      {jornadas.length === 0 && (
-          <div className="text-center py-10 bg-white rounded-xl shadow-sm border border-slate-100">
+      
+      {/* Filters Header */}
+      <div className="flex justify-end items-center mb-2">
+        <button 
+            onClick={() => setShowFinishedRounds(!showFinishedRounds)}
+            className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-bold transition-all ${showFinishedRounds ? 'bg-fcbq-blue text-white shadow-sm' : 'bg-white text-slate-500 border border-slate-200 hover:bg-slate-50'}`}
+        >
+            {showFinishedRounds ? <Eye size={14} /> : <EyeOff size={14} />}
+            {showFinishedRounds ? 'Ocultar Jornadas Finalizadas' : 'Ver Jornadas Finalizadas'}
+        </button>
+      </div>
+
+      {displayedJornadas.length === 0 && (
+          <div className="text-center py-12 bg-white rounded-xl shadow-sm border border-slate-100">
               <div className="inline-block p-4 bg-green-50 rounded-full mb-3">
                 <Calendar size={32} className="text-green-600" />
               </div>
               <p className="text-slate-800 font-bold text-lg">Todo al día</p>
-              <p className="text-slate-500 mb-2">No hay partidos registrados en el calendario.</p>
+              <p className="text-slate-500 mb-4">No hay partidos pendientes para mostrar.</p>
+              {!showFinishedRounds && jornadas.length > 0 && (
+                  <button 
+                    onClick={() => setShowFinishedRounds(true)}
+                    className="text-fcbq-blue text-sm font-bold hover:underline"
+                  >
+                      Ver historial de jornadas
+                  </button>
+              )}
           </div>
       )}
       
-      {jornadas.map(jornada => {
+      {displayedJornadas.map(jornada => {
         const jornadaMatches = matchesByJornada[jornada];
         
         // Comprobamos si la jornada está "cerrada" (todos los partidos jugados)
@@ -128,7 +162,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({ matches, competicionId, equ
         const restingTeams = equipos.filter(e => !playingTeamIds.has(String(e.id)));
 
         return (
-          <div key={jornada} className="bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden animate-fade-in">
+          <div key={jornada} className={`bg-white rounded-xl shadow-sm border border-slate-100 overflow-hidden animate-fade-in ${allPlayed ? 'opacity-80' : ''}`}>
             {/* Cabecera Jornada */}
             <div className={`w-full flex items-center p-3 border-b border-slate-50 ${allPlayed ? 'bg-slate-50' : 'bg-blue-50/30'}`}>
               <div className="flex items-center gap-3">
@@ -138,6 +172,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({ matches, competicionId, equ
                  <div className="text-left">
                     <span className={`block text-sm font-bold ${allPlayed ? 'text-slate-400' : 'text-slate-700'}`}>Jornada {jornada}</span>
                  </div>
+                 {allPlayed && <span className="ml-auto text-[10px] font-bold uppercase text-slate-400 bg-slate-100 px-2 py-0.5 rounded">Finalizada</span>}
               </div>
             </div>
 
