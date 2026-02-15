@@ -623,7 +623,7 @@ const fetchParallelPlayerStats = async (seasonId: number | string, currentCompId
 const SHOOTING_FOUL_IDS = ['160', '161', '162', '165', '166', '537', '540', '544', '549'];
 
 const calculateTeamAggregates = (matches: Partido[], stats: EstadisticaJugadorPartido[], plantilla: any[], equipoId: number | string) => {
-    const playedMatches = matches.filter(m => m.puntos_local !== null && m.puntos_visitante !== null);
+    const playedMatches = matches.filter(m => m.puntos_local !== null && m.puntos_local !== undefined);
     const totalMatches = playedMatches.length;
 
     if (totalMatches === 0) return null;
@@ -865,7 +865,23 @@ export const getTeamScoutingReport = async (competicionId: number | string, equi
         insights.push("🛡️ Anotación Coral: No presentan individualidades dominantes (>11.5 PPG). El peligro viene del colectivo.");
     }
 
-    // 3. DETECTORES DE ARQUETIPOS DE JUGADOR (DATA MINING)
+    // 3. ANÁLISIS DE IMPACTO (+/-) (NEW)
+    const impactPlayer = playerStats.find(p => p.avgMasMenos && p.avgMasMenos > 8 && p.partidosJugados >= 3);
+    if (impactPlayer) {
+         insights.push(`🚀 FACTOR GANADOR: Cuando ${impactPlayer.nombre} está en pista, el equipo arrasa (+${impactPlayer.avgMasMenos!.toFixed(1)} de diferencial medio).`);
+    }
+
+    const emptyStats = playerStats.find(p => p.ppg > 10 && p.avgMasMenos && p.avgMasMenos < -2 && p.partidosJugados >= 3);
+    if (emptyStats) {
+         insights.push(`⚠️ ESTADÍSTICA VACÍA: ${emptyStats.nombre} anota mucho (${emptyStats.ppg.toFixed(1)}), pero el equipo pierde con él en pista (${emptyStats.avgMasMenos!.toFixed(1)}).`);
+    }
+
+    const glueGuyPM = playerStats.find(p => p.ppg < 6 && p.avgMasMenos && p.avgMasMenos > 5 && p.partidosJugados >= 3);
+    if (glueGuyPM) {
+         insights.push(`🧱 CEMENTO: ${glueGuyPM.nombre} no anota mucho, pero hace ganar al equipo (+${glueGuyPM.avgMasMenos!.toFixed(1)}). Imprescindible en defensa/intangibles.`);
+    }
+
+    // 4. DETECTORES DE ARQUETIPOS DE JUGADOR (DATA MINING)
     
     // NEW: Linked Player Detection (Prioritized)
     const linkedPlayer = playerStats.find(p => p.parallelStats && p.parallelStats.isPrimaryContext);

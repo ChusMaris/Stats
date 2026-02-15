@@ -354,7 +354,7 @@ const ScoutingCard = ({ report, teamName, color, onClose }: { report: ScoutingRe
         } else if (t3AttPerGame < 2) {
             // Tira poco de 3... ¿Pero anota?
             if (p.ppg > 8) {
-                // Anota mucho y no tira triples -> Es peligroso dentro (penetrador o poste)
+                // Anota mucho y no tira -> Es peligroso dentro (penetrador o poste)
                 advice.push("Cerrar penetración: Peligro interior.");
             } else {
                 // No anota mucho y no tira -> Podemos flotar para ayudar a otros
@@ -371,9 +371,10 @@ const ScoutingCard = ({ report, teamName, color, onClose }: { report: ScoutingRe
     // --- DYNAMIC CONTEXT SLOT LOGIC ---
     // Changed priority: 
     // 1. Parallel Context (Linked Player)
-    // 2. Strengths (T3)
-    // 3. Form 
-    // 4. Weaknesses
+    // 2. High Plus Minus (IMPACT PLAYER) - NEW!
+    // 3. Strengths (T3)
+    // 4. Form 
+    // 5. Weaknesses
     const getDynamicContext = (p: PlayerAggregatedStats) => {
         
         // 0. LINKED PLAYER (Parallel Stats) - MAXIMUM PRIORITY
@@ -398,7 +399,29 @@ const ScoutingCard = ({ report, teamName, color, onClose }: { report: ScoutingRe
             };
         }
 
-        // 1. Strength: 3-Point Specialist (High Volume)
+        // 1. High Impact Player (Plus Minus) - NEW
+        if (p.avgMasMenos && p.avgMasMenos >= 6 && p.partidosJugados >= 2) {
+             return {
+                type: 'PM_STRENGTH',
+                title: 'Impacto Global (+/-)',
+                icon: <Activity size={16} className="text-emerald-600" />,
+                content: (
+                    <div className="flex items-center gap-2">
+                        <span className="text-xl font-black leading-none text-emerald-600">
+                            +{p.avgMasMenos.toFixed(1)}
+                        </span>
+                        <div className="flex flex-col">
+                            <span className="text-[9px] font-bold text-slate-400 uppercase leading-none">Diferencial</span>
+                            <span className="text-[8px] font-bold text-emerald-600 uppercase leading-none mt-0.5">
+                                Gana por {Math.floor(p.avgMasMenos)} pts con él
+                            </span>
+                        </div>
+                    </div>
+                )
+            };
+        }
+
+        // 2. Strength: 3-Point Specialist (High Volume)
         const t3PerGame = p.partidosJugados > 0 ? p.totalTiros3Anotados / p.partidosJugados : 0;
         
         if (t3PerGame >= 1.0 || p.totalTiros3Anotados >= 5) {
@@ -422,7 +445,7 @@ const ScoutingCard = ({ report, teamName, color, onClose }: { report: ScoutingRe
             };
         }
 
-        // 2. Form: Hot Streak (Racha positiva)
+        // 3. Form: Hot Streak (Racha positiva)
         const diff = (p.last3PPG || 0) - p.ppg;
         const recentTotalPoints = Math.round((p.last3PPG || 0) * (p.lastGamesPlayed || 1));
         
@@ -445,7 +468,7 @@ const ScoutingCard = ({ report, teamName, color, onClose }: { report: ScoutingRe
             };
         }
 
-        // 3. Weakness: Bad Free Throw Shooter
+        // 4. Weakness: Bad Free Throw Shooter
         if (p.totalTirosLibresIntentados > 8 && (p.t1Pct || 0) < 60) {
             return {
                 type: 'FT_WEAKNESS',
@@ -463,7 +486,7 @@ const ScoutingCard = ({ report, teamName, color, onClose }: { report: ScoutingRe
             };
         }
         
-        // 4. Default: Total Points (Season)
+        // 5. Default: Total Points (Season)
         return {
             type: 'SEASON_TOTAL',
             title: 'Total Puntos',
