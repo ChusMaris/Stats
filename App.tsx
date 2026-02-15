@@ -234,7 +234,7 @@ const AppContent: React.FC = () => {
         </div>
       </header>
 
-      {/* Global Filter Section */}
+      {/* Global Filter Section - Now handles the Title in collapsed mode */}
       <CompetitionFilters 
           temporadas={temporadas}
           categorias={categorias}
@@ -248,6 +248,7 @@ const AppContent: React.FC = () => {
           onCategoriaChange={setSelectedCategoria}
           onFaseChange={setSelectedFase}
           onCompeticionChange={setSelectedCompeticion}
+          isScrolled={isScrolled}
       />
 
       {/* Main Content Area */}
@@ -294,11 +295,7 @@ const AppContent: React.FC = () => {
                     </div>
                 )}
 
-                {/* Competition Title Header */}
-                <div className="flex items-center gap-2 mb-6">
-                    <div className="h-8 w-2 bg-fcbq-accent rounded-full"></div>
-                    <h2 className="text-2xl md:text-3xl font-bold text-gray-800">{viewData.competicion?.nombre}</h2>
-                </div>
+                {/* Title Header Removed here - now in CompetitionFilters */}
 
                 <Routes>
                     <Route path="/" element={<StatsView viewData={viewData} selectedCompeticionId={selectedCompeticion} />} />
