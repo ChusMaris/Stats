@@ -1,5 +1,6 @@
 
 import React, { useMemo, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { PlayerAggregatedStats, EstadisticaJugadorPartido, PartidoMovimiento } from '../types';
 import { X, Activity, Calendar, Users, TrendingUp, LayoutDashboard, History, Clock, Target, AlertCircle, PlusCircle, MinusCircle } from 'lucide-react';
 import {
@@ -145,12 +146,15 @@ const PlayerModal: React.FC<PlayerModalProps> = ({ player, equipoId, matchStats,
       return 'bg-slate-50';
   };
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-end md:items-center justify-center md:p-4 bg-black/60 backdrop-blur-sm transition-all animate-fade-in">
+  // PORTAL IMPLEMENTATION: 
+  // Renders the modal directly into document.body to escape any parent Z-Index stacking contexts (like the sticky header).
+  // Also added 'pt-20 md:pt-36' to create the visual margin from the top.
+  return createPortal(
+    <div className="fixed inset-0 z-[100] flex justify-center items-start pt-20 md:pt-36 pb-4 px-4 bg-black/60 backdrop-blur-sm transition-all animate-fade-in overflow-hidden">
       {/* Click outside to close area */}
       <div className="absolute inset-0" onClick={onClose}></div>
 
-      <div className="bg-slate-50 w-full md:w-[90%] md:max-w-4xl h-[92vh] md:h-auto md:max-h-[85vh] md:rounded-2xl shadow-2xl flex flex-col relative z-10 overflow-hidden rounded-t-2xl">
+      <div className="bg-slate-50 w-full md:w-[90%] md:max-w-4xl max-h-full rounded-2xl shadow-2xl flex flex-col relative z-10 overflow-hidden">
         
         {/* HEADER: Re-designed with Blue Background & Big Dorsal */}
         <div className="bg-fcbq-blue text-white p-6 relative overflow-hidden shrink-0 shadow-sm min-h-[130px] flex items-center">
@@ -172,11 +176,6 @@ const PlayerModal: React.FC<PlayerModalProps> = ({ player, equipoId, matchStats,
                  
                  <div className="flex-1 min-w-0">
                     <h2 className="text-2xl md:text-4xl font-black uppercase tracking-tight leading-none truncate drop-shadow-sm">{player.nombre}</h2>
-                    <div className="flex items-center gap-2 mt-2">
-                         <span className="bg-white/20 text-white text-[10px] md:text-xs font-bold px-2.5 py-1 rounded backdrop-blur-md border border-white/10 shadow-sm">
-                            {player.partidosJugados} PARTIDOS
-                         </span>
-                    </div>
                  </div>
              </div>
 
@@ -251,22 +250,18 @@ const PlayerModal: React.FC<PlayerModalProps> = ({ player, equipoId, matchStats,
                     </div>
 
                     {/* Secondary Stats Strip */}
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3 bg-white p-3 rounded-lg border border-slate-100 shadow-sm">
+                    <div className="grid grid-cols-3 gap-3 bg-white p-3 rounded-lg border border-slate-100 shadow-sm">
+                        <div className="text-center border-r border-slate-50 last:border-0">
+                            <span className="block text-xl font-black text-slate-700 leading-none">{player.mpg.toFixed(1)}</span>
+                            <span className="text-[9px] font-bold text-slate-400 uppercase">Minutos / Part.</span>
+                        </div>
                         <div className="text-center border-r border-slate-50 last:border-0">
                             <span className="block text-xl font-black text-slate-700 leading-none">{player.totalFaltas}</span>
                             <span className="text-[9px] font-bold text-slate-400 uppercase">Faltas Totales</span>
                         </div>
-                        <div className="text-center border-r border-slate-50 last:border-0">
-                            <span className="block text-xl font-black text-slate-700 leading-none">{player.totalMinutos.toFixed(0)}</span>
-                            <span className="text-[9px] font-bold text-slate-400 uppercase">Minutos Totales</span>
-                        </div>
                          <div className="text-center border-r border-slate-50 last:border-0">
-                            <span className="block text-xl font-black text-slate-700 leading-none">{player.mpg.toFixed(1)}</span>
-                            <span className="text-[9px] font-bold text-slate-400 uppercase">Minutos / Part.</span>
-                        </div>
-                        <div className="text-center">
-                            <span className="block text-xl font-black text-slate-700 leading-none">{chartData.length}</span>
-                            <span className="text-[9px] font-bold text-slate-400 uppercase">Jugados</span>
+                            <span className="block text-xl font-black text-slate-700 leading-none">{player.totalFaltasTiro}</span>
+                            <span className="text-[9px] font-bold text-slate-400 uppercase">Faltas de Tiro</span>
                         </div>
                     </div>
 
@@ -375,7 +370,8 @@ const PlayerModal: React.FC<PlayerModalProps> = ({ player, equipoId, matchStats,
 
         </div>
       </div>
-    </div>
+    </div>,
+    document.body
   );
 };
 

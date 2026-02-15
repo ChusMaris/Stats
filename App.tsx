@@ -52,6 +52,10 @@ const AppContent: React.FC = () => {
   const [selectedCategoria, setSelectedCategoria] = useState<string>('');
   const [selectedFase, setSelectedFase] = useState<string>('');
   const [selectedCompeticion, setSelectedCompeticion] = useState<string>('');
+  
+  // --- UI State ---
+  const [isFilterExpanded, setIsFilterExpanded] = useState(true);
+  const [isScrolled, setIsScrolled] = useState(false);
 
   // --- Global Data State ---
   const [isLoading, setIsLoading] = useState(false);
@@ -62,9 +66,6 @@ const AppContent: React.FC = () => {
     equipos: any[],
     competicion: Competicion | null
   } | null>(null);
-
-  // --- UI State ---
-  const [isScrolled, setIsScrolled] = useState(false);
 
   // --- Initial Load ---
   useEffect(() => {
@@ -90,6 +91,15 @@ const AppContent: React.FC = () => {
     window.addEventListener('scroll', handleScroll);
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
+
+  // --- Auto-Collapse Filters when Competition Selected ---
+  useEffect(() => {
+    if (selectedCompeticion) {
+        setIsFilterExpanded(false);
+    } else {
+        setIsFilterExpanded(true);
+    }
+  }, [selectedCompeticion]);
 
   // --- Update Competitions when Temp/Cat changes ---
   useEffect(() => {
@@ -117,14 +127,6 @@ const AppContent: React.FC = () => {
       setSelectedCompeticion('');
     }
   }, [selectedTemporada, selectedCategoria]);
-
-  // --- Filter Competiciones logic moved to CompetitionFilters component visually, 
-  // but we reset selectedCompeticion here if it becomes invalid due to filter changes ---
-  useEffect(() => {
-     // Optional: If Phase changes, we might want to verify selectedCompeticion is still valid
-     // But simpler is to let user re-select if needed or keep it if it matches.
-     // Current logic in App handles resets.
-  }, [selectedFase]);
 
   // --- Fetch Data when Competition Changes ---
   const loadCompetitionData = async () => {
@@ -178,78 +180,73 @@ const AppContent: React.FC = () => {
   return (
     <div className="min-h-screen flex flex-col font-sans text-slate-800 bg-slate-50">
       
-      {/* Navbar */}
-      <header className={`bg-fcbq-blue text-white shadow-md sticky top-0 z-40 transition-all duration-300 ${isScrolled ? 'py-2' : 'py-4'}`}>
-        <div className="container mx-auto px-4">
-            <div className="flex items-center justify-between">
-                {/* LOGO AREA - CLICK HERE 5 TIMES FOR ADMIN */}
-                <div 
-                    className="flex items-center gap-3 overflow-hidden cursor-pointer select-none active:opacity-80"
-                    onClick={handleSecretClick}
-                >
+      {/* Sticky Container Group: Navbar + Filters */}
+      <div className="sticky top-0 z-40 bg-white shadow-md flex flex-col transition-all duration-300">
+        
+        {/* Navbar - No Sticky here, strictly relative to wrapper */}
+        <header className={`bg-fcbq-blue text-white transition-all duration-300 ${isScrolled ? 'py-2' : 'py-4'}`}>
+            <div className="container mx-auto px-4">
+                <div className="flex items-center justify-between">
+                    {/* LOGO AREA */}
                     <div 
-                      className={`bg-white rounded-full flex items-center justify-center text-fcbq-blue font-bold border-2 transition-all duration-300 overflow-hidden ${isAdmin ? 'border-green-400 shadow-[0_0_10px_rgba(74,222,128,0.5)]' : 'border-fcbq-accent'} ${isScrolled ? 'w-8 h-8 text-base' : 'w-10 h-10 text-xl'}`}
+                        className="flex items-center gap-3 overflow-hidden cursor-pointer select-none active:opacity-80"
+                        onClick={handleSecretClick}
                     >
-                        <span className={isScrolled ? 'text-base' : 'text-xl'}>B</span>
-                    </div>
-                    
-                    <div className="flex flex-col justify-center">
-                        {isScrolled && activeCompetitionName ? (
-                             <div className="animate-fade-in leading-tight">
-                                <span className="text-[10px] md:text-xs text-blue-200 uppercase font-semibold block tracking-wider">
-                                    {activeCategoryName}
-                                </span>
-                                <h1 className="text-base md:text-lg font-bold truncate max-w-[200px] md:max-w-md">
-                                    {activeCompetitionName}
-                                </h1>
-                             </div>
-                        ) : (
+                        <div 
+                        className={`bg-white rounded-full flex items-center justify-center text-fcbq-blue font-bold border-2 transition-all duration-300 overflow-hidden ${isAdmin ? 'border-green-400 shadow-[0_0_10px_rgba(74,222,128,0.5)]' : 'border-fcbq-accent'} ${isScrolled ? 'w-8 h-8 text-base' : 'w-10 h-10 text-xl'}`}
+                        >
+                            <span className={isScrolled ? 'text-base' : 'text-xl'}>B</span>
+                        </div>
+                        
+                        <div className="flex flex-col justify-center">
                             <h1 className="text-lg md:text-2xl font-bold tracking-tight animate-fade-in flex items-center gap-2">
                                 Brafa Stats
                                 {isAdmin && <Unlock size={14} className="text-green-400 opacity-70" />}
                             </h1>
-                        )}
+                        </div>
                     </div>
+
+                    {/* Navigation Links */}
+                    <nav className="flex items-center gap-1 md:gap-2">
+                        <NavLink 
+                            to="/" 
+                            className={({ isActive }) => `flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-bold transition-all ${isActive ? 'bg-white text-fcbq-blue shadow-sm' : 'text-blue-100 hover:bg-white/10'}`}
+                        >
+                            <BarChart3 size={18} />
+                            <span className="hidden md:inline">Estadísticas</span>
+                        </NavLink>
+                        
+                        <NavLink 
+                            to="/match-center" 
+                            className={({ isActive }) => `flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-bold transition-all ${isActive ? 'bg-white text-fcbq-blue shadow-sm' : 'text-blue-100 hover:bg-white/10'}`}
+                        >
+                            <CalendarDays size={18} />
+                            <span className="hidden md:inline">Match Center</span>
+                        </NavLink>
+                    </nav>
                 </div>
-
-                {/* Navigation Links */}
-                <nav className="flex items-center gap-1 md:gap-2">
-                    <NavLink 
-                        to="/" 
-                        className={({ isActive }) => `flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-bold transition-all ${isActive ? 'bg-white text-fcbq-blue shadow-sm' : 'text-blue-100 hover:bg-white/10'}`}
-                    >
-                        <BarChart3 size={18} />
-                        <span className="hidden md:inline">Estadísticas</span>
-                    </NavLink>
-                    
-                    <NavLink 
-                        to="/match-center" 
-                        className={({ isActive }) => `flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-bold transition-all ${isActive ? 'bg-white text-fcbq-blue shadow-sm' : 'text-blue-100 hover:bg-white/10'}`}
-                    >
-                        <CalendarDays size={18} />
-                        <span className="hidden md:inline">Match Center</span>
-                    </NavLink>
-                </nav>
             </div>
-        </div>
-      </header>
+        </header>
 
-      {/* Global Filter Section - Now handles the Title in collapsed mode */}
-      <CompetitionFilters 
-          temporadas={temporadas}
-          categorias={categorias}
-          competiciones={competiciones}
-          loadingCompetitions={loadingCompetitions}
-          selectedTemporada={selectedTemporada}
-          selectedCategoria={selectedCategoria}
-          selectedFase={selectedFase}
-          selectedCompeticion={selectedCompeticion}
-          onTemporadaChange={setSelectedTemporada}
-          onCategoriaChange={setSelectedCategoria}
-          onFaseChange={setSelectedFase}
-          onCompeticionChange={setSelectedCompeticion}
-          isScrolled={isScrolled}
-      />
+        {/* Global Filter Section - Inside the sticky wrapper */}
+        <CompetitionFilters 
+            temporadas={temporadas}
+            categorias={categorias}
+            competiciones={competiciones}
+            loadingCompetitions={loadingCompetitions}
+            selectedTemporada={selectedTemporada}
+            selectedCategoria={selectedCategoria}
+            selectedFase={selectedFase}
+            selectedCompeticion={selectedCompeticion}
+            onTemporadaChange={setSelectedTemporada}
+            onCategoriaChange={setSelectedCategoria}
+            onFaseChange={setSelectedFase}
+            onCompeticionChange={setSelectedCompeticion}
+            isScrolled={isScrolled}
+            isExpanded={isFilterExpanded}
+            setIsExpanded={setIsFilterExpanded}
+        />
+      </div>
 
       {/* Main Content Area */}
       <main className="flex-grow container mx-auto px-4 py-8 relative z-10">
@@ -294,8 +291,6 @@ const AppContent: React.FC = () => {
                         </div>
                     </div>
                 )}
-
-                {/* Title Header Removed here - now in CompetitionFilters */}
 
                 <Routes>
                     <Route path="/" element={<StatsView viewData={viewData} selectedCompeticionId={selectedCompeticion} />} />

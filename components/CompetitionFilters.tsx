@@ -1,6 +1,6 @@
 
-import React, { useMemo, useState, useEffect } from 'react';
-import { ChevronDown, ChevronUp, Loader2, Filter, Trophy, Calendar, Layers } from 'lucide-react';
+import React, { useMemo } from 'react';
+import { ChevronDown, ChevronUp, Loader2, Filter, Calendar, Layers } from 'lucide-react';
 import { Temporada, Categoria, Competicion } from '../types';
 
 interface CompetitionFiltersProps {
@@ -17,6 +17,9 @@ interface CompetitionFiltersProps {
     onFaseChange: (val: string) => void;
     onCompeticionChange: (val: string) => void;
     isScrolled: boolean;
+    // New Props for Controlled State
+    isExpanded: boolean;
+    setIsExpanded: (v: boolean) => void;
 }
 
 const CompetitionFilters: React.FC<CompetitionFiltersProps> = ({
@@ -32,19 +35,10 @@ const CompetitionFilters: React.FC<CompetitionFiltersProps> = ({
     onCategoriaChange,
     onFaseChange,
     onCompeticionChange,
-    isScrolled
+    isScrolled,
+    isExpanded,
+    setIsExpanded
 }) => {
-    // Estado para controlar si los filtros están visibles o colapsados
-    const [isExpanded, setIsExpanded] = useState(true);
-
-    // Auto-colapsar cuando se selecciona una competición válida
-    useEffect(() => {
-        if (selectedCompeticion) {
-            setIsExpanded(false);
-        } else {
-            setIsExpanded(true);
-        }
-    }, [selectedCompeticion]);
 
     // --- Derived Data for Display ---
     const filteredCompeticiones = useMemo(() => {
@@ -59,29 +53,30 @@ const CompetitionFilters: React.FC<CompetitionFiltersProps> = ({
     const currentCatName = categorias.find(c => c.id.toString() === selectedCategoria)?.nombre;
     const currentCompName = competiciones.find(c => c.id.toString() === selectedCompeticion)?.nombre;
 
-    // Ajuste dinámico de la posición sticky para evitar huecos con la cabecera al hacer scroll
-    // Header Extendido (~72px) | Header Comprimido (~52px)
-    const stickyTopClass = isScrolled 
-        ? 'top-[48px] md:top-[52px]' 
-        : 'top-[72px] md:top-[72px]';
+    // No 'sticky' logic here anymore. This component just renders content.
+    // The sticky behavior is handled by the parent wrapper in App.tsx.
 
     return (
-        <div className={`bg-white shadow-sm transition-all duration-300 ease-in-out z-30 relative ${isExpanded ? 'border-b border-gray-200 py-6' : `py-0 border-b border-gray-100 sticky ${stickyTopClass}`}`}>
+        <div className={`bg-white transition-all duration-300 ease-in-out relative ${isExpanded ? 'border-b border-gray-200 py-6' : `border-b border-gray-100 ${isScrolled ? 'py-2' : 'py-3'}`}`}>
             
             {/* --- MODO COLAPSADO (HEADER COMPACTO) --- */}
             {!isExpanded && selectedCompeticion && (
-                <div className="container mx-auto px-4 py-3 animate-fade-in">
-                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-3">
+                <div className="container mx-auto px-4 animate-fade-in">
+                    <div className="flex flex-row items-center justify-between gap-3">
                         {/* Título y Breadcrumbs */}
                         <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2 text-[10px] md:text-xs font-bold text-slate-400 uppercase tracking-wider mb-0.5">
-                                <span className="flex items-center gap-1"><Calendar size={10} /> {currentTempName}</span>
-                                <span className="text-slate-300">•</span>
-                                <span className="flex items-center gap-1"><Layers size={10} /> {currentCatName}</span>
-                            </div>
+                            {/* Ocultamos las migas de pan al hacer scroll para ahorrar espacio y evitar sobrecarga visual */}
+                            {!isScrolled && (
+                                <div className="flex items-center gap-2 text-[10px] md:text-xs font-bold text-slate-400 uppercase tracking-wider mb-0.5 transition-all">
+                                    <span className="flex items-center gap-1"><Calendar size={10} /> {currentTempName}</span>
+                                    <span className="text-slate-300">•</span>
+                                    <span className="flex items-center gap-1"><Layers size={10} /> {currentCatName}</span>
+                                </div>
+                            )}
+                            
                             <div className="flex items-center gap-2">
-                                <div className="h-6 w-1.5 bg-fcbq-accent rounded-full shrink-0"></div>
-                                <h2 className="text-lg md:text-2xl font-black text-slate-800 truncate leading-tight">
+                                {!isScrolled && <div className="h-6 w-1.5 bg-fcbq-accent rounded-full shrink-0 transition-all"></div>}
+                                <h2 className={`font-black text-slate-800 truncate leading-tight transition-all ${isScrolled ? 'text-base md:text-lg' : 'text-lg md:text-2xl'}`}>
                                     {currentCompName}
                                 </h2>
                             </div>
@@ -90,9 +85,9 @@ const CompetitionFilters: React.FC<CompetitionFiltersProps> = ({
                         {/* Botón para abrir filtros */}
                         <button 
                             onClick={() => setIsExpanded(true)}
-                            className="flex items-center justify-center gap-2 px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg text-xs font-bold uppercase transition-colors shrink-0"
+                            className={`flex items-center justify-center gap-2 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg font-bold uppercase transition-all shrink-0 ${isScrolled ? 'px-3 py-1.5 text-[10px]' : 'px-4 py-2 text-xs'}`}
                         >
-                            <Filter size={14} />
+                            <Filter size={isScrolled ? 12 : 14} />
                             <span className="hidden md:inline">Cambiar Competición</span>
                             <span className="md:hidden">Filtros</span>
                         </button>
