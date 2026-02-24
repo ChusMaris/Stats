@@ -126,6 +126,8 @@ export interface PartidoMovimiento {
   tipo_movimiento?: string; 
   descripcion?: string; // Correct field name from DB
   minuto?: string | number; // 'MM:SS' or number
+  segundo?: number;
+  periodo?: number;
 }
 
 // Custom Types for App Logic
@@ -220,4 +222,16 @@ export interface ScoutingReport {
     keyMatchup: string;
     tempoAnalysis: string;
   };
+}
+
+// LocalStorage Helper Type
+export interface RecentCompetition {
+  id: string;
+  nombre: string;
+  temporadaId: string;
+  categoriaId: string;
+  temporadaNombre: string;
+  categoriaNombre: string;
+  fase?: string; // Phase name for restoring filters
+  timestamp: number;
 }

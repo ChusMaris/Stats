@@ -409,8 +409,8 @@ const TeamStats: React.FC<TeamStatsProps> = ({ equipoId, matches, plantilla, sta
                                 <td className="px-4 py-4 text-center text-gray-500">{player.mpg.toFixed(1)}</td>
                                 <td className="px-4 py-4 text-center text-gray-500">{player.ppm.toFixed(2)}</td>
                                 <td className="px-4 py-4 text-center text-gray-500">{player.fpg.toFixed(1)}</td>
-                                <td className={`px-4 py-4 text-center font-bold ${player.avgMasMenos > 0 ? 'text-green-600' : player.avgMasMenos < 0 ? 'text-red-500' : 'text-gray-400'}`}>
-                                    {player.avgMasMenos > 0 ? '+' : ''}{player.avgMasMenos.toFixed(1)}
+                                <td className={`px-4 py-4 text-center font-bold ${(player.avgMasMenos || 0) > 0 ? 'text-green-600' : (player.avgMasMenos || 0) < 0 ? 'text-red-500' : 'text-gray-400'}`}>
+                                    {(player.avgMasMenos || 0) > 0 ? '+' : ''}{(player.avgMasMenos || 0).toFixed(1)}
                                 </td>
                                 <td className="px-4 py-4 flex justify-center">
                                     <MiniDonut value={(player as any).t1Pct} />
@@ -444,8 +444,8 @@ const TeamStats: React.FC<TeamStatsProps> = ({ equipoId, matches, plantilla, sta
                             </div>
                             <div className="flex flex-col items-center">
                                 <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-1">+/-</span>
-                                <span className={`text-xl font-black leading-none ${player.avgMasMenos > 0 ? 'text-green-600' : player.avgMasMenos < 0 ? 'text-red-500' : 'text-slate-700'}`}>
-                                    {player.avgMasMenos > 0 ? '+' : ''}{player.avgMasMenos.toFixed(1)}
+                                <span className={`text-xl font-black leading-none ${(player.avgMasMenos || 0) > 0 ? 'text-green-600' : (player.avgMasMenos || 0) < 0 ? 'text-red-500' : 'text-slate-700'}`}>
+                                    {(player.avgMasMenos || 0) > 0 ? '+' : ''}{(player.avgMasMenos || 0).toFixed(1)}
                                 </span>
                             </div>
                         </div>

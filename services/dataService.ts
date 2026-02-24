@@ -28,7 +28,93 @@ export const fetchCompeticiones = async (temporadaId: number | string, categoria
   return data as Competicion[];
 };
 
+// NEW: Función ligera para obtener resumen de la portada (Nº Equipos y Jornada Actual)
+export const fetchCompetitionSummary = async (competicionId: number | string) => {
+    try {
+        // 1. Obtener número de equipos (Count exacto)
+        const { count, error: countError } = await supabase
+            .from('equipos')
+            .select('*', { count: 'exact', head: true })
+            .eq('competicion_id', competicionId);
+        
+        if (countError) throw countError;
+
+        // 2. Obtener Jornada Actual (Basado en Tabla Calendario)
+        // Usamos el inicio del día de hoy (00:00:00) para incluir partidos jugados hoy
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const todayISO = today.toISOString();
+        
+        let currentJornada = 0;
+        
+        // DEBUG: Uncomment to trace query
+        // console.log(`Fetching summary for ${competicionId} from date: ${todayISO}`);
+
+        // A. Buscar el PRÓXIMO partido programado en el CALENDARIO (>= hoy 00:00)
+        const { data: nextCal, error: queryError } = await supabase
+            .from('calendario')
+            .select('jornada, fecha_hora')
+            .eq('competicion_id', competicionId)
+            .gte('fecha_hora', todayISO)
+            .order('fecha_hora', { ascending: true })
+            .limit(1);
+
+        if (queryError) {
+             console.error("Error query calendario:", queryError);
+        }
+
+        if (nextCal && nextCal.length > 0) {
+            // Encontramos un partido futuro (o de hoy), esa es la jornada que toca
+            currentJornada = nextCal[0].jornada;
+            // console.log("Found next match:", nextCal[0]);
+        } else {
+            // B. Si NO hay partidos futuros, cogemos la última jornada del calendario
+            const { data: lastCal } = await supabase
+                .from('calendario')
+                .select('jornada')
+                .eq('competicion_id', competicionId)
+                .order('fecha_hora', { ascending: false }) // El último por fecha
+                .limit(1);
+            
+            if (lastCal && lastCal.length > 0) {
+                currentJornada = lastCal[0].jornada;
+            } else {
+                // C. Fallback defensivo: Si calendario está vacío, miramos partidos jugados
+                const { data: lastMatch } = await supabase
+                    .from('partidos')
+                    .select('jornada')
+                    .eq('competicion_id', competicionId)
+                    .order('fecha_hora', { ascending: false })
+                    .limit(1);
+                
+                if (lastMatch && lastMatch.length > 0) {
+                    currentJornada = lastMatch[0].jornada || 0;
+                }
+            }
+        }
+
+        return {
+            teamCount: count || 0,
+            currentJornada: currentJornada || 1 // Defecto 1 si no hay datos
+        };
+
+    } catch (error) {
+        console.error("Error fetching summary for comp " + competicionId, error);
+        return { teamCount: 0, currentJornada: 0 };
+    }
+};
+
 export const fetchCompeticionDetails = async (competicionId: number | string) => {
+  // 0. Fetch Competition Metadata (Nombre, etc) - CRITICAL for direct links/history
+  const compResponse = await supabase
+    .from('competiciones')
+    .select('*')
+    .eq('id', competicionId)
+    .single();
+
+  if (compResponse.error) throw compResponse.error;
+  const competicionData = compResponse.data as Competicion;
+
   // 1. Fetch Real Stats Matches (Resultados y Estadísticas)
   const matchesResponse = await supabase
     .from('partidos')
@@ -124,7 +210,8 @@ export const fetchCompeticionDetails = async (competicionId: number | string) =>
   return {
     partidos: combinedMatches, // Lista fusionada para la Vista Calendario
     realMatches: realMatches, // Solo partidos reales para la Clasificación
-    equipos: teamsResponse.data
+    equipos: teamsResponse.data,
+    competicion: competicionData // Return metadata
   };
 };
 
@@ -200,9 +287,14 @@ export const deleteMatch = async (id: number | string) => {
 /**
  * Calculates +/- (Plus Minus) for players based on play-by-play movements
  */
-const calculatePlusMinusFromMovements = (movements: PartidoMovimiento[], allStats: EstadisticaJugadorPartido[], myTeamPlayerIds: Set<string>) => {
-    // Map to store +/- for each player in this match (Key: PlayerID, Value: +/-)
+/**
+ * Calculates +/- (Plus Minus) and Minutes Played for players based on play-by-play movements
+ */
+const calculatePlusMinusFromMovements = (movements: PartidoMovimiento[], myTeamPlayerIds: Set<string>) => {
+    // Map to store +/- for each player in this match (Key: MatchID_PlayerID, Value: +/-)
     const playerPlusMinus: Record<string, number> = {};
+    // Map to store seconds played for each player in this match (Key: MatchID_PlayerID, Value: seconds)
+    const playerSeconds: Record<string, number> = {};
     
     // Group movements by Match ID to process each game independently
     const movementsByMatch: Record<string, PartidoMovimiento[]> = {};
@@ -212,63 +304,82 @@ const calculatePlusMinusFromMovements = (movements: PartidoMovimiento[], allStat
         movementsByMatch[mid].push(m);
     });
 
-    // Helper: Identify which team a player belongs to
-    // We use allStats (which contains both teams) to map PlayerID -> MatchID (to check consistency)
-    // But mainly we rely on 'myTeamPlayerIds' to know if Ally or Enemy.
     const getTeamSide = (pid: string): 'MY_TEAM' | 'OPPONENT' => {
         return myTeamPlayerIds.has(pid) ? 'MY_TEAM' : 'OPPONENT';
     };
 
     // Iterate through each match
     Object.keys(movementsByMatch).forEach(matchId => {
-        const matchMovs = movementsByMatch[matchId].sort((a, b) => (Number(a.id) - Number(b.id))); // Sort chronologically by ID
-        
-        // Track active players on court
-        const onCourtMyTeam = new Set<string>();
-        const onCourtOpponent = new Set<string>();
+        // SORTING: Period (asc), Minute (desc), Second (desc), ID (asc)
+        // This handles the countdown nature (6:00 -> 0:00)
+        const matchMovs = movementsByMatch[matchId].sort((a, b) => {
+            const pA = Number(a.periodo || 0);
+            const pB = Number(b.periodo || 0);
+            if (pA !== pB) return pA - pB;
 
-        // Init player scores for this match
-        // Note: We only care about calculating for MY team players, but we need to track opponent lineup to be precise if we wanted full stats
-        // For now, we just update the map for players we care about.
+            const mA = typeof a.minuto === 'number' ? a.minuto : parseInt(String(a.minuto).split(':')[0] || '0', 10);
+            const mB = typeof b.minuto === 'number' ? b.minuto : parseInt(String(b.minuto).split(':')[0] || '0', 10);
+            if (mA !== mB) return mB - mA; // Countdown
+
+            const sA = Number(a.segundo || 0);
+            const sB = Number(b.segundo || 0);
+            if (sA !== sB) return sB - sA; // Countdown
+
+            return Number(a.id) - Number(b.id);
+        });
+        
+        const onCourt = new Set<string>();
+        const entryTime: Record<string, { p: number, m: number, s: number }> = {};
 
         matchMovs.forEach(mov => {
-            const desc = (mov.descripcion || '').toLowerCase();
             const pid = String(mov.jugador_id);
             const tipo = String(mov.tipo_movimiento || '');
+            const p = Number(mov.periodo || 0);
+            const m = typeof mov.minuto === 'number' ? mov.minuto : parseInt(String(mov.minuto).split(':')[0] || '0', 10);
+            const s = Number(mov.segundo || 0);
             const side = getTeamSide(pid);
+            const key = `${matchId}_${pid}`;
 
-            // 1. Handle Substitutions (Entra / Sale) using Codes 112/115 and text fallback
-            const isEntry = tipo === '112' || desc.includes('entra') || desc.includes('in') || desc.includes('enter');
-            const isExit = tipo === '115' || desc.includes('sale') || desc.includes('surt') || desc.includes('out') || desc.includes('leave');
-
-            if (isEntry) {
-                if (side === 'MY_TEAM') onCourtMyTeam.add(pid);
-                else onCourtOpponent.add(pid);
-                
-                // Init value if not exists
-                if (!playerPlusMinus[pid]) playerPlusMinus[pid] = 0;
+            // 1. Handle Substitutions
+            if (tipo === '112') { // Entra
+                onCourt.add(pid);
+                entryTime[pid] = { p, m, s };
+                if (playerPlusMinus[key] === undefined) playerPlusMinus[key] = 0;
             } 
-            else if (isExit) {
-                if (side === 'MY_TEAM') onCourtMyTeam.delete(pid);
-                else onCourtOpponent.delete(pid);
-            }
-            // 1.5 FAULT TOLERANCE: If a player does ANY action, they must be on court
-            else {
-                if (side === 'MY_TEAM' && !onCourtMyTeam.has(pid)) {
-                     onCourtMyTeam.add(pid);
-                     // If they weren't tracked, init to 0
-                     if (!playerPlusMinus[pid]) playerPlusMinus[pid] = 0;
+            else if (tipo === '115') { // Sale
+                if (onCourt.has(pid)) {
+                    const entry = entryTime[pid];
+                    let secondsPlayed = 0;
+                    if (entry.p === p) {
+                        secondsPlayed = (entry.m * 60 + entry.s) - (m * 60 + s);
+                    } else {
+                        // Time in entry period
+                        secondsPlayed += (entry.m * 60 + entry.s);
+                        // Full periods in between (assuming 6 mins per period as per user excel)
+                        for (let i = entry.p + 1; i < p; i++) {
+                            secondsPlayed += 360;
+                        }
+                        // Time in exit period
+                        secondsPlayed += (360 - (m * 60 + s));
+                    }
+                    playerSeconds[key] = (playerSeconds[key] || 0) + secondsPlayed;
+                    onCourt.delete(pid);
                 }
             }
+            // Fault tolerance: if a player does something, they are on court
+            else if (side === 'MY_TEAM' && !onCourt.has(pid)) {
+                onCourt.add(pid);
+                entryTime[pid] = { p, m, s };
+                if (playerPlusMinus[key] === undefined) playerPlusMinus[key] = 0;
+            }
 
-            // 2. Handle Scoring (Puntos)
-            // Use specific codes first, then text fallback
+            // 2. Scoring
             let points = 0;
             if (tipo === '92') points = 1;      // Tiro Libre
             else if (tipo === '93') points = 2; // T2
             else if (tipo === '94') points = 3; // T3
             else {
-                 // Fallback text detection
+                 const desc = (mov.descripcion || '').toLowerCase();
                  if (desc.includes('anotado') || desc.includes('anotat') || desc.includes('made') || 
                      desc.includes('mate') || desc.includes('esmaixada') || desc.includes('dunk') ||
                      desc.includes('transformado') || desc.includes('transforma') || 
@@ -277,32 +388,30 @@ const calculatePlusMinusFromMovements = (movements: PartidoMovimiento[], allStat
                      desc.includes('canasta') || desc.includes('cistella') ||
                      desc.includes('bandeja')) {
                      
-                     points = 2; // Default
+                     points = 2;
                      if (desc.includes('triple') || desc.includes('3pt')) points = 3;
-                     else if (desc.includes('libre') || desc.includes('lliure') || desc.includes('free throw') || desc.includes('tl anotado')) points = 1;
+                     else if (desc.includes('libre') || desc.includes('lliure') || desc.includes('tl anotado')) points = 1;
                  }
             }
 
             if (points > 0) {
-                // If MY TEAM scored
-                if (side === 'MY_TEAM') {
-                    // Add (+) to My Team players on court
-                    onCourtMyTeam.forEach(p => {
-                        playerPlusMinus[p] = (playerPlusMinus[p] || 0) + points;
-                    });
-                } 
-                // If OPPONENT TEAM scored
-                else {
-                    // Subtract (-) from My Team players on court
-                    onCourtMyTeam.forEach(p => {
-                        playerPlusMinus[p] = (playerPlusMinus[p] || 0) - points;
-                    });
-                }
+                const scorerIsMyTeam = side === 'MY_TEAM';
+                onCourt.forEach(activePid => {
+                    // We only calculate +/- for OUR team players
+                    if (myTeamPlayerIds.has(activePid)) {
+                        const activeKey = `${matchId}_${activePid}`;
+                        if (scorerIsMyTeam) {
+                            playerPlusMinus[activeKey] = (playerPlusMinus[activeKey] || 0) + points;
+                        } else {
+                            playerPlusMinus[activeKey] = (playerPlusMinus[activeKey] || 0) - points;
+                        }
+                    }
+                });
             }
         });
     });
 
-    return playerPlusMinus;
+    return { playerPlusMinus, playerSeconds };
 };
 
 export const fetchTeamStats = async (competicionId: number | string, equipoId: number | string) => {
@@ -328,9 +437,9 @@ export const fetchTeamStats = async (competicionId: number | string, equipoId: n
         
     const calendarEntries = calendarResponse.data || [];
 
-    const matches = (matchesResponse.data || []).map(m => {
+    const matches = (matchesResponse.data || []).map((m: any) => {
          // Find corresponding calendar entry by teams
-         const found = calendarEntries.find(c => 
+         const found = calendarEntries.find((c: any) => 
             String(c.equipo_local_id) === String(m.equipo_local_id) && 
             String(c.equipo_visitante_id) === String(m.equipo_visitante_id)
          );
@@ -341,7 +450,7 @@ export const fetchTeamStats = async (competicionId: number | string, equipoId: n
          return m;
     });
 
-    const matchIds = matches.map(m => m.id);
+    const matchIds = matches.map((m: any) => m.id);
 
     const plantillaResponse = await supabase
         .from('plantillas')
@@ -380,101 +489,27 @@ export const fetchTeamStats = async (competicionId: number | string, equipoId: n
         }
     }
 
-    // --- CALCULATE PLUS MINUS ---
-    const myTeamPlayerIds = new Set(plantillaResponse.data?.map(p => String(p.jugador_id)) || []);
-    // Note: We don't use the aggregated result directly for per-match stats, we re-run logic granularly below
-    // But we could use it for verification.
-    
-    // Re-run simple calculator with MatchID context
-    const pmMap: Record<string, number> = {}; // Key: MatchID_PlayerID
-    
-    // Quick inline re-processing for granular mapping
-    const movementsByMatch: Record<string, PartidoMovimiento[]> = {};
-    movementsData.forEach(m => {
-        const mid = String(m.partido_id);
-        if (!movementsByMatch[mid]) movementsByMatch[mid] = [];
-        movementsByMatch[mid].push(m);
-    });
-
-    Object.keys(movementsByMatch).forEach(mid => {
-        const movs = movementsByMatch[mid].sort((a, b) => Number(a.id) - Number(b.id));
-        const onCourt = new Set<string>();
-        const localPM: Record<string, number> = {};
-
-        movs.forEach(m => {
-             const desc = (m.descripcion || '').toLowerCase();
-             const pid = String(m.jugador_id);
-             const tipo = String(m.tipo_movimiento || '');
-             
-             // 1. Check Subsitutions with CODES
-             const isEntry = tipo === '112' || desc.includes('entra') || desc.includes('in');
-             const isExit = tipo === '115' || desc.includes('sale') || desc.includes('surt') || desc.includes('out');
-
-             if (isEntry) {
-                 if (myTeamPlayerIds.has(pid)) onCourt.add(pid);
-                 if (!localPM[pid]) localPM[pid] = 0; // Initialize to 0 so we don't return null
-             }
-             else if (isExit) {
-                 onCourt.delete(pid);
-             }
-             // 1.5 FAULT TOLERANCE: If my player acts, they are on court
-             else if (myTeamPlayerIds.has(pid) && !onCourt.has(pid)) {
-                 onCourt.add(pid);
-                 if (!localPM[pid]) localPM[pid] = 0; // Initialize to 0 so we don't return null
-             }
-
-             // 2. Scoring
-             // Prioritize Codes (92, 93, 94)
-             let pts = 0;
-             if (tipo === '92') pts = 1;
-             else if (tipo === '93') pts = 2;
-             else if (tipo === '94') pts = 3;
-             else {
-                 // Fallback text detection
-                 if (desc.includes('anotado') || desc.includes('anotat') || desc.includes('made') || 
-                     desc.includes('mate') || desc.includes('esmaixada') || desc.includes('dunk') ||
-                     desc.includes('transformado') || desc.includes('transforma') || 
-                     desc.includes('converteix') || desc.includes('convertido') || 
-                     desc.includes('encestado') || desc.includes('encesta') ||
-                     desc.includes('canasta') || desc.includes('cistella') ||
-                     desc.includes('bandeja')) {
-                     
-                     pts = 2;
-                     if (desc.includes('triple') || desc.includes('3pt')) pts = 3;
-                     else if (desc.includes('libre') || desc.includes('lliure')) pts = 1;
-                 }
-             }
-
-             if (pts > 0) {
-                 // Determine who scored
-                 const scorerIsMyTeam = myTeamPlayerIds.has(pid);
-                 
-                 // If my team scored
-                 if (scorerIsMyTeam) {
-                     onCourt.forEach(activePid => {
-                         localPM[activePid] = (localPM[activePid] || 0) + pts;
-                     });
-                 } else {
-                     // Opponent scored
-                     onCourt.forEach(activePid => {
-                         localPM[activePid] = (localPM[activePid] || 0) - pts;
-                     });
-                 }
-             }
-        });
-
-        // Store to global map
-        Object.keys(localPM).forEach(pid => {
-            pmMap[`${mid}_${pid}`] = localPM[pid];
-        });
-    });
+    // --- CALCULATE PLUS MINUS & MINUTES ---
+    const myTeamPlayerIds = new Set<string>(plantillaResponse.data?.map((p: any) => String(p.jugador_id)) || []);
+    const { playerPlusMinus, playerSeconds } = calculatePlusMinusFromMovements(movementsData, myTeamPlayerIds);
 
     // Final Injection
     // IMPORTANT: If pmMap is undefined, default to 0 to avoid UI dashes unless strictly necessary
-    const finalStats = statsData.map(s => ({
-        ...s,
-        mas_menos: pmMap[`${s.partido_id}_${s.jugador_id}`] ?? (s.mas_menos || 0)
-    }));
+    const finalStats = statsData.map((s: EstadisticaJugadorPartido) => {
+        const key = `${s.partido_id}_${s.jugador_id}`;
+        const seconds = playerSeconds[key] || 0;
+        
+        // Format seconds to MM:SS
+        const mins = Math.floor(seconds / 60);
+        const secs = Math.round(seconds % 60);
+        const timeStr = `${mins}:${secs.toString().padStart(2, '0')}`;
+
+        return {
+            ...s,
+            mas_menos: playerPlusMinus[key] ?? (s.mas_menos || 0),
+            tiempo_jugado: seconds > 0 ? timeStr : s.tiempo_jugado
+        };
+    });
 
     return {
         matches: matches, // Use patched matches
@@ -522,7 +557,7 @@ const fetchHistoricalPlayerStats = async (playerIds: (string | number)[]): Promi
 
     const history: Record<string, CareerStats> = {};
 
-    (allStats || []).forEach(stat => {
+    (allStats || []).forEach((stat: any) => {
         const pid = String(stat.jugador_id);
         if (!history[pid]) {
             history[pid] = {
@@ -578,8 +613,8 @@ const fetchParallelPlayerStats = async (seasonId: number | string, currentCompId
 
     // We need to fetch matches from THIS season but OTHER competitions
     // This requires a join: estadisticas -> partidos -> (filter season, exclude current comp)
+    // Fix: partidos table does not have temporada_id, we must join competiciones to filter by temporada_id
     
-    // Note: Supabase JS joins can be tricky. We'll try to fetch stats where the associated match meets criteria.
     const { data: parallelData, error } = await supabase
         .from('estadisticas_jugador_partido')
         .select(`
@@ -588,13 +623,16 @@ const fetchParallelPlayerStats = async (seasonId: number | string, currentCompId
             partido:partidos!inner (
                 id,
                 competicion_id,
-                temporada_id,
-                competiciones (nombre)
+                competiciones!inner (
+                    id,
+                    nombre,
+                    temporada_id
+                )
             )
         `)
         .in('jugador_id', playerIds)
-        // @ts-ignore - Supabase types might not perfectly reflect deep filtering syntax here but it works
-        .eq('partido.temporada_id', seasonId)
+        // Fix: partidos table does not have temporada_id, we must filter via the joined competiciones table
+        .eq('partido.competiciones.temporada_id', seasonId)
         .neq('partido.competicion_id', currentCompId);
 
     if (error) {
@@ -607,8 +645,12 @@ const fetchParallelPlayerStats = async (seasonId: number | string, currentCompId
     (parallelData || []).forEach((item: any) => {
         const pid = String(item.jugador_id);
         const p = item.partido;
+        const comp = p.competiciones;
+
         // Skip if somehow the filter didn't work (paranoid check)
         if (String(p.competicion_id) === String(currentCompId)) return;
+        // Check season via competition relation
+        if (String(comp.temporada_id) !== String(seasonId)) return;
 
         if (!parallel[pid]) {
             parallel[pid] = {
@@ -625,7 +667,7 @@ const fetchParallelPlayerStats = async (seasonId: number | string, currentCompId
         rec.gamesPlayed++;
         rec._totalPoints += (item.puntos || 0);
         
-        const compName = p.competiciones?.nombre;
+        const compName = comp.nombre;
         if (compName && !rec.competitionNames.includes(compName)) {
             rec.competitionNames.push(compName);
         }
@@ -656,7 +698,7 @@ const calculateTeamAggregates = (matches: Partido[], stats: EstadisticaJugadorPa
     let totalT1Made = 0;
     let totalT1Att = 0;
 
-    playedMatches.forEach(m => {
+    playedMatches.forEach((m: any) => {
         const isLocal = String(m.equipo_local_id) === String(equipoId);
         const myPts = isLocal ? (m.puntos_local || 0) : (m.puntos_visitante || 0);
         const oppPts = isLocal ? (m.puntos_visitante || 0) : (m.puntos_local || 0);
@@ -665,7 +707,7 @@ const calculateTeamAggregates = (matches: Partido[], stats: EstadisticaJugadorPa
         totalPointsAgainst += oppPts;
     });
 
-    stats.forEach(s => {
+    stats.forEach((s: any) => {
         if(String(s.id).includes('ignore')) return; 
         totalT3Made += (s.t3_anotados || 0);
         totalT1Made += (s.t1_anotados || 0);
@@ -677,7 +719,7 @@ const calculateTeamAggregates = (matches: Partido[], stats: EstadisticaJugadorPa
 
     const form = sortedMatches
         .slice(0, 5) 
-        .map(m => {
+        .map((m: any) => {
             const isLocal = String(m.equipo_local_id) === String(equipoId);
             const myPts = isLocal ? (m.puntos_local || 0) : (m.puntos_visitante || 0);
             const oppPts = isLocal ? (m.puntos_visitante || 0) : (m.puntos_local || 0);
@@ -697,7 +739,7 @@ const calculateTeamAggregates = (matches: Partido[], stats: EstadisticaJugadorPa
         form,
         totalMatches,
         totalPoints,
-        sortedMatchesIds: sortedMatches.map(m => m.id)
+        sortedMatchesIds: sortedMatches.map((m: any) => m.id)
     };
 };
 
@@ -722,7 +764,7 @@ export const getTeamScoutingReport = async (competicionId: number | string, equi
     const seasonId = compInfo.data?.temporada_id;
 
     // 2. Fetch HISTORICAL data (Contexto de carrera para detectar anomalías en el rendimiento actual)
-    const playerIds = plantilla.map(p => p.jugador_id).filter(Boolean);
+    const playerIds = plantilla.map((p: any) => p.jugador_id).filter(Boolean);
     const historicalStats = await fetchHistoricalPlayerStats(playerIds);
     
     // 3. Fetch PARALLEL data (Same season, different category)
@@ -741,10 +783,10 @@ export const getTeamScoutingReport = async (competicionId: number | string, equi
     }
 
     // --- CÁLCULO DE MÉTRICAS POR JUGADOR ---
-    const playerStats: PlayerAggregatedStats[] = plantilla.map(p => {
+    const playerStats: PlayerAggregatedStats[] = plantilla.map((p: any) => {
         if (!p) return null;
-        const pStats = stats.filter(s => s && String(s.jugador_id) === String(p.jugador_id));
-        const pMovements = movements.filter(m => m && String(m.jugador_id) === String(p.jugador_id));
+        const pStats = stats.filter((s: EstadisticaJugadorPartido) => s && String(s.jugador_id) === String(p.jugador_id));
+        const pMovements = movements.filter((m: PartidoMovimiento) => m && String(m.jugador_id) === String(p.jugador_id));
         
         const gp = pStats.length;
         
@@ -769,7 +811,7 @@ export const getTeamScoutingReport = async (competicionId: number | string, equi
 
         // Recent Form (Últimos N partidos JUGADOS POR EL JUGADOR):
         // 1. Sort player's stats by Match Date (using teamAgg.sortedMatchesIds order which is date desc)
-        const pStatsSorted = [...pStats].sort((a, b) => {
+    const pStatsSorted = [...pStats].sort((a: EstadisticaJugadorPartido, b: EstadisticaJugadorPartido) => {
             const idxA = teamAgg.sortedMatchesIds.indexOf(a.partido_id);
             const idxB = teamAgg.sortedMatchesIds.indexOf(b.partido_id);
             // lower index = more recent
@@ -832,18 +874,18 @@ export const getTeamScoutingReport = async (competicionId: number | string, equi
     }).filter(Boolean);
 
     // Ordenar por PPG para identificar líderes
-    const sortedByPpg = [...playerStats].sort((a, b) => b.ppg - a.ppg);
+    const sortedByPpg = [...playerStats].sort((a: PlayerAggregatedStats, b: PlayerAggregatedStats) => b.ppg - a.ppg);
     const topScorer = sortedByPpg[0] || null;
     
     // Top Shooter: Requiere volumen (>2 anotados) y frecuencia (>1.0 por partido) para no contar suerte.
     const topShooter = [...playerStats]
         .filter(p => p.totalTiros3Anotados > 2 && p.partidosJugados > 0 && (p.totalTiros3Anotados / p.partidosJugados) >= 1.0) 
-        .sort((a, b) => b.totalTiros3Anotados - a.totalTiros3Anotados)[0] || null;
+        .sort((a: PlayerAggregatedStats, b: PlayerAggregatedStats) => b.totalTiros3Anotados - a.totalTiros3Anotados)[0] || null;
 
     // Bad FT Shooter: Hack-a-Shaq candidato. Mínimo 5 intentados para muestra fiable. <60% es crítico.
     const badFreeThrowShooter = [...playerStats]
         .filter(p => p.totalTirosLibresIntentados >= 5 && (p.t1Pct || 0) < 60) 
-        .sort((a, b) => (a.t1Pct || 0) - (b.t1Pct || 0))[0] || null;
+        .sort((a: PlayerAggregatedStats, b: PlayerAggregatedStats) => (a.t1Pct || 0) - (b.t1Pct || 0))[0] || null;
 
 
     // --- GENERACIÓN DE INSIGHTS & NARRATIVA TÁCTICA ---
@@ -865,7 +907,7 @@ export const getTeamScoutingReport = async (competicionId: number | string, equi
         }
         if (p.careerStats && p.careerStats.ppg >= THREAT_THRESHOLD && p.careerStats.gamesPlayed > 10) return true;
         return false;
-    }).sort((a, b) => {
+    }).sort((a: PlayerAggregatedStats, b: PlayerAggregatedStats) => {
         const ppgA = Math.max(a.ppg, a.careerStats?.ppg || 0);
         const ppgB = Math.max(b.ppg, b.careerStats?.ppg || 0);
         return ppgB - ppgA;
@@ -970,8 +1012,8 @@ export const getTeamScoutingReport = async (competicionId: number | string, equi
         const rivalAgg = calculateTeamAggregates(rivalData.matches, rivalData.stats, rivalData.plantilla, rivalId);
         
         if (rivalAgg) {
-            const rivalPlayerStats: PlayerAggregatedStats[] = rivalData.plantilla.map(p => {
-                const pStats = rivalData.stats.filter(s => s && String(s.jugador_id) === String(p.jugador_id));
+            const rivalPlayerStats: PlayerAggregatedStats[] = rivalData.plantilla.map((p: any) => {
+                const pStats = rivalData.stats.filter((s: EstadisticaJugadorPartido) => s && String(s.jugador_id) === String(p.jugador_id));
                 const gp = pStats.length;
                 if (gp === 0) return null;
                 const totalPts = pStats.reduce((sum, s) => sum + (s.puntos || 0), 0);
@@ -984,7 +1026,7 @@ export const getTeamScoutingReport = async (competicionId: number | string, equi
                     dorsal: p.dorsal,
                     ppg: totalPts / gp,
                 } as any;
-            }).filter(Boolean).sort((a, b) => b.ppg - a.ppg);
+            }).filter(Boolean).sort((a: any, b: any) => b.ppg - a.ppg);
             const rivalTopScorer = rivalPlayerStats[0];
 
             let prediction = "";

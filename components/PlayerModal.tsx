@@ -132,14 +132,14 @@ const PlayerModal: React.FC<PlayerModalProps> = ({ player, equipoId, matchStats,
     : 0;
 
   // Determine +/- Color
-  const getPlusMinusColor = (val: number | undefined) => {
+  const getPlusMinusColor = (val: number | null | undefined) => {
       if (val === undefined || val === null) return 'text-slate-400';
       if (val > 0) return 'text-green-600';
       if (val < 0) return 'text-red-600';
       return 'text-slate-500';
   };
 
-  const getPlusMinusBg = (val: number | undefined) => {
+  const getPlusMinusBg = (val: number | null | undefined) => {
       if (val === undefined || val === null) return 'bg-slate-50';
       if (val > 0) return 'bg-green-50';
       if (val < 0) return 'bg-red-50';
