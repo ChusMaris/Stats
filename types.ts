@@ -128,6 +128,7 @@ export interface PartidoMovimiento {
   minuto?: string | number; // 'MM:SS' or number
   segundo?: number;
   periodo?: number;
+  marcador?: string;
 }
 
 // Custom Types for App Logic
