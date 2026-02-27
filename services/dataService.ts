@@ -290,13 +290,16 @@ export const deleteMatch = async (id: number | string) => {
 /**
  * Calculates +/- (Plus Minus) and Minutes Played for players based on play-by-play movements
  */
-const calculatePlusMinusFromMovements = (movements: PartidoMovimiento[], myTeamPlayerIds: Set<string>) => {
-    // Map to store +/- for each player in this match (Key: MatchID_PlayerID, Value: +/-)
+const calculatePlusMinusFromMovements = (
+    movements: PartidoMovimiento[], 
+    myTeamPlayerIds: Set<string>,
+    esMini: boolean,
+    minsPerPeriod: number,
+    matchIsLocal: Record<string, boolean>
+) => {
     const playerPlusMinus: Record<string, number> = {};
-    // Map to store seconds played for each player in this match (Key: MatchID_PlayerID, Value: seconds)
     const playerSeconds: Record<string, number> = {};
     
-    // Group movements by Match ID to process each game independently
     const movementsByMatch: Record<string, PartidoMovimiento[]> = {};
     movements.forEach(m => {
         const mid = String(m.partido_id);
@@ -304,110 +307,123 @@ const calculatePlusMinusFromMovements = (movements: PartidoMovimiento[], myTeamP
         movementsByMatch[mid].push(m);
     });
 
-    const getTeamSide = (pid: string): 'MY_TEAM' | 'OPPONENT' => {
-        return myTeamPlayerIds.has(pid) ? 'MY_TEAM' : 'OPPONENT';
-    };
-
-    // Iterate through each match
     Object.keys(movementsByMatch).forEach(matchId => {
-        // SORTING: Period (asc), Minute (desc), Second (desc), ID (asc)
-        // This handles the countdown nature (6:00 -> 0:00)
+        const isLocal = matchIsLocal[matchId];
         const matchMovs = movementsByMatch[matchId].sort((a, b) => {
             const pA = Number(a.periodo || 0);
             const pB = Number(b.periodo || 0);
             if (pA !== pB) return pA - pB;
-
             const mA = typeof a.minuto === 'number' ? a.minuto : parseInt(String(a.minuto).split(':')[0] || '0', 10);
             const mB = typeof b.minuto === 'number' ? b.minuto : parseInt(String(b.minuto).split(':')[0] || '0', 10);
-            if (mA !== mB) return mB - mA; // Countdown
-
+            if (mA !== mB) return mB - mA;
             const sA = Number(a.segundo || 0);
             const sB = Number(b.segundo || 0);
-            if (sA !== sB) return sB - sA; // Countdown
-
+            if (sA !== sB) return sB - sA;
             return Number(a.id) - Number(b.id);
         });
+
+        // 1. Quarter Deltas
+        const quarterScores: Record<number, {l: number, v: number}> = {};
+        matchMovs.filter(m => String(m.tipo_movimiento) === '116').forEach(m => {
+            const parts = (m.marcador || '0-0').split('-');
+            quarterScores[Number(m.periodo)] = {
+                l: parseInt(parts[0] || '0'),
+                v: parseInt(parts[1] || '0')
+            };
+        });
+
+        const quarterDeltas: Record<number, number> = {};
+        const periods = Object.keys(quarterScores).map(Number).sort((a,b) => a-b);
         
+        periods.forEach((p, index) => {
+            const curr = quarterScores[p];
+            let l_points = curr.l;
+            let v_points = curr.v;
+
+            if (!esMini) {
+                const prev = index > 0 ? quarterScores[periods[index-1]] : { l: 0, v: 0 };
+                l_points -= prev.l;
+                v_points -= prev.v;
+            }
+
+            if (isLocal) {
+                quarterDeltas[p] = l_points - v_points;
+            } else {
+                quarterDeltas[p] = v_points - l_points;
+            }
+        });
+
+        // 2. Player Minutes
+        const playerQuarterMinutes: Record<string, Record<number, number>> = {};
+        const addSeconds = (pid: string, p: number, secs: number) => {
+            if (!playerQuarterMinutes[pid]) playerQuarterMinutes[pid] = {};
+            playerQuarterMinutes[pid][p] = (playerQuarterMinutes[pid][p] || 0) + secs;
+        };
+
         const onCourt = new Set<string>();
         const entryTime: Record<string, { p: number, m: number, s: number }> = {};
+        const playerEventsInQuarter: Record<string, Set<number>> = {};
 
         matchMovs.forEach(mov => {
             const pid = String(mov.jugador_id);
-            const tipo = String(mov.tipo_movimiento || '');
             const p = Number(mov.periodo || 0);
+            if (!playerEventsInQuarter[pid]) playerEventsInQuarter[pid] = new Set();
+            playerEventsInQuarter[pid].add(p);
+
+            const tipo = String(mov.tipo_movimiento || '');
             const m = typeof mov.minuto === 'number' ? mov.minuto : parseInt(String(mov.minuto).split(':')[0] || '0', 10);
             const s = Number(mov.segundo || 0);
-            const side = getTeamSide(pid);
-            const key = `${matchId}_${pid}`;
 
-            // 1. Handle Substitutions
             if (tipo === '112') { // Entra
                 onCourt.add(pid);
                 entryTime[pid] = { p, m, s };
-                if (playerPlusMinus[key] === undefined) playerPlusMinus[key] = 0;
-            } 
-            else if (tipo === '115') { // Sale
+            } else if (tipo === '115') { // Sale
                 if (onCourt.has(pid)) {
                     const entry = entryTime[pid];
-                    let secondsPlayed = 0;
                     if (entry.p === p) {
-                        secondsPlayed = (entry.m * 60 + entry.s) - (m * 60 + s);
+                         addSeconds(pid, p, (entry.m * 60 + entry.s) - (m * 60 + s));
                     } else {
-                        // Time in entry period
-                        secondsPlayed += (entry.m * 60 + entry.s);
-                        // Full periods in between (assuming 6 mins per period as per user excel)
-                        for (let i = entry.p + 1; i < p; i++) {
-                            secondsPlayed += 360;
-                        }
-                        // Time in exit period
-                        secondsPlayed += (360 - (m * 60 + s));
+                        addSeconds(pid, entry.p, (entry.m * 60 + entry.s));
+                        for (let i = entry.p + 1; i < p; i++) addSeconds(pid, i, minsPerPeriod * 60);
+                        addSeconds(pid, p, (minsPerPeriod * 60) - (m * 60 + s));
                     }
-                    playerSeconds[key] = (playerSeconds[key] || 0) + secondsPlayed;
                     onCourt.delete(pid);
+                } else {
+                    addSeconds(pid, p, (minsPerPeriod * 60) - (m * 60 + s));
                 }
             }
-            // Fault tolerance: if a player does something, they are on court
-            else if (side === 'MY_TEAM' && !onCourt.has(pid)) {
-                onCourt.add(pid);
-                entryTime[pid] = { p, m, s };
-                if (playerPlusMinus[key] === undefined) playerPlusMinus[key] = 0;
-            }
+        });
 
-            // 2. Scoring
-            let points = 0;
-            if (tipo === '92') points = 1;      // Tiro Libre
-            else if (tipo === '93') points = 2; // T2
-            else if (tipo === '94') points = 3; // T3
-            else {
-                 const desc = (mov.descripcion || '').toLowerCase();
-                 if (desc.includes('anotado') || desc.includes('anotat') || desc.includes('made') || 
-                     desc.includes('mate') || desc.includes('esmaixada') || desc.includes('dunk') ||
-                     desc.includes('transformado') || desc.includes('transforma') || 
-                     desc.includes('converteix') || desc.includes('convertido') || 
-                     desc.includes('encestado') || desc.includes('encesta') ||
-                     desc.includes('canasta') || desc.includes('cistella') ||
-                     desc.includes('bandeja')) {
-                     
-                     points = 2;
-                     if (desc.includes('triple') || desc.includes('3pt')) points = 3;
-                     else if (desc.includes('libre') || desc.includes('lliure') || desc.includes('tl anotado')) points = 1;
-                 }
-            }
+        Object.keys(playerEventsInQuarter).forEach(pid => {
+            playerEventsInQuarter[pid].forEach(p => {
+                const recordedSecs = playerQuarterMinutes[pid]?.[p] || 0;
+                const hasEntry = matchMovs.some(mov => String(mov.jugador_id) === pid && Number(mov.periodo) === p && String(mov.tipo_movimiento) === '112');
+                const hasExit = matchMovs.some(mov => String(mov.jugador_id) === pid && Number(mov.periodo) === p && String(mov.tipo_movimiento) === '115');
 
-            if (points > 0) {
-                const scorerIsMyTeam = side === 'MY_TEAM';
-                onCourt.forEach(activePid => {
-                    // We only calculate +/- for OUR team players
-                    if (myTeamPlayerIds.has(activePid)) {
-                        const activeKey = `${matchId}_${activePid}`;
-                        if (scorerIsMyTeam) {
-                            playerPlusMinus[activeKey] = (playerPlusMinus[activeKey] || 0) + points;
-                        } else {
-                            playerPlusMinus[activeKey] = (playerPlusMinus[activeKey] || 0) - points;
-                        }
-                    }
-                });
-            }
+                if (!hasEntry && !hasExit && recordedSecs === 0) {
+                    addSeconds(pid, p, minsPerPeriod * 60);
+                }
+            });
+        });
+
+        // 3. Aggregate
+        Object.keys(playerQuarterMinutes).forEach(pid => {
+            if (!myTeamPlayerIds.has(pid)) return;
+            const key = `${matchId}_${pid}`;
+            let totalPlusMinus = 0;
+            let totalSeconds = 0;
+
+            Object.keys(playerQuarterMinutes[pid]).forEach(qStr => {
+                const q = Number(qStr);
+                const secs = playerQuarterMinutes[pid][q];
+                if (secs > 0) {
+                    totalSeconds += secs;
+                    totalPlusMinus += (quarterDeltas[q] || 0);
+                }
+            });
+
+            playerSeconds[key] = totalSeconds;
+            playerPlusMinus[key] = totalPlusMinus;
         });
     });
 
@@ -415,6 +431,14 @@ const calculatePlusMinusFromMovements = (movements: PartidoMovimiento[], myTeamP
 };
 
 export const fetchTeamStats = async (competicionId: number | string, equipoId: number | string) => {
+    const compInfo = await supabase
+        .from('competiciones')
+        .select('*, categorias(es_mini)')
+        .eq('id', competicionId)
+        .single();
+    const esMini = compInfo.data?.categorias?.es_mini || false;
+    const minsPerPeriod = esMini ? 6 : 10;
+
     const matchesResponse = await supabase
         .from('partidos')
         .select(`
@@ -491,7 +515,13 @@ export const fetchTeamStats = async (competicionId: number | string, equipoId: n
 
     // --- CALCULATE PLUS MINUS & MINUTES ---
     const myTeamPlayerIds = new Set<string>(plantillaResponse.data?.map((p: any) => String(p.jugador_id)) || []);
-    const { playerPlusMinus, playerSeconds } = calculatePlusMinusFromMovements(movementsData, myTeamPlayerIds);
+    
+    const matchIsLocal: Record<string, boolean> = {};
+    matches.forEach((m: any) => {
+        matchIsLocal[String(m.id)] = String(m.equipo_local_id) === String(equipoId);
+    });
+
+    const { playerPlusMinus, playerSeconds } = calculatePlusMinusFromMovements(movementsData, myTeamPlayerIds, esMini, minsPerPeriod, matchIsLocal);
 
     // Final Injection
     // IMPORTANT: If pmMap is undefined, default to 0 to avoid UI dashes unless strictly necessary
