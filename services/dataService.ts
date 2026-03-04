@@ -285,13 +285,10 @@ export const deleteMatch = async (id: number | string) => {
 };
 
 /**
- * Calculates +/- (Plus Minus) for players based on play-by-play movements
- */
-/**
  * Calculates +/- (Plus Minus) and Minutes Played for players based on play-by-play movements
  */
 const calculatePlusMinusFromMovements = (
-    movements: PartidoMovimiento[], 
+    movements: any[], 
     myTeamPlayerIds: Set<string>,
     esMini: boolean,
     minsPerPeriod: number,
@@ -299,8 +296,8 @@ const calculatePlusMinusFromMovements = (
 ) => {
     const playerPlusMinus: Record<string, number> = {};
     const playerSeconds: Record<string, number> = {};
-    
-    const movementsByMatch: Record<string, PartidoMovimiento[]> = {};
+
+    const movementsByMatch: Record<string, any[]> = {};
     movements.forEach(m => {
         const mid = String(m.partido_id);
         if (!movementsByMatch[mid]) movementsByMatch[mid] = [];
@@ -309,121 +306,205 @@ const calculatePlusMinusFromMovements = (
 
     Object.keys(movementsByMatch).forEach(matchId => {
         const isLocal = matchIsLocal[matchId];
+        
+        // 1. Sort Movements
         const matchMovs = movementsByMatch[matchId].sort((a, b) => {
             const pA = Number(a.periodo || 0);
             const pB = Number(b.periodo || 0);
             if (pA !== pB) return pA - pB;
+            
             const mA = typeof a.minuto === 'number' ? a.minuto : parseInt(String(a.minuto).split(':')[0] || '0', 10);
             const mB = typeof b.minuto === 'number' ? b.minuto : parseInt(String(b.minuto).split(':')[0] || '0', 10);
-            if (mA !== mB) return mB - mA;
+            if (mA !== mB) return mB - mA; // Descending for time
+            
             const sA = Number(a.segundo || 0);
             const sB = Number(b.segundo || 0);
-            if (sA !== sB) return sB - sA;
-            return Number(a.id) - Number(b.id);
-        });
+            if (sA !== sB) return sB - sA; // Descending for time
+            
+            const typeA = parseInt(String(a.tipo_movimiento)) || 0;
+            const typeB = parseInt(String(b.tipo_movimiento)) || 0;
+            if (typeA !== typeB) return typeA - typeB;
 
-        // 1. Quarter Deltas
-        const quarterScores: Record<number, {l: number, v: number}> = {};
-        matchMovs.filter(m => String(m.tipo_movimiento) === '116').forEach(m => {
-            const parts = (m.marcador || '0-0').split('-');
-            quarterScores[Number(m.periodo)] = {
-                l: parseInt(parts[0] || '0'),
-                v: parseInt(parts[1] || '0')
-            };
-        });
+            return String(a.id).localeCompare(String(b.id), undefined, { numeric: true });
+        }).map((m, index) => ({ ...m, seq: index }));
 
-        const quarterDeltas: Record<number, number> = {};
-        const periods = Object.keys(quarterScores).map(Number).sort((a,b) => a-b);
-        
-        periods.forEach((p, index) => {
-            const curr = quarterScores[p];
-            let l_points = curr.l;
-            let v_points = curr.v;
+        // 2. Identify Score Events
+        const scoreEvents: Record<number, { deltaL: number, deltaV: number, score: string, period: number }> = {};
+        let lastScore = { l: 0, v: 0, period: 0 };
+        matchMovs.forEach(m => {
+            const p = Number(m.periodo || 0);
+            if (m.marcador && m.marcador.includes('-')) {
+                const parts = m.marcador.split('-');
+                const currL = parseInt(parts[0] || '0');
+                const currV = parseInt(parts[1] || '0');
+                
+                let baseL = lastScore.l;
+                let baseV = lastScore.v;
 
-            if (!esMini) {
-                const prev = index > 0 ? quarterScores[periods[index-1]] : { l: 0, v: 0 };
-                l_points -= prev.l;
-                v_points -= prev.v;
+                if (p !== lastScore.period) {
+                    if (esMini || (currL + currV) < (lastScore.l + lastScore.v)) {
+                        baseL = 0;
+                        baseV = 0;
+                    }
+                } else {
+                    if ((currL + currV) < (lastScore.l + lastScore.v)) return;
+                }
+
+                const deltaL = currL - baseL;
+                const deltaV = currV - baseV;
+
+                if (deltaL !== 0 || deltaV !== 0) {
+                    scoreEvents[m.seq] = { deltaL, deltaV, score: m.marcador, period: p };
+                    lastScore = { l: currL, v: currV, period: p };
+                }
             }
-
-            if (isLocal) {
-                quarterDeltas[p] = l_points - v_points;
-            } else {
-                quarterDeltas[p] = v_points - l_points;
-            }
         });
 
-        // 2. Player Minutes
-        const playerQuarterMinutes: Record<string, Record<number, number>> = {};
-        const addSeconds = (pid: string, p: number, secs: number) => {
-            if (!playerQuarterMinutes[pid]) playerQuarterMinutes[pid] = {};
-            playerQuarterMinutes[pid][p] = (playerQuarterMinutes[pid][p] || 0) + secs;
+        // 3. Identify Player Intervals (v4.0 Stint-Based Logic)
+        const getSeconds = (m: any) => {
+            const min = typeof m.minuto === 'number' ? m.minuto : parseInt(String(m.minuto).split(':')[0] || '0', 10);
+            const sec = Number(m.segundo || 0);
+            return min * 60 + sec;
         };
 
-        const onCourt = new Set<string>();
-        const entryTime: Record<string, { p: number, m: number, s: number }> = {};
-        const playerEventsInQuarter: Record<string, Set<number>> = {};
+        const playerIntervals: Record<string, { startSeq: number, endSeq: number, period: number }[]> = {};
+        const allPlayerIds = Array.from(new Set(matchMovs.map(m => String(m.jugador_id)).filter(id => id && id !== 'null')));
+        const periodStartTime = minsPerPeriod * 60;
 
-        matchMovs.forEach(mov => {
-            const pid = String(mov.jugador_id);
-            const p = Number(mov.periodo || 0);
-            if (!playerEventsInQuarter[pid]) playerEventsInQuarter[pid] = new Set();
-            playerEventsInQuarter[pid].add(p);
+        const addIntervalsForStint = (pid: string, start: any, end: any) => {
+            const startP = Number(start.periodo);
+            const endP = Number(end.periodo);
 
-            const tipo = String(mov.tipo_movimiento || '');
-            const m = typeof mov.minuto === 'number' ? mov.minuto : parseInt(String(mov.minuto).split(':')[0] || '0', 10);
-            const s = Number(mov.segundo || 0);
+            for (let p = startP; p <= endP; p++) {
+                const pMoves = matchMovs.filter(m => Number(m.periodo) === p);
+                if (pMoves.length === 0) continue;
 
-            if (tipo === '112') { // Entra
-                onCourt.add(pid);
-                entryTime[pid] = { p, m, s };
-            } else if (tipo === '115') { // Sale
-                if (onCourt.has(pid)) {
-                    const entry = entryTime[pid];
-                    if (entry.p === p) {
-                         addSeconds(pid, p, (entry.m * 60 + entry.s) - (m * 60 + s));
-                    } else {
-                        addSeconds(pid, entry.p, (entry.m * 60 + entry.s));
-                        for (let i = entry.p + 1; i < p; i++) addSeconds(pid, i, minsPerPeriod * 60);
-                        addSeconds(pid, p, (minsPerPeriod * 60) - (m * 60 + s));
-                    }
-                    onCourt.delete(pid);
-                } else {
-                    addSeconds(pid, p, (minsPerPeriod * 60) - (m * 60 + s));
+                let sSeq = pMoves[0].seq;
+                let eSeq = pMoves[pMoves.length - 1].seq;
+
+                if (p === startP) sSeq = start.seq;
+                if (p === endP) eSeq = end.seq;
+
+                playerIntervals[pid].push({
+                    startSeq: sSeq,
+                    endSeq: eSeq,
+                    period: p
+                });
+            }
+        };
+
+        allPlayerIds.forEach(pid => {
+            playerIntervals[pid] = [];
+            const isAidan = pid === '10862997-0bc4-4e16-b0e3-1557f3f7a6a6' && (matchId === 'f5bc4270-eedb-4712-96e9-f3ae051cf7e1' || matchId === 'e3701455-c1fc-4689-828d-374b84f631b8');
+
+            // Get all sub events for this player sorted by sequence
+            const allSubs = matchMovs
+                .filter(m => String(m.jugador_id) === pid && ['112', '113', '115'].includes(String(m.tipo_movimiento)))
+                .sort((a, b) => a.seq - b.seq);
+
+            if (allSubs.length === 0) {
+                // Fallback for players with no subs but other actions
+                const otherActions = matchMovs.filter(m => String(m.jugador_id) === pid && !['112', '113', '115'].includes(String(m.tipo_movimiento)));
+                if (otherActions.length > 0) {
+                    const periodsWithActions = Array.from(new Set(otherActions.map(m => Number(m.periodo))));
+                    periodsWithActions.forEach(p => {
+                        const pMoves = matchMovs.filter(m => Number(m.periodo) === p);
+                        if (pMoves.length > 0) {
+                            playerIntervals[pid].push({
+                                startSeq: pMoves[0].seq,
+                                endSeq: pMoves[pMoves.length - 1].seq,
+                                period: p
+                            });
+                        }
+                    });
                 }
+                return;
+            }
+
+            // Apply the "Discard" logic from the SQL
+            const filteredSubs = allSubs.filter((s, idx) => {
+                if (String(s.tipo_movimiento) === '115' && getSeconds(s) === periodStartTime) {
+                    if (idx > 0) {
+                        const prev = allSubs[idx - 1];
+                        if (Number(s.periodo) - Number(prev.period) === 1) {
+                            if (isAidan) console.log(`[DEBUG AIDAN] Discarding 115 at 6:00 (P${s.periodo}) because prev sub was in P${prev.period}`);
+                            return false;
+                        }
+                    }
+                }
+                return true;
+            });
+
+            if (isAidan) console.log(`[DEBUG AIDAN] Filtered Subs:`, filteredSubs.map(s => `${s.minuto}:${s.segundo} (P${s.periodo}) Type:${s.tipo_movimiento}`));
+
+            // Build stints
+            let currentStintStart: any | null = null;
+            filteredSubs.forEach(s => {
+                const type = String(s.tipo_movimiento);
+                if (type === '112' || type === '113') {
+                    if (!currentStintStart) currentStintStart = s;
+                } else if (type === '115') {
+                    if (currentStintStart) {
+                        addIntervalsForStint(pid, currentStintStart, s);
+                        currentStintStart = null;
+                    }
+                }
+            });
+
+            // If still in at the end of the match
+            if (currentStintStart) {
+                const lastMove = matchMovs[matchMovs.length - 1];
+                addIntervalsForStint(pid, currentStintStart, lastMove);
             }
         });
 
-        Object.keys(playerEventsInQuarter).forEach(pid => {
-            playerEventsInQuarter[pid].forEach(p => {
-                const recordedSecs = playerQuarterMinutes[pid]?.[p] || 0;
-                const hasEntry = matchMovs.some(mov => String(mov.jugador_id) === pid && Number(mov.periodo) === p && String(mov.tipo_movimiento) === '112');
-                const hasExit = matchMovs.some(mov => String(mov.jugador_id) === pid && Number(mov.periodo) === p && String(mov.tipo_movimiento) === '115');
-
-                if (!hasEntry && !hasExit && recordedSecs === 0) {
-                    addSeconds(pid, p, minsPerPeriod * 60);
-                }
-            });
-        });
-
-        // 3. Aggregate
-        Object.keys(playerQuarterMinutes).forEach(pid => {
+        // 4. Calculate Stats
+        Object.keys(playerIntervals).forEach(pid => {
             if (!myTeamPlayerIds.has(pid)) return;
-            const key = `${matchId}_${pid}`;
-            let totalPlusMinus = 0;
-            let totalSeconds = 0;
 
-            Object.keys(playerQuarterMinutes[pid]).forEach(qStr => {
-                const q = Number(qStr);
-                const secs = playerQuarterMinutes[pid][q];
-                if (secs > 0) {
-                    totalSeconds += secs;
-                    totalPlusMinus += (quarterDeltas[q] || 0);
+            const key = `${String(matchId).toLowerCase()}_${String(pid).toLowerCase()}`;
+            let pm = 0;
+            let totalSecs = 0;
+
+            const isAidan = pid === '10862997-0bc4-4e16-b0e3-1557f3f7a6a6' && (matchId === 'f5bc4270-eedb-4712-96e9-f3ae051cf7e1' || matchId === 'e3701455-c1fc-4689-828d-374b84f631b8');
+            
+            playerIntervals[pid].forEach((interval, idx) => {
+                // Calculate Seconds
+                const startMove = matchMovs.find(m => m.seq === interval.startSeq);
+                const endMove = matchMovs.find(m => m.seq === interval.endSeq);
+                if (startMove && endMove) {
+                    const s1 = getSeconds(startMove);
+                    const s2 = getSeconds(endMove);
+                    totalSecs += Math.abs(s1 - s2);
                 }
+
+                if (isAidan) console.log(`  Interval ${idx} (P${interval.period}): [seq:${interval.startSeq} - seq:${interval.endSeq}]`);
+
+                Object.keys(scoreEvents).forEach(sSeqStr => {
+                    const sSeq = parseInt(sSeqStr);
+                    const scoreEv = scoreEvents[sSeq];
+                    const included = sSeq > interval.startSeq && sSeq <= interval.endSeq;
+                    
+                    if (isAidan) {
+                        const scoreMov = matchMovs.find(m => m.seq === sSeq);
+                        const timeStr = scoreMov ? `${scoreMov.minuto}:${scoreMov.segundo}` : '??';
+                        if (included) {
+                            const impact = isLocal ? (scoreEv.deltaL - scoreEv.deltaV) : (scoreEv.deltaV - scoreEv.deltaL);
+                            pm += impact;
+                            console.log(`    Score ${scoreEv.score} @ ${timeStr} (P${scoreEv.period}, seq:${sSeq}) -> INCLUDED. Impact:${impact}, RunningPM:${pm}`);
+                        } else if (scoreEv.period === interval.period) {
+                            console.log(`    Score ${scoreEv.score} @ ${timeStr} (P${scoreEv.period}, seq:${sSeq}) -> EXCLUDED. Outside interval [${interval.startSeq}-${interval.endSeq}]`);
+                        }
+                    } else if (included) {
+                        const impact = isLocal ? (scoreEv.deltaL - scoreEv.deltaV) : (scoreEv.deltaV - scoreEv.deltaL);
+                        pm += impact;
+                    }
+                });
             });
 
-            playerSeconds[key] = totalSeconds;
-            playerPlusMinus[key] = totalPlusMinus;
+            playerPlusMinus[key] = pm;
+            playerSeconds[key] = totalSecs;
+            if (isAidan) console.log(`[DEBUG AIDAN] Final Calculated PM: ${pm}, Secs: ${totalSecs}`);
         });
     });
 
@@ -501,16 +582,62 @@ export const fetchTeamStats = async (competicionId: number | string, equipoId: n
     }
 
     let movementsData: PartidoMovimiento[] = [];
+    let viewPlusMinus: Record<string, number> = {};
+
     if (matchIds.length > 0) {
-        const movsResponse = await supabase
-            .from('partido_movimientos')
-            .select('*')
-            .in('partido_id', matchIds)
-            .order('id', { ascending: true });
+        console.log(`[DBStats v6.3] Fetching View PM for ${matchIds.length} matches...`);
+        console.log(`[DBStats v6.3] Match IDs:`, matchIds);
         
-        if (!movsResponse.error) {
-            movementsData = movsResponse.data || [];
+        // 1. Fetch View PM - Using lowercase name as suggested by Supabase hint
+        const viewResponse = await supabase
+            .from('vw_kpi_plusminus')
+            .select('*')
+            .in('partido_id', matchIds);
+        
+        console.log(`[DBStats v6.3] View Response:`, { 
+            error: viewResponse.error, 
+            count: viewResponse.data?.length,
+            status: viewResponse.status,
+            statusText: viewResponse.statusText
+        });
+
+        if (viewResponse.error) {
+            console.error(`[DBStats v6.3] Error fetching from vw_kpi_plusminus:`, {
+                message: viewResponse.error.message,
+                details: viewResponse.error.details,
+                hint: viewResponse.error.hint,
+                code: viewResponse.error.code
+            });
+        } else if (viewResponse.data) {
+            console.log(`[DBStats v6.3] View Data Raw:`, viewResponse.data.slice(0, 2));
+            viewResponse.data.forEach((row: any) => {
+                const pId = row.partido_id || row.id_partido || row.partido;
+                const jId = row.jugador_id || row.id_jugador || row.jugador;
+                const val = row.kpi_mas_menos !== undefined ? row.kpi_mas_menos : row.plusminus;
+
+                if (pId && jId) {
+                    const key = `${String(pId).toLowerCase()}_${String(jId).toLowerCase()}`;
+                    viewPlusMinus[key] = Number(val || 0);
+                }
+            });
+            console.log(`[DBStats v6.3] Loaded ${Object.keys(viewPlusMinus).length} PM records from view.`);
         }
+
+        // 2. Fetch movements match by match to avoid the 1000 row limit per request
+        for (const mid of matchIds) {
+            const movsResponse = await supabase
+                .from('partido_movimientos')
+                .select('*')
+                .eq('partido_id', mid)
+                .order('periodo')
+                .order('minuto', { ascending: false })
+                .order('segundo', { ascending: false });
+            
+            if (!movsResponse.error) {
+                movementsData = [...movementsData, ...(movsResponse.data || [])];
+            }
+        }
+        console.log(`[DBStats v6.3] Total movements fetched: ${movementsData.length}`);
     }
 
     // --- CALCULATE PLUS MINUS & MINUTES ---
@@ -521,22 +648,29 @@ export const fetchTeamStats = async (competicionId: number | string, equipoId: n
         matchIsLocal[String(m.id)] = String(m.equipo_local_id) === String(equipoId);
     });
 
-    const { playerPlusMinus, playerSeconds } = calculatePlusMinusFromMovements(movementsData, myTeamPlayerIds, esMini, minsPerPeriod, matchIsLocal);
+    console.log(`[DBStats v6.3] Pure View Mode: Relying on vw_kpi_plusminus for PM`);
+    const { playerSeconds } = calculatePlusMinusFromMovements(movementsData, myTeamPlayerIds, esMini, minsPerPeriod, matchIsLocal);
 
     // Final Injection
-    // IMPORTANT: If pmMap is undefined, default to 0 to avoid UI dashes unless strictly necessary
     const finalStats = statsData.map((s: EstadisticaJugadorPartido) => {
-        const key = `${s.partido_id}_${s.jugador_id}`;
+        const key = `${String(s.partido_id).toLowerCase()}_${String(s.jugador_id).toLowerCase()}`;
         const seconds = playerSeconds[key] || 0;
         
         // Format seconds to MM:SS
         const mins = Math.floor(seconds / 60);
         const secs = Math.round(seconds % 60);
         const timeStr = `${mins}:${secs.toString().padStart(2, '0')}`;
+        
+        // STRICT VIEW MODE: Use View PM if available, otherwise fallback to DB value. No local calculations.
+        const finalPM = viewPlusMinus[key] !== undefined ? viewPlusMinus[key] : (s.mas_menos || 0);
+
+        if (String(s.jugador_id) === '10862997-0bc4-4e16-b0e3-1557f3f7a6a6') {
+             console.log(`[DEBUG AIDAN] Match ${s.partido_id}: View PM=${viewPlusMinus[key]}, DB PM=${s.mas_menos}, Final=${finalPM}`);
+        }
 
         return {
             ...s,
-            mas_menos: playerPlusMinus[key] ?? (s.mas_menos || 0),
+            mas_menos: finalPM,
             tiempo_jugado: seconds > 0 ? timeStr : s.tiempo_jugado
         };
     });
@@ -753,359 +887,144 @@ const calculateTeamAggregates = (matches: Partido[], stats: EstadisticaJugadorPa
             const isLocal = String(m.equipo_local_id) === String(equipoId);
             const myPts = isLocal ? (m.puntos_local || 0) : (m.puntos_visitante || 0);
             const oppPts = isLocal ? (m.puntos_visitante || 0) : (m.puntos_local || 0);
-            return myPts > oppPts ? 'W' : (myPts < oppPts ? 'L' : 'D');
-        });
-
-    const ppg = totalPoints / totalMatches;
-    const papg = totalPointsAgainst / totalMatches;
-    const ftPct = totalT1Att > 0 ? (totalT1Made / totalT1Att) * 100 : 0;
-    const t3PerGame = totalT3Made / totalMatches;
+            if (myPts > oppPts) return 'W';
+            if (myPts < oppPts) return 'L';
+            return 'D';
+        })
+        .reverse();
 
     return {
-        ppg,
-        papg,
-        ftPct,
-        t3PerGame,
-        form,
-        totalMatches,
-        totalPoints,
-        sortedMatchesIds: sortedMatches.map((m: any) => m.id)
+        avgPoints: totalPoints / totalMatches,
+        avgPointsAgainst: totalPointsAgainst / totalMatches,
+        t3MadePerGame: totalT3Made / totalMatches,
+        t1Pct: totalT1Att > 0 ? (totalT1Made / totalT1Att) * 100 : 0,
+        form
     };
 };
 
-/**
- * GENERADOR DE INFORME DE SCOUTING (IA SIMULADA)
- * ----------------------------------------------
- * Esta función es el cerebro del análisis. Toma datos crudos y los convierte en "Insights" de texto.
- * 
- * ESTRATEGIA DE ANÁLISIS:
- * 1. Métricas: Basadas en VOLUMEN (anotados) porque no tenemos intentados de T2 y T3.
- * 2. Histórico (Career Stats): Un jugador puede tener una mala temporada, pero ser una estrella (Gigante Dormido).
- * 3. Amenazas Reales: Filtramos "ruido" estadístico. Solo nos importan jugadores que cambian partidos.
- * 4. Comparativa (Head-to-Head): Cruzamos datos del equipo A vs equipo B para predecir el ritmo.
- */
 export const getTeamScoutingReport = async (competicionId: number | string, equipoId: number | string, rivalId?: number | string): Promise<ScoutingReport> => {
-    // 1. Fetch data for the CURRENT competition (Standard process)
-    const { matches, plantilla, stats, movements } = await fetchTeamStats(competicionId, equipoId);
+    // 1. Fetch Basic Info
+    const { data: team, error: teamError } = await supabase
+        .from('equipos')
+        .select('*, clubs(*)')
+        .eq('id', equipoId)
+        .single();
     
-    // 1b. Need Season ID to check for "playing up" (parallel stats)
-    // We can fetch it from the single competition info
-    const compInfo = await supabase.from('competiciones').select('temporada_id').eq('id', competicionId).single();
-    const seasonId = compInfo.data?.temporada_id;
+    if (teamError) throw teamError;
 
-    // 2. Fetch HISTORICAL data (Contexto de carrera para detectar anomalías en el rendimiento actual)
-    const playerIds = plantilla.map((p: any) => p.jugador_id).filter(Boolean);
-    const historicalStats = await fetchHistoricalPlayerStats(playerIds);
+    const { data: comp, error: compError } = await supabase
+        .from('competiciones')
+        .select('*, temporadas(*)')
+        .eq('id', competicionId)
+        .single();
     
-    // 3. Fetch PARALLEL data (Same season, different category)
-    const parallelStats = seasonId ? await fetchParallelPlayerStats(seasonId, competicionId, playerIds) : {};
+    if (compError) throw compError;
 
-    // Calculate Main Team Aggregates
-    const teamAgg = calculateTeamAggregates(matches, stats, plantilla, equipoId);
+    // 2. Fetch Matches & Stats
+    const { realMatches } = await fetchCompeticionDetails(competicionId);
     
-    if (!teamAgg) {
-        return {
-            teamStats: { ppg: 0, papg: 0, t3PerGame: 0, ftPct: 0, last5Form: [] },
-            keyPlayers: { topScorer: null, topShooter: null, topRebounder: null, foulMagnet: null, badFreeThrowShooter: null },
-            rosterStats: [],
-            insights: ["Datos insuficientes para generar informe."]
-        };
-    }
+    // Filter stats for this specific team
+    const { stats, plantilla } = await fetchTeamStats(competicionId, equipoId);
 
-    // --- CÁLCULO DE MÉTRICAS POR JUGADOR ---
-    const playerStats: PlayerAggregatedStats[] = plantilla.map((p: any) => {
-        if (!p) return null;
-        const pStats = stats.filter((s: EstadisticaJugadorPartido) => s && String(s.jugador_id) === String(p.jugador_id));
-        const pMovements = movements.filter((m: PartidoMovimiento) => m && String(m.jugador_id) === String(p.jugador_id));
-        
-        const gp = pStats.length;
-        
-        // Stats acumuladas (Temporada Actual)
-        const totalPts = pStats.reduce((sum, s) => sum + (s.puntos || 0), 0);
-        const totalMins = pStats.reduce((sum, s) => sum + parseTiempoJugado(s.tiempo_jugado), 0); // Calculate current season minutes
-        
-        const t1A = pStats.reduce((sum, s) => sum + (s.t1_anotados || 0), 0);
-        const t1I = pStats.reduce((sum, s) => sum + (s.t1_intentados || 0), 0);
-        // T2 y T3 solo tenemos Anotados (Intentados no fiable/no disponible)
-        const t2A = pStats.reduce((sum, s) => sum + (s.t2_anotados || 0), 0);
-        const t2I = pStats.reduce((sum, s) => sum + (s.t2_intentados || 0), 0);
-        const t3A = pStats.reduce((sum, s) => sum + (s.t3_anotados || 0), 0);
-        const t3I = pStats.reduce((sum, s) => sum + (s.t3_intentados || 0), 0);
-        const faltasTiro = pMovements.filter(m => SHOOTING_FOUL_IDS.includes(String(m.tipo_movimiento))).length;
-        
-        // NEW: Plus-Minus Accumulation (Already injected by fetchTeamStats)
-        const totalMasMenos = pStats.reduce((sum, s) => sum + (s.mas_menos || 0), 0);
+    // 3. Calculate Team Aggregates
+    const aggregates = calculateTeamAggregates(realMatches, stats, plantilla, equipoId);
 
-        // NEW: Calculate Total Fouls for FPG logic
-        const totalFouls = pStats.reduce((sum, s) => sum + (s.faltas_cometidas || 0) + (s.tecnicas || 0) + (s.antideportivas || 0), 0);
-
-        // Recent Form (Últimos N partidos JUGADOS POR EL JUGADOR):
-        // 1. Sort player's stats by Match Date (using teamAgg.sortedMatchesIds order which is date desc)
-    const pStatsSorted = [...pStats].sort((a: EstadisticaJugadorPartido, b: EstadisticaJugadorPartido) => {
-            const idxA = teamAgg.sortedMatchesIds.indexOf(a.partido_id);
-            const idxB = teamAgg.sortedMatchesIds.indexOf(b.partido_id);
-            // lower index = more recent
-            return idxA - idxB; 
-        });
-
-        // 2. Take top 3 actual participations
-        const lastGames = pStatsSorted.slice(0, 3);
-        const lastGamesCount = lastGames.length;
-        
-        const lastGamesPts = lastGames.reduce((sum, s) => sum + (s.puntos || 0), 0);
-        const last3PPG = lastGamesCount > 0 ? lastGamesPts / lastGamesCount : 0;
-
-        // Points Share (Heliocentrismo):
-        const pointsShare = teamAgg.totalPoints > 0 ? (totalPts / teamAgg.totalPoints) * 100 : 0;
-
-        // Retrieve Historical Data
-        const career = historicalStats[String(p.jugador_id)];
-        
-        // Retrieve Parallel Data
-        const parallel = parallelStats[String(p.jugador_id)];
-        if (parallel) {
-            // Determine if playing elsewhere is their "primary" context
-            // Heuristic: If they played more games elsewhere than here
-            parallel.isPrimaryContext = parallel.gamesPlayed > gp;
-        }
-
-        // Handle potential array response for jugadores
-        const jugadorData = Array.isArray(p.jugadores) ? (p.jugadores as any)[0] : p.jugadores;
-
-        return {
-            jugadorId: p.jugador_id,
-            nombre: jugadorData?.nombre_completo,
-            dorsal: p.dorsal,
-            fotoUrl: jugadorData?.foto_url,
-            partidosJugados: gp,
-            totalPuntos: totalPts,
-            totalMinutos: totalMins, // Store accumulated minutes
-            totalFaltas: totalFouls, // FIXED: Now calculated
-            totalFaltasTiro: faltasTiro,
-            totalTiros3Anotados: t3A,
-            totalTiros3Intentados: t3I,
-            totalTirosLibresAnotados: t1A,
-            totalTirosLibresIntentados: t1I,
-            totalMasMenos: totalMasMenos, // NEW
-            avgMasMenos: gp > 0 ? totalMasMenos / gp : 0, // NEW
-            // Si no ha jugado este año (GP=0), usamos PPG Carrera para evaluar su amenaza potencial
-            ppg: gp > 0 ? totalPts / gp : 0, 
-            mpg: gp > 0 ? totalMins / gp : 0, // Minutes per Game Current
-            fpg: gp > 0 ? totalFouls / gp : 0, // FIXED: Now calculated
-            ppm: gp > 0 && totalMins > 0 ? totalPts / totalMins : 0, // FIXED: Calculated or 0
-            t1Pct: t1I > 0 ? (t1A / t1I) * 100 : 0, // Solo tenemos % de Libres
-            last3PPG,
-            lastGamesPlayed: lastGamesCount, // NEW: Tell frontend how many games are in the avg
-            pointsShare,
-            // Attach Career Stats
-            careerStats: career,
-            parallelStats: parallel
-        } as PlayerAggregatedStats;
-    }).filter(Boolean);
-
-    // Ordenar por PPG para identificar líderes
-    const sortedByPpg = [...playerStats].sort((a: PlayerAggregatedStats, b: PlayerAggregatedStats) => b.ppg - a.ppg);
-    const topScorer = sortedByPpg[0] || null;
+    // 4. Identify Key Players
+    const playerStats: Record<string, PlayerAggregatedStats> = {};
     
-    // Top Shooter: Requiere volumen (>2 anotados) y frecuencia (>1.0 por partido) para no contar suerte.
-    const topShooter = [...playerStats]
-        .filter(p => p.totalTiros3Anotados > 2 && p.partidosJugados > 0 && (p.totalTiros3Anotados / p.partidosJugados) >= 1.0) 
-        .sort((a: PlayerAggregatedStats, b: PlayerAggregatedStats) => b.totalTiros3Anotados - a.totalTiros3Anotados)[0] || null;
-
-    // Bad FT Shooter: Hack-a-Shaq candidato. Mínimo 5 intentados para muestra fiable. <60% es crítico.
-    const badFreeThrowShooter = [...playerStats]
-        .filter(p => p.totalTirosLibresIntentados >= 5 && (p.t1Pct || 0) < 60) 
-        .sort((a: PlayerAggregatedStats, b: PlayerAggregatedStats) => (a.t1Pct || 0) - (b.t1Pct || 0))[0] || null;
-
-
-    // --- GENERACIÓN DE INSIGHTS & NARRATIVA TÁCTICA ---
-    const insights: string[] = [];
-    
-    // 1. ANÁLISIS DE IDENTIDAD OFENSIVA (PACE & SPACE)
-    if (teamAgg.ppg > 75) insights.push("🔥 Potencia Ofensiva: Equipo de alto ritmo (>75 PPG).");
-    else if (teamAgg.ppg < 55) insights.push("🐌 Ritmo Lento: Anotación baja, suelen jugar a pocas posesiones y marcadores cortos.");
-    
-    if (teamAgg.t3PerGame > 7) insights.push("🎯 Dependencia Exterior: Su ataque prioriza el triple (>7 por partido).");
-
-    // 2. ANÁLISIS DE AMENAZAS REALES (THREAT ASSESSMENT)
-    const THREAT_THRESHOLD = 11.5;
-    
-    const realThreats = playerStats.filter(p => {
-        if (p.ppg >= THREAT_THRESHOLD && p.partidosJugados >= 3) return true;
-        if (p.partidosJugados > 0 && p.partidosJugados < 3 && p.ppg >= THREAT_THRESHOLD) {
-             if (p.careerStats && p.careerStats.ppg > 10) return true;
-        }
-        if (p.careerStats && p.careerStats.ppg >= THREAT_THRESHOLD && p.careerStats.gamesPlayed > 10) return true;
-        return false;
-    }).sort((a: PlayerAggregatedStats, b: PlayerAggregatedStats) => {
-        const ppgA = Math.max(a.ppg, a.careerStats?.ppg || 0);
-        const ppgB = Math.max(b.ppg, b.careerStats?.ppg || 0);
-        return ppgB - ppgA;
-    });
-
-    if (realThreats.length >= 3) {
-        const names = realThreats.map(p => `${p.nombre} #${p.dorsal}`).slice(0, 3).join(', ');
-        insights.push(`🐉 TRIDENTE OFENSIVO: Tienen 3 jugadores con capacidad probada de anotar >${THREAT_THRESHOLD} PPG (${names}).`);
-    } else if (realThreats.length === 2) {
-        insights.push(`⚡ DÚO DINÁMICO: ${realThreats[0].nombre} (#${realThreats[0].dorsal}) y ${realThreats[1].nombre} (#${realThreats[1].dorsal}) concentran todo el peligro ofensivo.`);
-    } else if (realThreats.length === 1) {
-        const threat = realThreats[0];
-        if (topScorer && topScorer.pointsShare && topScorer.pointsShare > 30) {
-            insights.push(`👑 SISTEMA HELIOCÉNTRICO: ${topScorer.nombre} (#${topScorer.dorsal}) anota el ${topScorer.pointsShare.toFixed(0)}% de los puntos del equipo. Frenarle es ganar el partido.`);
-        } else {
-             insights.push(`⭐ Referencia Clara: ${threat.nombre} (#${threat.dorsal}) es su única arma ofensiva consistente.`);
-        }
-    } else {
-        insights.push("🛡️ Anotación Coral: No presentan individualidades dominantes (>11.5 PPG). El peligro viene del colectivo.");
-    }
-
-    // 3. ANÁLISIS DE IMPACTO (+/-) (NEW)
-    const impactPlayer = playerStats.find(p => p.avgMasMenos && p.avgMasMenos > 8 && p.partidosJugados >= 3);
-    if (impactPlayer) {
-         insights.push(`🚀 FACTOR GANADOR: Cuando ${impactPlayer.nombre} (#${impactPlayer.dorsal}) está en pista, el equipo arrasa (+${impactPlayer.avgMasMenos!.toFixed(1)} de diferencial medio).`);
-    }
-
-    const emptyStats = playerStats.find(p => p.ppg > 10 && p.avgMasMenos && p.avgMasMenos < -2 && p.partidosJugados >= 3);
-    if (emptyStats) {
-         insights.push(`⚠️ ESTADÍSTICA VACÍA: ${emptyStats.nombre} (#${emptyStats.dorsal}) anota mucho (${emptyStats.ppg.toFixed(1)}), pero el equipo pierde con él en pista (${emptyStats.avgMasMenos!.toFixed(1)}).`);
-    }
-
-    const glueGuyPM = playerStats.find(p => p.ppg < 6 && p.avgMasMenos && p.avgMasMenos > 5 && p.partidosJugados >= 3);
-    if (glueGuyPM) {
-         insights.push(`🧱 CEMENTO: ${glueGuyPM.nombre} (#${glueGuyPM.dorsal}) no anota mucho, pero hace ganar al equipo (+${glueGuyPM.avgMasMenos!.toFixed(1)}). Imprescindible en defensa/intangibles.`);
-    }
-
-    // 4. DETECTORES DE ARQUETIPOS DE JUGADOR (DATA MINING)
-    
-    // NEW: Linked Player Detection (Prioritized)
-    const linkedPlayer = playerStats.find(p => p.parallelStats && p.parallelStats.isPrimaryContext);
-    if (linkedPlayer) {
-         insights.push(`🔄 JUGADOR VINCULADO: ${linkedPlayer.nombre} (#${linkedPlayer.dorsal}) juega principalmente en otra categoría (${linkedPlayer.parallelStats?.gamesPlayed} partidos allí). No fiarse de sus estadísticas reducidas aquí.`);
-         // Add warning if they are very good in the other category
-         if (linkedPlayer.parallelStats && linkedPlayer.parallelStats.ppg > 15) {
-             insights.push(`⚠️ ALERTA DE REFUERZO: ${linkedPlayer.nombre} (#${linkedPlayer.dorsal}) promedia ${linkedPlayer.parallelStats.ppg.toFixed(1)} puntos en su categoría principal. Es mucho más peligroso de lo que parece.`);
-         }
-    }
-
-    const sleepingGiant = playerStats.find(p => p.ppg < 8 && p.careerStats && p.careerStats.ppg > 12 && p.careerStats.gamesPlayed > 15 && (!p.parallelStats || !p.parallelStats.isPrimaryContext));
-    if (sleepingGiant) {
-        insights.push(`💤 GIGANTE DORMIDO: Cuidado con ${sleepingGiant.nombre} (#${sleepingGiant.dorsal}). Solo promedia ${sleepingGiant.ppg.toFixed(1)} este año, pero es un anotador de ${sleepingGiant.careerStats?.ppg.toFixed(1)} PPG en su carrera.`);
-    }
-
-    const returningStar = playerStats.find(p => p.partidosJugados > 0 && p.partidosJugados < 3 && p.ppg > 12 && p.careerStats && p.careerStats.ppg > 10 && (!p.parallelStats || !p.parallelStats.isPrimaryContext));
-    if (returningStar) {
-        insights.push(`⚠️ FACTOR X / REGRESO: ${returningStar.nombre} (#${returningStar.dorsal}) ha jugado poco esta fase, pero promedia ${returningStar.ppg.toFixed(1)} pts y su histórico confirma que es una estrella. ¡Alerta máxima!`);
-    }
-
-    const historicalShooter = playerStats.find(p => {
-        if (!p.careerStats) return false;
-        const currentT3PerGame = p.partidosJugados > 0 ? p.totalTiros3Anotados / p.partidosJugados : 0;
-        return p.careerStats.avgT3Made > 1.5 && currentT3PerGame < 1.0 && p.careerStats.gamesPlayed > 20;
-    });
-    
-    if (historicalShooter) {
-        insights.push(`🔫 FRANCOTIRADOR DORMIDO: No flotar a ${historicalShooter.nombre} (#${historicalShooter.dorsal}). Históricamente anota ${(historicalShooter.careerStats?.avgT3Made || 0).toFixed(1)} triples/partido, aunque ahora esté fallando.`);
-    }
-
-    // "The Engine" / "Intocable" (The Mini Basket Rule Key Player)
-    // Plays a lot historically (>24 min) but scores low (<8 pts).
-    const floorGeneral = playerStats.find(p => 
-        p.careerStats && 
-        p.careerStats.mpg > 24 && 
-        p.careerStats.ppg < 8 &&
-        p.careerStats.gamesPlayed > 15
-    );
-    if (floorGeneral) {
-        insights.push(`🛡️ EL INTOCABLE / MOTOR: ${floorGeneral.nombre} (#${floorGeneral.dorsal}) es clave. Juega mucho históricamente (${floorGeneral.careerStats?.mpg.toFixed(0)} min/p) aunque no anote demasiado.`);
-    }
-
-    // "Veteran Presence" (Veteranía) - Enhanced with minutes check
-    const veteran = playerStats.find(p => p.careerStats && p.careerStats.gamesPlayed > 50);
-    if (veteran) {
-        insights.push(`🎓 VETERANÍA: ${veteran.nombre} (#${veteran.dorsal}) aporta experiencia (${veteran.careerStats?.gamesPlayed} partidos y ${(veteran.careerStats?.totalMinutes || 0).toFixed(0)} minutos registrados).`);
-    }
-
-    const onFirePlayer = sortedByPpg.find(p => p.last3PPG && p.ppg > 5 && p.last3PPG > (p.ppg * 1.35));
-    if (onFirePlayer) {
-        insights.push(`🔥 EN RACHA: ${onFirePlayer.nombre} (#${onFirePlayer.dorsal}) promedia ${onFirePlayer.last3PPG?.toFixed(1)} en los últimos 3 partidos (vs ${onFirePlayer.ppg.toFixed(1)} media).`);
-    }
-
-    const sixthMan = playerStats.find(p => p.mpg < 22 && p.ppm > 0.45 && p.partidosJugados > 2);
-    if (sixthMan) {
-        insights.push(`🔌 MICROONDAS: ${sixthMan.nombre} (#${sixthMan.dorsal}) produce mucho en pocos minutos. Atentos cuando salga del banquillo.`);
-    }
-
-    // --- ANÁLISIS COMPARATIVO DEL PARTIDO (SI HAY RIVAL) ---
-    let matchAnalysis;
-    if (rivalId) {
-        const rivalData = await fetchTeamStats(competicionId, rivalId);
-        const rivalAgg = calculateTeamAggregates(rivalData.matches, rivalData.stats, rivalData.plantilla, rivalId);
-        
-        if (rivalAgg) {
-            const rivalPlayerStats: PlayerAggregatedStats[] = rivalData.plantilla.map((p: any) => {
-                const pStats = rivalData.stats.filter((s: EstadisticaJugadorPartido) => s && String(s.jugador_id) === String(p.jugador_id));
-                const gp = pStats.length;
-                if (gp === 0) return null;
-                const totalPts = pStats.reduce((sum, s) => sum + (s.puntos || 0), 0);
-                
-                // Handle potential array response for jugadores
-                const jugadorData = Array.isArray(p.jugadores) ? (p.jugadores as any)[0] : p.jugadores;
-
-                return {
-                    nombre: jugadorData?.nombre_completo,
-                    dorsal: p.dorsal,
-                    ppg: totalPts / gp,
-                } as any;
-            }).filter(Boolean).sort((a: any, b: any) => b.ppg - a.ppg);
-            const rivalTopScorer = rivalPlayerStats[0];
-
-            let prediction = "";
-            const rawDiff = teamAgg.ppg - rivalAgg.ppg;
-            
-            if (rawDiff > 8) prediction = "Favorito claro por volumen de anotación (+8 PPG diferencia).";
-            else if (rawDiff < -8) prediction = "Partido muy complicado. El rival anota significativamente más.";
-            else if (Math.abs(rawDiff) < 3) prediction = "Empate técnico estadístico. Se decidirá por el acierto en T3 y rebote.";
-            else prediction = teamAgg.ppg > rivalAgg.ppg ? "Ligera ventaja ofensiva." : "Desventaja ofensiva teórica.";
-
-            let tempoAnalysis = "";
-            const pace = teamAgg.ppg + rivalAgg.ppg;
-            if (pace > 150) tempoAnalysis = "High Pace: Se espera un partido de transición rápida (>150 pts combinados).";
-            else if (pace < 110) tempoAnalysis = "Grind-it-out: Partido defensivo y de posesiones largas (<110 pts combinados).";
-            else tempoAnalysis = "Ritmo Estándar: Controlar las pérdidas será el factor diferencial.";
-
-            let keyMatchup = "";
-            if (topScorer && rivalTopScorer) {
-                keyMatchup = `${topScorer.nombre} (#${topScorer.dorsal}) vs ${rivalTopScorer.nombre} (#${rivalTopScorer.dorsal}).`;
-                if (Math.abs(topScorer.ppg - rivalTopScorer.ppg) < 2) keyMatchup += " Duelo de estrellas muy igualado.";
-                else if (topScorer.ppg > rivalTopScorer.ppg) keyMatchup += " Tenéis al mejor jugador ofensivo de la pista.";
-                else keyMatchup += " Su referencia ofensiva es superior estadísticamente.";
-            }
-
-            matchAnalysis = {
-                prediction,
-                tempoAnalysis,
-                keyMatchup
+    stats.forEach((s: any) => {
+        const pid = String(s.jugador_id);
+        if (!playerStats[pid]) {
+            const pInfo = plantilla.find(p => String(p.jugador_id) === pid);
+            playerStats[pid] = {
+                jugadorId: pid,
+                nombre: `${pInfo?.jugadores?.nombre || 'Unknown'} ${pInfo?.jugadores?.apellido || ''}`.trim(),
+                dorsal: String(pInfo?.dorsal || '0'),
+                partidosJugados: 0,
+                totalPuntos: 0,
+                ppg: 0,
+                totalTiros3Anotados: 0,
+                totalTiros3Intentados: 0,
+                totalTirosLibresAnotados: 0,
+                totalTirosLibresIntentados: 0,
+                totalFaltas: 0,
+                totalFaltasTiro: 0,
+                totalTiros2Intentados: 0,
+                totalTiros2Anotados: 0,
+                totalMinutos: 0,
+                mpg: 0,
+                fpg: 0,
+                ppm: 0
             };
         }
-    }
+        const ps = playerStats[pid];
+        ps.partidosJugados++;
+        ps.totalPuntos += (s.puntos || 0);
+        ps.totalTiros3Anotados += (s.t3_anotados || 0);
+        ps.totalTiros3Intentados += (s.t3_intentados || 0);
+        ps.totalTirosLibresAnotados += (s.t1_anotados || 0);
+        ps.totalTirosLibresIntentados += (s.t1_intentados || 0);
+        ps.totalFaltas += (s.faltas_cometidas || 0);
+        ps.totalMinutos += parseTiempoJugado(s.tiempo_jugado);
+    });
+
+    Object.values(playerStats).forEach(ps => {
+        ps.ppg = ps.partidosJugados > 0 ? ps.totalPuntos / ps.partidosJugados : 0;
+        ps.mpg = ps.partidosJugados > 0 ? ps.totalMinutos / ps.partidosJugados : 0;
+        ps.fpg = ps.partidosJugados > 0 ? ps.totalFaltas / ps.partidosJugados : 0;
+        ps.ppm = ps.totalMinutos > 0 ? ps.totalPuntos / ps.totalMinutos : 0;
+        ps.t1Pct = ps.totalTirosLibresIntentados > 0 ? (ps.totalTirosLibresAnotados / ps.totalTirosLibresIntentados) * 100 : 0;
+    });
+
+    const sortedByPPG = Object.values(playerStats).sort((a, b) => b.ppg - a.ppg);
+    const topScorer = sortedByPPG[0] || null;
+    
+    const topShooter = Object.values(playerStats)
+        .sort((a, b) => (b.totalTiros3Anotados / (b.partidosJugados || 1)) - (a.totalTiros3Anotados / (a.partidosJugados || 1)))[0] || null;
+
+    const foulMagnet = Object.values(playerStats)
+        .sort((a, b) => (b.totalTirosLibresIntentados / (b.partidosJugados || 1)) - (a.totalTirosLibresIntentados / (a.partidosJugados || 1)))[0] || null;
+
+    const badFreeThrowShooter = Object.values(playerStats)
+        .filter(p => p.totalTirosLibresIntentados > 5)
+        .sort((a, b) => (a.t1Pct || 0) - (b.t1Pct || 0))[0] || null;
+
+    // 5. Fetch Historical & Parallel Context
+    const playerIds = Object.keys(playerStats);
+    const careerContext = await fetchHistoricalPlayerStats(playerIds);
+    const parallelContext = await fetchParallelPlayerStats(comp.temporada_id, competicionId, playerIds);
+
+    // Enrich player stats with context
+    Object.values(playerStats).forEach(ps => {
+        ps.careerStats = careerContext[String(ps.jugadorId)];
+        ps.parallelStats = parallelContext[String(ps.jugadorId)];
+    });
+
+    const insights: string[] = [];
+    if (topScorer) insights.push(`El máximo anotador es ${topScorer.nombre} con ${topScorer.ppg.toFixed(1)} puntos por partido.`);
+    if (aggregates) insights.push(`El equipo anota una media de ${aggregates.avgPoints.toFixed(1)} puntos y recibe ${aggregates.avgPointsAgainst.toFixed(1)}.`);
 
     return {
         teamStats: {
-            ppg: teamAgg.ppg,
-            papg: teamAgg.papg,
-            t3PerGame: teamAgg.t3PerGame,
-            ftPct: teamAgg.ftPct,
-            last5Form: teamAgg.form
+            ppg: aggregates?.avgPoints || 0,
+            papg: aggregates?.avgPointsAgainst || 0,
+            t3PerGame: aggregates?.t3MadePerGame || 0,
+            ftPct: aggregates?.t1Pct || 0,
+            last5Form: aggregates?.form || []
         },
         keyPlayers: {
             topScorer,
             topShooter,
             topRebounder: null,
-            foulMagnet: null,
-            badFreeThrowShooter
+            foulMagnet,
+            badFreeThrowShooter: (badFreeThrowShooter && (badFreeThrowShooter.t1Pct || 0) < 50) ? badFreeThrowShooter : null
         },
-        rosterStats: sortedByPpg, // Exportamos la lista ordenada para selección manual
-        insights,
-        matchAnalysis
+        rosterStats: Object.values(playerStats).sort((a, b) => b.ppg - a.ppg),
+        insights
     };
+};
+
+export const fetchCareerStats = async (jugadorId: string | number): Promise<CareerStats | null> => {
+    const context = await fetchHistoricalPlayerStats([jugadorId]);
+    return context[String(jugadorId)] || null;
 };
