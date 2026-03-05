@@ -70,6 +70,7 @@ const TeamStats: React.FC<TeamStatsProps> = ({ equipoId, matches, plantilla, sta
   const [activeTab, setActiveTab] = useState<'matches' | 'players'>('players');
   const [playerViewMode, setPlayerViewMode] = useState<'table' | 'cards'>('table');
   const [selectedPlayer, setSelectedPlayer] = useState<PlayerAggregatedStats | null>(null);
+  const [expandedPlayerIds, setExpandedPlayerIds] = useState<Set<string>>(new Set());
   
   const [sortConfig, setSortConfig] = useState<{ key: keyof PlayerAggregatedStats | 't1Pct'; direction: 'asc' | 'desc' }>({
     key: 'totalPuntos',
@@ -97,6 +98,41 @@ const TeamStats: React.FC<TeamStatsProps> = ({ equipoId, matches, plantilla, sta
         }
     }
     return 0;
+  };
+
+  const formatTiempoPartido = (tiempo: string | number | undefined): string => {
+    if (tiempo === undefined || tiempo === null || tiempo === '') return '0:00';
+    if (typeof tiempo === 'string') return tiempo;
+    const totalSeconds = Math.max(0, Math.round(tiempo * 60));
+    const min = Math.floor(totalSeconds / 60);
+    const sec = totalSeconds % 60;
+    return `${min}:${String(sec).padStart(2, '0')}`;
+  };
+
+  const formatPartidoLabel = (partidoId: number | string): string => {
+    const match = (matches || []).find(m => m && String(m.id) === String(partidoId));
+    if (!match) return `Partido ${partidoId}`;
+    const rival = String(match.equipo_local_id) === String(equipoId)
+      ? (match.equipo_visitante?.nombre_especifico || 'Rival')
+      : (match.equipo_local?.nombre_especifico || 'Rival');
+    return `J${match.jornada || '-'} · ${rival}`;
+  };
+
+  const getMatchById = (partidoId: number | string) => {
+    return (matches || []).find(m => m && String(m.id) === String(partidoId));
+  };
+
+  const togglePlayerExpansion = (playerId: number | string) => {
+    const key = String(playerId);
+    setExpandedPlayerIds(prev => {
+      const next = new Set(prev);
+      if (next.has(key)) {
+        next.delete(key);
+      } else {
+        next.add(key);
+      }
+      return next;
+    });
   };
 
   const teamMatches = useMemo(() => {
@@ -396,30 +432,125 @@ const TeamStats: React.FC<TeamStatsProps> = ({ equipoId, matches, plantilla, sta
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-100">
-                        {playerStats.map((player) => (
-                            <tr key={player.jugadorId} className="hover:bg-blue-50/50 cursor-pointer transition group" onClick={() => setSelectedPlayer(player)}>
-                                <td className="px-4 py-4 text-center text-gray-400 font-mono text-xl">{player.dorsal}</td>
-                                <td className="px-4 py-4">
-                                    <div className="flex items-center gap-4">
-                                        <div className="w-10 h-10 rounded-full bg-gray-100 overflow-hidden border border-gray-100 shrink-0">
-                                            <img src={player.fotoUrl || "https://image.singular.live/fit-in/450x450/filters:format(webp)/0d62960e1109063fb6b062e758907fb1/images/41uEQx58oj4zwPoOkM6uEO_w585h427.png"} className="w-full h-full object-cover" alt={player.nombre} />
-                                        </div>
-                                        <span className="font-semibold text-gray-700 uppercase tracking-tight group-hover:text-fcbq-blue transition-colors text-xs md:text-sm">{player.nombre}</span>
-                                    </div>
-                                </td>
-                                <td className="px-4 py-4 text-center text-gray-600 font-medium">{player.partidosJugados}</td>
-                                <td className="px-4 py-4 text-center"><span className="font-bold text-fcbq-blue text-lg">{player.ppg.toFixed(1)}</span></td>
-                                <td className="px-4 py-4 text-center text-gray-500">{player.mpg.toFixed(1)}</td>
-                                <td className="px-4 py-4 text-center text-gray-500">{player.ppm.toFixed(2)}</td>
-                                <td className="px-4 py-4 text-center text-gray-500">{player.fpg.toFixed(1)}</td>
-                                <td className={`px-4 py-4 text-center font-bold ${(player.avgMasMenos || 0) > 0 ? 'text-green-600' : (player.avgMasMenos || 0) < 0 ? 'text-red-500' : 'text-gray-400'}`}>
-                                    {(player.avgMasMenos || 0) > 0 ? '+' : ''}{(player.avgMasMenos || 0).toFixed(1)}
-                                </td>
-                                <td className="px-4 py-4 flex justify-center">
-                                    <MiniDonut value={(player as any).t1Pct} />
-                                </td>
+                      {playerStats.map((player) => {
+                        const isExpanded = expandedPlayerIds.has(String(player.jugadorId));
+                        const playerMatchStats = (stats || [])
+                          .filter(s => s && String(s.jugador_id) === String(player.jugadorId))
+                          .sort((a, b) => {
+                            const matchA = getMatchById(a.partido_id);
+                            const matchB = getMatchById(b.partido_id);
+                            const jornadaA = Number(matchA?.jornada ?? -1);
+                            const jornadaB = Number(matchB?.jornada ?? -1);
+                            return jornadaB - jornadaA;
+                          });
+
+                        return (
+                          <React.Fragment key={player.jugadorId}>
+                          <tr className={`hover:bg-blue-50/50 cursor-pointer transition group ${isExpanded ? 'bg-blue-50/40' : ''}`} onClick={() => togglePlayerExpansion(player.jugadorId)}>
+                            <td className="px-4 py-4 text-center text-gray-400 font-mono text-xl">{player.dorsal}</td>
+                            <td className="px-4 py-4">
+                              <div className="flex items-center gap-4">
+                                <div className="w-10 h-10 rounded-full bg-gray-100 overflow-hidden border border-gray-100 shrink-0">
+                                  <img src={player.fotoUrl || "https://image.singular.live/fit-in/450x450/filters:format(webp)/0d62960e1109063fb6b062e758907fb1/images/41uEQx58oj4zwPoOkM6uEO_w585h427.png"} className="w-full h-full object-cover" alt={player.nombre} />
+                                </div>
+                                <div className="flex flex-col">
+                                  <span className="font-semibold text-gray-700 uppercase tracking-tight group-hover:text-fcbq-blue transition-colors text-xs md:text-sm">{player.nombre}</span>
+                                  <span className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold">{isExpanded ? 'Ocultar partidos' : 'Ver partidos'}</span>
+                                </div>
+                              </div>
+                            </td>
+                            <td className="px-4 py-4 text-center text-gray-600 font-medium">{player.partidosJugados}</td>
+                            <td className="px-4 py-4 text-center"><span className="font-bold text-fcbq-blue text-lg">{player.ppg.toFixed(1)}</span></td>
+                            <td className="px-4 py-4 text-center text-gray-500">{player.mpg.toFixed(1)}</td>
+                            <td className="px-4 py-4 text-center text-gray-500">{player.ppm.toFixed(2)}</td>
+                            <td className="px-4 py-4 text-center text-gray-500">{player.fpg.toFixed(1)}</td>
+                            <td className={`px-4 py-4 text-center font-bold ${(player.avgMasMenos || 0) > 0 ? 'text-green-600' : (player.avgMasMenos || 0) < 0 ? 'text-red-500' : 'text-gray-400'}`}>
+                              {(player.avgMasMenos || 0) > 0 ? '+' : ''}{(player.avgMasMenos || 0).toFixed(1)}
+                            </td>
+                            <td className="px-4 py-4 flex justify-center">
+                              <MiniDonut value={(player as any).t1Pct} />
+                            </td>
+                          </tr>
+
+                          {isExpanded && (
+                            <tr className="bg-slate-50/60 animate-fade-in">
+                              <td className="px-4 pb-4" colSpan={9}>
+                                <div className="border border-slate-200 rounded-xl bg-white overflow-hidden">
+                                  <div className="px-4 py-3 bg-slate-50 border-b border-slate-100 text-[11px] font-bold uppercase tracking-wider text-slate-500">
+                                    Desglose por partido
+                                  </div>
+
+                                  {playerMatchStats.length === 0 ? (
+                                  <div className="px-4 py-5 text-sm text-slate-400 italic">Sin datos por partido.</div>
+                                  ) : (
+                                  <div className="overflow-x-auto">
+                                    <table className="w-full text-xs md:text-sm">
+                                      <thead className="bg-white text-slate-400 uppercase text-[10px] tracking-wider border-b border-slate-100">
+                                        <tr>
+                                          <th className="px-4 py-2 text-left">Partido</th>
+                                          <th className="px-4 py-2 text-left">Equipos</th>
+                                          <th className="px-4 py-2 text-center">PTS</th>
+                                          <th className="px-4 py-2 text-center">MIN</th>
+                                          <th className="px-4 py-2 text-center">+/-</th>
+                                          <th className="px-4 py-2 text-center">T1</th>
+                                          <th className="px-4 py-2 text-center">T2</th>
+                                          <th className="px-4 py-2 text-center">T3</th>
+                                        </tr>
+                                      </thead>
+                                      <tbody className="divide-y divide-slate-100">
+                                        {playerMatchStats.map((item) => (
+                                          <tr key={`${player.jugadorId}-${item.partido_id}`} className="hover:bg-blue-50/30 transition-colors">
+                                            <td className="px-4 py-2.5 font-semibold text-slate-600 whitespace-nowrap">{formatPartidoLabel(item.partido_id)}</td>
+                                            <td className="px-4 py-2.5">
+                                              {(() => {
+                                                const match = getMatchById(item.partido_id);
+                                                const localLogo = match?.equipo_local?.clubs?.logo_url;
+                                                const visitorLogo = match?.equipo_visitante?.clubs?.logo_url;
+                                                const localName = match?.equipo_local?.nombre_especifico || 'Local';
+                                                const visitorName = match?.equipo_visitante?.nombre_especifico || 'Visitante';
+
+                                                return (
+                                                  <div className="flex items-center gap-2 min-w-[180px]">
+                                                    <div className="w-5 h-5 rounded-full overflow-hidden bg-slate-100 border border-slate-200 shrink-0">
+                                                      {localLogo ? (
+                                                        <img src={localLogo} alt={localName} className="w-full h-full object-contain" />
+                                                      ) : (
+                                                        <div className="w-full h-full flex items-center justify-center text-[8px] font-bold text-slate-400">L</div>
+                                                      )}
+                                                    </div>
+                                                    <span className="text-[11px] text-slate-500 font-semibold">vs</span>
+                                                    <div className="w-5 h-5 rounded-full overflow-hidden bg-slate-100 border border-slate-200 shrink-0">
+                                                      {visitorLogo ? (
+                                                        <img src={visitorLogo} alt={visitorName} className="w-full h-full object-contain" />
+                                                      ) : (
+                                                        <div className="w-full h-full flex items-center justify-center text-[8px] font-bold text-slate-400">V</div>
+                                                      )}
+                                                    </div>
+                                                  </div>
+                                                );
+                                              })()}
+                                            </td>
+                                            <td className="px-4 py-2.5 text-center font-bold text-fcbq-blue">{item.puntos || 0}</td>
+                                            <td className="px-4 py-2.5 text-center text-slate-600">{formatTiempoPartido(item.tiempo_jugado)}</td>
+                                            <td className={`px-4 py-2.5 text-center font-bold ${(item.mas_menos || 0) > 0 ? 'text-green-600' : (item.mas_menos || 0) < 0 ? 'text-red-500' : 'text-slate-400'}`}>
+                                              {(item.mas_menos || 0) > 0 ? '+' : ''}{item.mas_menos || 0}
+                                            </td>
+                                            <td className="px-4 py-2.5 text-center text-slate-600">{item.t1_anotados || 0}/{item.t1_intentados || 0}</td>
+                                            <td className="px-4 py-2.5 text-center text-slate-600">{item.t2_anotados || 0}/{item.t2_intentados || 0}</td>
+                                            <td className="px-4 py-2.5 text-center text-slate-600">{item.t3_anotados || 0}/{item.t3_intentados || 0}</td>
+                                          </tr>
+                                        ))}
+                                      </tbody>
+                                    </table>
+                                  </div>
+                                  )}
+                                </div>
+                              </td>
                             </tr>
-                        ))}
+                          )}
+                          </React.Fragment>
+                        );
+                      })}
                     </tbody>
                     </table>
                 </div>

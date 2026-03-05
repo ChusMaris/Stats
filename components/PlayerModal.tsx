@@ -114,6 +114,10 @@ const PlayerModal: React.FC<PlayerModalProps> = ({ player, equipoId, matchStats,
           puntos: stat.puntos || 0,
           tl: stat.t1_anotados || 0,
           tl_att: stat.t1_intentados || 0,
+          t2: stat.t2_anotados || 0,
+          t2_att: stat.t2_intentados || 0,
+          t3: stat.t3_anotados || 0,
+          t3_att: stat.t3_intentados || 0,
           rival: rival,
           faltasTiro: faltasTiro,
           plusMinus: stat.mas_menos !== undefined ? stat.mas_menos : null, // Pass through +/-
@@ -130,6 +134,9 @@ const PlayerModal: React.FC<PlayerModalProps> = ({ player, equipoId, matchStats,
   const tlTotalPct = player.totalTirosLibresIntentados > 0 
     ? (player.totalTirosLibresAnotados / player.totalTirosLibresIntentados) * 100 
     : 0;
+
+  const gamesPlayed = (matchStats || []).length;
+  const t3PerMatch = gamesPlayed > 0 ? player.totalTiros3Anotados / gamesPlayed : 0;
 
   // Determine +/- Color
   const getPlusMinusColor = (val: number | null | undefined) => {
@@ -213,7 +220,7 @@ const PlayerModal: React.FC<PlayerModalProps> = ({ player, equipoId, matchStats,
                 <div className="space-y-6 animate-fade-in">
                     
                     {/* Primary KPIs - Hero Grid */}
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3 md:gap-4">
+                    <div className="grid grid-cols-2 lg:grid-cols-5 gap-3 md:gap-4">
                         <div className="bg-white p-4 rounded-xl border border-slate-100 shadow-sm flex flex-col items-center justify-center relative overflow-hidden group">
                              <div className="absolute right-2 top-2 opacity-10 group-hover:opacity-20 transition-opacity text-fcbq-blue"><Activity size={40} /></div>
                              <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">Puntos / Partido</span>
@@ -246,6 +253,15 @@ const PlayerModal: React.FC<PlayerModalProps> = ({ player, equipoId, matchStats,
                                 <span className="text-3xl md:text-4xl font-black text-slate-700 tracking-tight">{tlTotalPct.toFixed(0)}<span className="text-lg text-slate-400">%</span></span>
                              </div>
                              <span className="text-[10px] font-bold text-slate-400 mt-1">{player.totalTirosLibresAnotados}/{player.totalTirosLibresIntentados} Anotados</span>
+                        </div>
+
+                        <div className="bg-white p-4 rounded-xl border border-slate-100 shadow-sm flex flex-col items-center justify-center relative overflow-hidden group">
+                            <div className="absolute right-2 top-2 opacity-10 group-hover:opacity-20 transition-opacity text-amber-500"><Target size={40} /></div>
+                              <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">T3 por Partido</span>
+                            <div className="flex items-center gap-2">
+                                <span className="text-3xl md:text-4xl font-black text-slate-700 tracking-tight">{t3PerMatch.toFixed(2)}</span>
+                            </div>
+                            <span className="text-[10px] font-bold text-slate-400 mt-1">Total triples: {player.totalTiros3Anotados}</span>
                         </div>
                     </div>
 
@@ -313,6 +329,7 @@ const PlayerModal: React.FC<PlayerModalProps> = ({ player, equipoId, matchStats,
                         {[...chartData].reverse().map((data, index) => {
                           const stat = data.originalStat;
                           const mins = parseTiempoJugado(stat.tiempo_jugado);
+                          const t1Pct = (stat.t1_intentados || 0) > 0 ? ((stat.t1_anotados || 0) / (stat.t1_intentados || 1)) * 100 : 0;
                           
                           return (
                             <div key={index} className="bg-white p-4 rounded-xl border border-slate-100 shadow-sm hover:shadow-md transition-all group overflow-hidden relative">
@@ -344,8 +361,10 @@ const PlayerModal: React.FC<PlayerModalProps> = ({ player, equipoId, matchStats,
                                    <span className="text-lg font-black text-slate-700 leading-none">
                                      {stat.faltas_cometidas || 0}
                                    </span>
-                                   {data.faltasTiro > 0 && <div className="absolute top-1 right-1 w-1.5 h-1.5 bg-rose-500 rounded-full" title="Falta de tiro"></div>}
-                                   <span className="text-[8px] font-bold text-slate-400 uppercase tracking-wider mt-1">Faltas</span>
+                                  <span className="text-[8px] font-bold text-slate-400 uppercase tracking-wider mt-1">Faltas</span>
+                                  {data.faltasTiro > 0 && (
+                                   <span className="text-[8px] font-bold text-rose-500 uppercase tracking-wider mt-0.5">FT: {data.faltasTiro}</span>
+                                  )}
                                 </div>
                                 {/* NEW PLUS MINUS SLOT IN CARD */}
                                 <div className={`flex flex-col items-center p-2 rounded-lg ${getPlusMinusBg(data.plusMinus)}`}>
@@ -353,6 +372,24 @@ const PlayerModal: React.FC<PlayerModalProps> = ({ player, equipoId, matchStats,
                                         {data.plusMinus !== null && data.plusMinus > 0 ? '+' : ''}{data.plusMinus ?? '-'}
                                    </span>
                                    <span className="text-[8px] font-bold text-slate-400 uppercase tracking-wider mt-1">+/-</span>
+                                </div>
+                              </div>
+
+                              <div className="grid grid-cols-3 gap-2 mt-2 relative z-10">
+                                <div className="flex flex-col items-center p-2 bg-amber-50/70 rounded-lg border border-amber-100">
+                                  <span className="text-sm font-black text-amber-700 leading-none">{stat.t1_anotados || 0}/{stat.t1_intentados || 0}</span>
+                                  <span className="text-[8px] font-bold text-amber-600 uppercase tracking-wider mt-1">T1</span>
+                                  <span className="text-[8px] font-bold text-amber-700 mt-0.5">{(stat.t1_intentados || 0) > 0 ? `${t1Pct.toFixed(0)}%` : '-'}</span>
+                                </div>
+                                <div className="flex flex-col items-center p-2 bg-sky-50/70 rounded-lg border border-sky-100">
+                                    <span className="text-lg font-black text-sky-700 leading-none">{stat.t2_anotados || 0}</span>
+                                  <span className="text-[8px] font-bold text-sky-600 uppercase tracking-wider mt-1">T2</span>
+                                    <span className="text-[8px] font-bold text-sky-700 mt-0.5">Anotados</span>
+                                </div>
+                                <div className="flex flex-col items-center p-2 bg-violet-50/70 rounded-lg border border-violet-100">
+                                    <span className="text-lg font-black text-violet-700 leading-none">{stat.t3_anotados || 0}</span>
+                                  <span className="text-[8px] font-bold text-violet-600 uppercase tracking-wider mt-1">T3</span>
+                                    <span className="text-[8px] font-bold text-violet-700 mt-0.5">Anotados</span>
                                 </div>
                               </div>
                             </div>
