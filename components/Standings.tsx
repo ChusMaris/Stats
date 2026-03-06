@@ -140,13 +140,13 @@ const Standings: React.FC<StandingsProps> = ({ equipos, partidos, esMini, onSele
           <tr>
             <th className="pl-4 pr-2 py-4 text-left w-1 whitespace-nowrap rounded-tl-lg">Pos</th>
             <th className="px-4 py-4">Equipo</th>
-            <th className="px-4 py-4 text-center">PTS</th>
             <th className="px-4 py-4 text-center">PJ</th>
             <th className="px-4 py-4 text-center">PG</th>
             <th className="px-4 py-4 text-center">PP</th>
             <th className="px-4 py-4 text-center">PF</th>
             <th className="px-4 py-4 text-center">PC</th>
-            <th className="px-4 py-4 text-center rounded-tr-lg">DIF</th>
+            <th className="px-4 py-4 text-center">DIF</th>
+            <th className="px-4 py-4 text-center rounded-tr-lg">PTS</th>
           </tr>
         </thead>
         <tbody>
@@ -167,13 +167,13 @@ const Standings: React.FC<StandingsProps> = ({ equipos, partidos, esMini, onSele
                 </div>
                 <span className="truncate max-w-[120px] sm:max-w-[200px] md:max-w-xs uppercase tracking-tight font-bold text-slate-700">{team.nombre}</span>
               </td>
-              <td className="px-4 py-4 text-center font-bold">{team.puntos}</td>
               <td className="px-4 py-4 text-center">{team.pj}</td>
               <td className="px-4 py-4 text-center text-green-600 font-bold">{team.pg}</td>
               <td className="px-4 py-4 text-center text-red-600 font-bold">{team.pp}</td>
               <td className="px-4 py-4 text-center text-gray-500">{team.pf}</td>
               <td className="px-4 py-4 text-center text-gray-500">{team.pc}</td>
               <td className="px-4 py-4 text-center text-gray-500">{team.diff}</td>
+              <td className="px-4 py-4 text-center font-bold">{team.puntos}</td>
             </tr>
           ))}
           {standings.length === 0 && (
