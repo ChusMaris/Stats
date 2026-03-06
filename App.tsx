@@ -223,22 +223,22 @@ const AppContent: React.FC = () => {
       <div className="sticky top-0 z-40 bg-white shadow-md flex flex-col transition-all duration-300">
         
         {/* Navbar - No Sticky here, strictly relative to wrapper */}
-        <header className={`bg-fcbq-blue text-white transition-all duration-300 ${isScrolled ? 'py-2' : 'py-4'}`}>
+        <header className={`bg-fcbq-blue text-white transition-all duration-300 ${isScrolled ? 'py-2 md:py-2' : 'py-2 md:py-4'}`}>
             <div className="container mx-auto px-4">
                 <div className="flex items-center justify-between">
                     {/* LOGO AREA */}
                     <div 
-                        className="flex items-center gap-3 overflow-hidden cursor-pointer select-none active:opacity-80"
+                className="flex items-center gap-2 md:gap-3 overflow-hidden cursor-pointer select-none active:opacity-80"
                         onClick={handleSecretClick}
                     >
                         <div 
-                        className={`bg-white rounded-full flex items-center justify-center text-fcbq-blue font-bold border-2 transition-all duration-300 overflow-hidden ${isAdmin ? 'border-green-400 shadow-[0_0_10px_rgba(74,222,128,0.5)]' : 'border-fcbq-accent'} ${isScrolled ? 'w-8 h-8 text-base' : 'w-10 h-10 text-xl'}`}
+                className={`bg-white rounded-full flex items-center justify-center text-fcbq-blue font-bold border-2 transition-all duration-300 overflow-hidden ${isAdmin ? 'border-green-400 shadow-[0_0_10px_rgba(74,222,128,0.5)]' : 'border-fcbq-accent'} ${isScrolled ? 'w-8 h-8 text-base md:w-8 md:h-8 md:text-base' : 'w-8 h-8 text-base md:w-10 md:h-10 md:text-xl'}`}
                         >
-                            <span className={isScrolled ? 'text-base' : 'text-xl'}>B</span>
+                  <span className={isScrolled ? 'text-base md:text-base' : 'text-base md:text-xl'}>B</span>
                         </div>
                         
                         <div className="flex flex-col justify-center">
-                            <h1 className="text-lg md:text-2xl font-bold tracking-tight animate-fade-in flex items-center gap-2">
+                  <h1 className="text-base md:text-2xl font-bold tracking-tight animate-fade-in flex items-center gap-1.5 md:gap-2 leading-none">
                                 Brafa Stats
                                 {isAdmin && <Unlock size={14} className="text-green-400 opacity-70" />}
                             </h1>
@@ -249,17 +249,17 @@ const AppContent: React.FC = () => {
                     <nav className="flex items-center gap-1 md:gap-2">
                         <NavLink 
                             to="/" 
-                            className={({ isActive }) => `flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-bold transition-all ${isActive ? 'bg-white text-fcbq-blue shadow-sm' : 'text-blue-100 hover:bg-white/10'}`}
+                  className={({ isActive }) => `flex items-center gap-1 md:gap-2 px-2 py-1.5 md:px-3 md:py-2 rounded-md md:rounded-lg text-xs md:text-sm font-bold transition-all ${isActive ? 'bg-white text-fcbq-blue shadow-sm' : 'text-blue-100 hover:bg-white/10'}`}
                         >
-                            <BarChart3 size={18} />
+                  <BarChart3 size={16} />
                             <span className="hidden md:inline">Estadísticas</span>
                         </NavLink>
                         
                         <NavLink 
                             to="/match-center" 
-                            className={({ isActive }) => `flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-bold transition-all ${isActive ? 'bg-white text-fcbq-blue shadow-sm' : 'text-blue-100 hover:bg-white/10'}`}
+                  className={({ isActive }) => `flex items-center gap-1 md:gap-2 px-2 py-1.5 md:px-3 md:py-2 rounded-md md:rounded-lg text-xs md:text-sm font-bold transition-all ${isActive ? 'bg-white text-fcbq-blue shadow-sm' : 'text-blue-100 hover:bg-white/10'}`}
                         >
-                            <CalendarDays size={18} />
+                  <CalendarDays size={16} />
                             <span className="hidden md:inline">Match Center</span>
                         </NavLink>
                     </nav>

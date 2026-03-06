@@ -449,13 +449,20 @@ const TeamStats: React.FC<TeamStatsProps> = ({ equipoId, matches, plantilla, sta
                           <tr className={`hover:bg-blue-50/50 cursor-pointer transition group ${isExpanded ? 'bg-blue-50/40' : ''}`} onClick={() => togglePlayerExpansion(player.jugadorId)}>
                             <td className="px-4 py-4 text-center text-gray-400 font-mono text-xl">{player.dorsal}</td>
                             <td className="px-4 py-4">
-                              <div className="flex items-center gap-4">
+                              <div className="flex items-center gap-2 md:gap-4">
                                 <div className="w-10 h-10 rounded-full bg-gray-100 overflow-hidden border border-gray-100 shrink-0">
                                   <img src={player.fotoUrl || "https://image.singular.live/fit-in/450x450/filters:format(webp)/0d62960e1109063fb6b062e758907fb1/images/41uEQx58oj4zwPoOkM6uEO_w585h427.png"} className="w-full h-full object-cover" alt={player.nombre} />
                                 </div>
-                                <div className="flex flex-col">
-                                  <span className="font-semibold text-gray-700 uppercase tracking-tight group-hover:text-fcbq-blue transition-colors text-xs md:text-sm">{player.nombre}</span>
-                                  <span className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold">{isExpanded ? 'Ocultar partidos' : 'Ver partidos'}</span>
+                                <div className="flex flex-col min-w-0">
+                                  <span
+                                    title={player.nombre}
+                                    className="font-semibold text-gray-700 uppercase tracking-tight group-hover:text-fcbq-blue transition-colors text-[11px] md:text-sm leading-tight truncate whitespace-nowrap max-w-[120px] sm:max-w-[170px] md:max-w-none"
+                                  >
+                                    {player.nombre}
+                                  </span>
+                                  <span className="hidden md:block text-[10px] uppercase tracking-wider text-slate-400 font-semibold whitespace-nowrap">
+                                    {isExpanded ? 'Ocultar partidos' : 'Ver partidos'}
+                                  </span>
                                 </div>
                               </div>
                             </td>

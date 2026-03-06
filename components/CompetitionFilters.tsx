@@ -51,39 +51,35 @@ const CompetitionFilters: React.FC<CompetitionFiltersProps> = ({
     // Obtener nombres para el modo colapsado
     const currentCatName = categorias.find(c => c.id.toString() === selectedCategoria)?.nombre;
     const currentCompName = competiciones.find(c => c.id.toString() === selectedCompeticion)?.nombre;
-    const collapsedContainerPadding = 'py-2';
+    const collapsedContainerPadding = 'py-1.5';
 
     // No 'sticky' logic here anymore. This component just renders content.
     // The sticky behavior is handled by the parent wrapper in App.tsx.
 
     return (
-        <div className={`bg-white transition-all duration-300 ease-in-out relative ${isExpanded ? 'border-b border-gray-200 py-6' : `border-b border-gray-100 ${collapsedContainerPadding}`}`}>
+        <div className={`bg-white transition-all duration-300 ease-in-out relative ${isExpanded ? 'border-b border-gray-200 py-4 md:py-6' : `border-b border-gray-100 ${collapsedContainerPadding}`}`}>
             
             {/* --- MODO COLAPSADO (HEADER COMPACTO) --- */}
             {!isExpanded && selectedCompeticion && (
                 <div className="container mx-auto px-4 animate-fade-in">
-                    <div className="flex flex-row items-center justify-between gap-3">
-                        {/* Título y Breadcrumbs */}
-                        <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-1.5 mb-1 overflow-hidden">
-                                {currentCatName && (
-                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 text-[10px] font-bold uppercase tracking-wide whitespace-nowrap">
-                                        <Layers size={10} />
-                                        {currentCatName}
-                                    </span>
-                                )}
-                            </div>
-                            <div className="flex items-center gap-2">
-                                <h2 className="font-black text-slate-800 truncate leading-tight text-base md:text-lg">
-                                    {currentCompName}
-                                </h2>
-                            </div>
+                    <div className="flex flex-row items-center justify-between gap-2 md:gap-3">
+                        {/* Contexto compacto en una sola línea */}
+                        <div className="flex-1 min-w-0 flex items-center gap-1.5 md:gap-2 overflow-hidden">
+                            {currentCatName && (
+                                <span className="inline-flex items-center gap-1 px-1.5 md:px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 text-[9px] md:text-[10px] font-bold uppercase tracking-wide max-w-[120px] md:max-w-[220px] truncate shrink-0">
+                                    <Layers size={9} />
+                                    {currentCatName}
+                                </span>
+                            )}
+                            <h2 className="font-black text-slate-800 truncate leading-tight text-sm md:text-lg">
+                                {currentCompName}
+                            </h2>
                         </div>
 
                         {/* Botón para abrir filtros */}
                         <button 
                             onClick={() => setIsExpanded(true)}
-                            className="flex items-center justify-center gap-2 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg font-bold uppercase transition-all shrink-0 px-3 py-1.5 text-[10px]"
+                            className="flex items-center justify-center gap-1 md:gap-2 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg font-bold uppercase transition-all shrink-0 px-2.5 py-1 md:px-3 md:py-1.5 text-[10px]"
                         >
                             <Filter size={12} />
                             <span className="hidden md:inline">Cambiar Competición</span>
