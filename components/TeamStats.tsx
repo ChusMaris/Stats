@@ -508,23 +508,32 @@ const TeamStats: React.FC<TeamStatsProps> = ({ equipoId, matches, plantilla, sta
                                                 const visitorLogo = match?.equipo_visitante?.clubs?.logo_url;
                                                 const localName = match?.equipo_local?.nombre_especifico || 'Local';
                                                 const visitorName = match?.equipo_visitante?.nombre_especifico || 'Visitante';
+                                                const hasScore = match?.puntos_local !== null && match?.puntos_local !== undefined && match?.puntos_visitante !== null && match?.puntos_visitante !== undefined;
+                                                const scoreLabel = hasScore ? `${match?.puntos_local}-${match?.puntos_visitante}` : 'VS';
 
                                                 return (
-                                                  <div className="flex items-center gap-2 min-w-[180px]">
-                                                    <div className="w-5 h-5 rounded-full overflow-hidden bg-slate-100 border border-slate-200 shrink-0">
-                                                      {localLogo ? (
-                                                        <img src={localLogo} alt={localName} className="w-full h-full object-contain" />
-                                                      ) : (
-                                                        <div className="w-full h-full flex items-center justify-center text-[8px] font-bold text-slate-400">L</div>
-                                                      )}
-                                                    </div>
-                                                    <span className="text-[11px] text-slate-500 font-semibold">vs</span>
-                                                    <div className="w-5 h-5 rounded-full overflow-hidden bg-slate-100 border border-slate-200 shrink-0">
-                                                      {visitorLogo ? (
-                                                        <img src={visitorLogo} alt={visitorName} className="w-full h-full object-contain" />
-                                                      ) : (
-                                                        <div className="w-full h-full flex items-center justify-center text-[8px] font-bold text-slate-400">V</div>
-                                                      )}
+                                                  <div className="min-w-[180px]">
+                                                    <div className="flex items-center gap-2">
+                                                      <div className="w-5 h-5 rounded-full overflow-hidden bg-slate-100 border border-slate-200 shrink-0">
+                                                        {localLogo ? (
+                                                          <img src={localLogo} alt={localName} className="w-full h-full object-contain" />
+                                                        ) : (
+                                                          <div className="w-full h-full flex items-center justify-center text-[8px] font-bold text-slate-400">L</div>
+                                                        )}
+                                                      </div>
+                                                      <span
+                                                        aria-label={`Resultado: ${scoreLabel}`}
+                                                        className={`inline-flex items-center justify-center min-w-[40px] px-1.5 py-0.5 rounded-md text-[10px] font-bold border ${hasScore ? 'bg-slate-100 text-slate-700 border-slate-200' : 'bg-slate-50 text-slate-500 border-slate-200'}`}
+                                                      >
+                                                        {scoreLabel}
+                                                      </span>
+                                                      <div className="w-5 h-5 rounded-full overflow-hidden bg-slate-100 border border-slate-200 shrink-0">
+                                                        {visitorLogo ? (
+                                                          <img src={visitorLogo} alt={visitorName} className="w-full h-full object-contain" />
+                                                        ) : (
+                                                          <div className="w-full h-full flex items-center justify-center text-[8px] font-bold text-slate-400">V</div>
+                                                        )}
+                                                      </div>
                                                     </div>
                                                   </div>
                                                 );
@@ -536,8 +545,8 @@ const TeamStats: React.FC<TeamStatsProps> = ({ equipoId, matches, plantilla, sta
                                               {(item.mas_menos || 0) > 0 ? '+' : ''}{item.mas_menos || 0}
                                             </td>
                                             <td className="px-4 py-2.5 text-center text-slate-600">{item.t1_anotados || 0}/{item.t1_intentados || 0}</td>
-                                            <td className="px-4 py-2.5 text-center text-slate-600">{item.t2_anotados || 0}/{item.t2_intentados || 0}</td>
-                                            <td className="px-4 py-2.5 text-center text-slate-600">{item.t3_anotados || 0}/{item.t3_intentados || 0}</td>
+                                            <td className="px-4 py-2.5 text-center text-slate-600">{item.t2_anotados || 0}</td>
+                                            <td className="px-4 py-2.5 text-center text-slate-600">{item.t3_anotados || 0}</td>
                                           </tr>
                                         ))}
                                       </tbody>

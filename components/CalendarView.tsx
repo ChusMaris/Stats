@@ -51,6 +51,7 @@ const MiniDonut = ({ value, size = 40 }: { value: number, size?: number }) => {
 
 const CalendarView: React.FC<CalendarViewProps> = ({ matches, competicionId, equipos }) => {
   const [analysis, setAnalysis] = useState<{ [key: string]: ScoutingReport }>({});
+    const [analysisErrors, setAnalysisErrors] = useState<{ [key: string]: string }>({});
   const [loadingAnalysis, setLoadingAnalysis] = useState<string | null>(null);
   const [visibleReport, setVisibleReport] = useState<string | null>(null);
   
@@ -94,13 +95,27 @@ const CalendarView: React.FC<CalendarViewProps> = ({ matches, competicionId, equ
     }
 
     setLoadingAnalysis(key);
+        setAnalysisErrors(prev => {
+            const next = { ...prev };
+            delete next[key];
+            return next;
+        });
     try {
         // Pass both team ID and Rival ID to generate comparative analysis
         const report = await getTeamScoutingReport(competicionId, teamId, rivalId);
         setAnalysis(prev => ({ ...prev, [key]: report }));
+                setAnalysisErrors(prev => {
+                    const next = { ...prev };
+                    delete next[key];
+                    return next;
+                });
         setVisibleReport(key);
-    } catch (error) {
+        } catch (error: any) {
         console.error("Error analyzing match", error);
+                setAnalysisErrors(prev => ({
+                    ...prev,
+                    [key]: error?.message || 'No se pudo analizar el partido. Intenta de nuevo.'
+                }));
     } finally {
         setLoadingAnalysis(null);
     }
@@ -261,6 +276,11 @@ const CalendarView: React.FC<CalendarViewProps> = ({ matches, competicionId, equ
                                     />
                                 )}
                                 {loadingAnalysis === (match.id + '_local') && <AnalysisLoader />}
+                                {analysisErrors[match.id + '_local'] && (
+                                    <div className="bg-red-50 border border-red-200 rounded-lg px-3 py-2 text-xs text-red-700">
+                                        {analysisErrors[match.id + '_local']}
+                                    </div>
+                                )}
 
                                 {/* Visitor Analysis View */}
                                 {visibleReport === (match.id + '_visitor') && analysis[match.id + '_visitor'] && (
@@ -272,6 +292,11 @@ const CalendarView: React.FC<CalendarViewProps> = ({ matches, competicionId, equ
                                     />
                                 )}
                                 {loadingAnalysis === (match.id + '_visitor') && <AnalysisLoader />}
+                                {analysisErrors[match.id + '_visitor'] && (
+                                    <div className="bg-red-50 border border-red-200 rounded-lg px-3 py-2 text-xs text-red-700">
+                                        {analysisErrors[match.id + '_visitor']}
+                                    </div>
+                                )}
 
                                 {!visibleReport && (
                                     <div className="text-center mt-2 opacity-60 hover:opacity-100 transition-opacity">

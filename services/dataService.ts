@@ -906,7 +906,7 @@ export const getTeamScoutingReport = async (competicionId: number | string, equi
     // 1. Fetch Basic Info
     const { data: team, error: teamError } = await supabase
         .from('equipos')
-        .select('*, clubs(*)')
+        .select('*, clubs:clubs!equipos_club_id_fkey(*)')
         .eq('id', equipoId)
         .single();
     
@@ -926,20 +926,36 @@ export const getTeamScoutingReport = async (competicionId: number | string, equi
     // Filter stats for this specific team
     const { stats, plantilla } = await fetchTeamStats(competicionId, equipoId);
 
+    const plantillaPlayerIds = new Set((plantilla || []).map((p: any) => String(p.jugador_id)));
+    const teamStatsOnly = (stats || []).filter((s: any) => {
+        const playerId = String(s.jugador_id);
+        if (plantillaPlayerIds.size > 0) {
+            return plantillaPlayerIds.has(playerId);
+        }
+        if (s.equipo_id !== undefined && s.equipo_id !== null) {
+            return String(s.equipo_id) === String(equipoId);
+        }
+        return true;
+    });
+
     // 3. Calculate Team Aggregates
-    const aggregates = calculateTeamAggregates(realMatches, stats, plantilla, equipoId);
+    const aggregates = calculateTeamAggregates(realMatches, teamStatsOnly, plantilla, equipoId);
 
     // 4. Identify Key Players
     const playerStats: Record<string, PlayerAggregatedStats> = {};
     
-    stats.forEach((s: any) => {
+    teamStatsOnly.forEach((s: any) => {
         const pid = String(s.jugador_id);
         if (!playerStats[pid]) {
             const pInfo = plantilla.find(p => String(p.jugador_id) === pid);
+            const jugadorInfo = pInfo?.jugadores || {};
+            const fullNameFromParts = [jugadorInfo?.nombre, jugadorInfo?.apellido].filter(Boolean).join(' ').trim();
+            const displayName = fullNameFromParts || jugadorInfo?.nombre_completo || jugadorInfo?.name || `Jugador ${pid.slice(0, 8)}`;
             playerStats[pid] = {
                 jugadorId: pid,
-                nombre: `${pInfo?.jugadores?.nombre || 'Unknown'} ${pInfo?.jugadores?.apellido || ''}`.trim(),
+                nombre: displayName,
                 dorsal: String(pInfo?.dorsal || '0'),
+                fotoUrl: jugadorInfo?.foto_url || jugadorInfo?.fotoUrl,
                 partidosJugados: 0,
                 totalPuntos: 0,
                 ppg: 0,
@@ -1000,9 +1016,91 @@ export const getTeamScoutingReport = async (competicionId: number | string, equi
         ps.parallelStats = parallelContext[String(ps.jugadorId)];
     });
 
+    let matchAnalysis: ScoutingReport['matchAnalysis'] | undefined;
+
+    if (rivalId !== undefined && rivalId !== null) {
+        const { stats: rivalStatsRaw, plantilla: rivalPlantilla } = await fetchTeamStats(competicionId, rivalId);
+        const rivalPlantillaIds = new Set((rivalPlantilla || []).map((p: any) => String(p.jugador_id)));
+        const rivalStatsOnly = (rivalStatsRaw || []).filter((s: any) => {
+            const playerId = String(s.jugador_id);
+            if (rivalPlantillaIds.size > 0) {
+                return rivalPlantillaIds.has(playerId);
+            }
+            if (s.equipo_id !== undefined && s.equipo_id !== null) {
+                return String(s.equipo_id) === String(rivalId);
+            }
+            return true;
+        });
+
+        const rivalAggregates = calculateTeamAggregates(realMatches, rivalStatsOnly, rivalPlantilla, rivalId);
+
+        const rivalPlayerStats: Record<string, { nombre: string; partidosJugados: number; totalPuntos: number; ppg: number }> = {};
+        rivalStatsOnly.forEach((s: any) => {
+            const pid = String(s.jugador_id);
+            if (!rivalPlayerStats[pid]) {
+                const pInfo = (rivalPlantilla || []).find((p: any) => String(p.jugador_id) === pid);
+                const jugadorInfo = pInfo?.jugadores || {};
+                const fullNameFromParts = [jugadorInfo?.nombre, jugadorInfo?.apellido].filter(Boolean).join(' ').trim();
+                rivalPlayerStats[pid] = {
+                    nombre: fullNameFromParts || jugadorInfo?.nombre_completo || jugadorInfo?.name || `Jugador ${pid.slice(0, 8)}`,
+                    partidosJugados: 0,
+                    totalPuntos: 0,
+                    ppg: 0
+                };
+            }
+            rivalPlayerStats[pid].partidosJugados += 1;
+            rivalPlayerStats[pid].totalPuntos += (s.puntos || 0);
+        });
+
+        Object.values(rivalPlayerStats).forEach((p) => {
+            p.ppg = p.partidosJugados > 0 ? p.totalPuntos / p.partidosJugados : 0;
+        });
+
+        const rivalTopScorer = Object.values(rivalPlayerStats).sort((a, b) => b.ppg - a.ppg)[0] || null;
+
+        const myProjected = aggregates && rivalAggregates ? ((aggregates.avgPoints + rivalAggregates.avgPointsAgainst) / 2) : null;
+        const rivalProjected = aggregates && rivalAggregates ? ((rivalAggregates.avgPoints + aggregates.avgPointsAgainst) / 2) : null;
+
+        const projectionGap = (myProjected !== null && rivalProjected !== null)
+            ? myProjected - rivalProjected
+            : null;
+
+        const prediction = (myProjected !== null && rivalProjected !== null)
+            ? (myProjected >= rivalProjected
+                ? `${team.nombre_especifico} parte con ligera ventaja (${myProjected.toFixed(1)} - ${rivalProjected.toFixed(1)}). Si mantiene el ritmo de anotación y cierra su aro, debería llegar con opciones al final.`
+                : `${team.nombre_especifico} llega como underdog (${myProjected.toFixed(1)} - ${rivalProjected.toFixed(1)}). El plan pasa por bajar el ritmo y castigar cada pérdida rival.`)
+            : 'Pronóstico abierto: partido de detalles, ejecución en media pista y control emocional en los últimos minutos.';
+
+        const keyMatchup = topScorer && rivalTopScorer
+            ? `Emparejamiento crítico: ${topScorer.nombre} (${topScorer.ppg.toFixed(1)} ppp) contra ${rivalTopScorer.nombre} (${rivalTopScorer.ppg.toFixed(1)} ppp). Forzar recepciones lejos de ventaja puede inclinar el partido.`
+            : 'Duelo clave: contener al primer creador rival y asegurar rebote defensivo para cortar segundas opciones.';
+
+        const totalExpectedPoints = (myProjected || 0) + (rivalProjected || 0);
+        const tempoAnalysis = totalExpectedPoints > 145
+            ? `Ritmo alto previsto (${totalExpectedPoints.toFixed(0)} pts combinados). Prioridad: balance defensivo inmediato y buena toma de decisiones en transición.`
+            : totalExpectedPoints > 125
+                ? `Ritmo medio previsto (${totalExpectedPoints.toFixed(0)} pts combinados). Clave táctica: calidad de bloqueos directos y disciplina en ayudas cortas.`
+                : `Ritmo bajo previsto (${totalExpectedPoints.toFixed(0)} pts combinados). Cada posesión pesa mucho: minimizar pérdidas y cargar el rebote ofensivo con criterio.`;
+
+        if (projectionGap !== null && Math.abs(projectionGap) < 3) {
+            matchAnalysis = {
+                prediction: `${prediction} Se espera final cerrado, con alto valor de las últimas 4-5 posesiones.`,
+                keyMatchup,
+                tempoAnalysis
+            };
+        } else {
+            matchAnalysis = {
+                prediction,
+                keyMatchup,
+                tempoAnalysis
+            };
+        }
+    }
+
     const insights: string[] = [];
     if (topScorer) insights.push(`El máximo anotador es ${topScorer.nombre} con ${topScorer.ppg.toFixed(1)} puntos por partido.`);
     if (aggregates) insights.push(`El equipo anota una media de ${aggregates.avgPoints.toFixed(1)} puntos y recibe ${aggregates.avgPointsAgainst.toFixed(1)}.`);
+    if (foulMagnet) insights.push(`${foulMagnet.nombre} fuerza ${((foulMagnet.totalTirosLibresIntentados || 0) / Math.max(foulMagnet.partidosJugados || 1, 1)).toFixed(1)} tiros libres por partido.`);
 
     return {
         teamStats: {
@@ -1020,7 +1118,8 @@ export const getTeamScoutingReport = async (competicionId: number | string, equi
             badFreeThrowShooter: (badFreeThrowShooter && (badFreeThrowShooter.t1Pct || 0) < 50) ? badFreeThrowShooter : null
         },
         rosterStats: Object.values(playerStats).sort((a, b) => b.ppg - a.ppg),
-        insights
+        insights,
+        matchAnalysis
     };
 };
 

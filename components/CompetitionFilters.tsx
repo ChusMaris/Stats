@@ -1,6 +1,6 @@
 
 import React, { useMemo } from 'react';
-import { ChevronDown, ChevronUp, Loader2, Filter, Calendar, Layers } from 'lucide-react';
+import { ChevronDown, ChevronUp, Loader2, Filter, Layers } from 'lucide-react';
 import { Temporada, Categoria, Competicion } from '../types';
 
 interface CompetitionFiltersProps {
@@ -49,15 +49,15 @@ const CompetitionFilters: React.FC<CompetitionFiltersProps> = ({
     }, [competiciones, selectedFase]);
 
     // Obtener nombres para el modo colapsado
-    const currentTempName = temporadas.find(t => t.id.toString() === selectedTemporada)?.nombre;
     const currentCatName = categorias.find(c => c.id.toString() === selectedCategoria)?.nombre;
     const currentCompName = competiciones.find(c => c.id.toString() === selectedCompeticion)?.nombre;
+    const collapsedContainerPadding = 'py-2';
 
     // No 'sticky' logic here anymore. This component just renders content.
     // The sticky behavior is handled by the parent wrapper in App.tsx.
 
     return (
-        <div className={`bg-white transition-all duration-300 ease-in-out relative ${isExpanded ? 'border-b border-gray-200 py-6' : `border-b border-gray-100 ${isScrolled ? 'py-2' : 'py-3'}`}`}>
+        <div className={`bg-white transition-all duration-300 ease-in-out relative ${isExpanded ? 'border-b border-gray-200 py-6' : `border-b border-gray-100 ${collapsedContainerPadding}`}`}>
             
             {/* --- MODO COLAPSADO (HEADER COMPACTO) --- */}
             {!isExpanded && selectedCompeticion && (
@@ -65,18 +65,16 @@ const CompetitionFilters: React.FC<CompetitionFiltersProps> = ({
                     <div className="flex flex-row items-center justify-between gap-3">
                         {/* Título y Breadcrumbs */}
                         <div className="flex-1 min-w-0">
-                            {/* Ocultamos las migas de pan al hacer scroll para ahorrar espacio y evitar sobrecarga visual */}
-                            {!isScrolled && (
-                                <div className="flex items-center gap-2 text-[10px] md:text-xs font-bold text-slate-400 uppercase tracking-wider mb-0.5 transition-all">
-                                    <span className="flex items-center gap-1"><Calendar size={10} /> {currentTempName}</span>
-                                    <span className="text-slate-300">•</span>
-                                    <span className="flex items-center gap-1"><Layers size={10} /> {currentCatName}</span>
-                                </div>
-                            )}
-                            
+                            <div className="flex items-center gap-1.5 mb-1 overflow-hidden">
+                                {currentCatName && (
+                                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 text-[10px] font-bold uppercase tracking-wide whitespace-nowrap">
+                                        <Layers size={10} />
+                                        {currentCatName}
+                                    </span>
+                                )}
+                            </div>
                             <div className="flex items-center gap-2">
-                                {!isScrolled && <div className="h-6 w-1.5 bg-fcbq-accent rounded-full shrink-0 transition-all"></div>}
-                                <h2 className={`font-black text-slate-800 truncate leading-tight transition-all ${isScrolled ? 'text-base md:text-lg' : 'text-lg md:text-2xl'}`}>
+                                <h2 className="font-black text-slate-800 truncate leading-tight text-base md:text-lg">
                                     {currentCompName}
                                 </h2>
                             </div>
@@ -85,9 +83,9 @@ const CompetitionFilters: React.FC<CompetitionFiltersProps> = ({
                         {/* Botón para abrir filtros */}
                         <button 
                             onClick={() => setIsExpanded(true)}
-                            className={`flex items-center justify-center gap-2 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg font-bold uppercase transition-all shrink-0 ${isScrolled ? 'px-3 py-1.5 text-[10px]' : 'px-4 py-2 text-xs'}`}
+                            className="flex items-center justify-center gap-2 bg-slate-100 hover:bg-slate-200 text-slate-600 rounded-lg font-bold uppercase transition-all shrink-0 px-3 py-1.5 text-[10px]"
                         >
-                            <Filter size={isScrolled ? 12 : 14} />
+                            <Filter size={12} />
                             <span className="hidden md:inline">Cambiar Competición</span>
                             <span className="md:hidden">Filtros</span>
                         </button>
@@ -122,10 +120,10 @@ const CompetitionFilters: React.FC<CompetitionFiltersProps> = ({
                                 <select
                                     value={selectedTemporada}
                                     onChange={(e) => onTemporadaChange(e.target.value)}
-                                    className="bg-slate-50 border border-slate-200 text-gray-700 text-sm rounded-lg focus:ring-fcbq-blue focus:border-fcbq-blue block w-full p-2.5 appearance-none shadow-sm font-medium transition-colors hover:bg-slate-100 cursor-pointer"
+                                    className="bg-slate-50 border border-slate-200 text-gray-700 text-base md:text-sm rounded-lg focus:ring-fcbq-blue focus:border-fcbq-blue block w-full p-2.5 appearance-none shadow-sm font-medium transition-colors hover:bg-slate-100 cursor-pointer"
                                 >
-                                    <option value="" disabled>SELECCIONAR...</option>
-                                    {temporadas.map(t => <option key={t.id} value={t.id}>{t.nombre}</option>)}
+                                    <option value="" disabled className="text-base">SELECCIONAR...</option>
+                                    {temporadas.map(t => <option key={t.id} value={t.id} className="text-base">{t.nombre}</option>)}
                                 </select>
                                 <ChevronDown className="absolute right-3 top-3 text-gray-400 pointer-events-none" size={16} />
                             </div>
@@ -138,11 +136,11 @@ const CompetitionFilters: React.FC<CompetitionFiltersProps> = ({
                                 <select
                                     value={selectedCategoria}
                                     onChange={(e) => onCategoriaChange(e.target.value)}
-                                    className="bg-slate-50 border border-slate-200 text-gray-700 text-sm rounded-lg focus:ring-fcbq-blue focus:border-fcbq-blue block w-full p-2.5 appearance-none shadow-sm font-medium transition-colors hover:bg-slate-100 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                                    className="bg-slate-50 border border-slate-200 text-gray-700 text-base md:text-sm rounded-lg focus:ring-fcbq-blue focus:border-fcbq-blue block w-full p-2.5 appearance-none shadow-sm font-medium transition-colors hover:bg-slate-100 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                                     disabled={!selectedTemporada}
                                 >
-                                    <option value="" disabled>SELECCIONAR CATEGORÍA</option>
-                                    {categorias.map(c => <option key={c.id} value={c.id}>{c.nombre}</option>)}
+                                    <option value="" disabled className="text-base">SELECCIONAR CATEGORÍA</option>
+                                    {categorias.map(c => <option key={c.id} value={c.id} className="text-base">{c.nombre}</option>)}
                                 </select>
                                 <ChevronDown className="absolute right-3 top-3 text-gray-400 pointer-events-none" size={16} />
                             </div>
@@ -155,12 +153,12 @@ const CompetitionFilters: React.FC<CompetitionFiltersProps> = ({
                                 <select
                                     value={selectedFase}
                                     onChange={(e) => onFaseChange(e.target.value)}
-                                    className="bg-slate-50 border border-slate-200 text-gray-700 text-sm rounded-lg focus:ring-fcbq-blue focus:border-fcbq-blue block w-full p-2.5 appearance-none shadow-sm font-medium transition-colors hover:bg-slate-100 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                                    className="bg-slate-50 border border-slate-200 text-gray-700 text-base md:text-sm rounded-lg focus:ring-fcbq-blue focus:border-fcbq-blue block w-full p-2.5 appearance-none shadow-sm font-medium transition-colors hover:bg-slate-100 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                                     disabled={!selectedCategoria}
                                 >
-                                    <option value="">TODAS LAS FASES</option>
-                                    <option value="Primera Fase">PRIMERA FASE</option>
-                                    <option value="Segona Fase">SEGONA FASE</option>
+                                    <option value="" className="text-base">TODAS LAS FASES</option>
+                                    <option value="Primera Fase" className="text-base">PRIMERA FASE</option>
+                                    <option value="Segona Fase" className="text-base">SEGONA FASE</option>
                                 </select>
                                 <ChevronDown className="absolute right-3 top-3 text-gray-400 pointer-events-none" size={16} />
                             </div>
@@ -173,14 +171,14 @@ const CompetitionFilters: React.FC<CompetitionFiltersProps> = ({
                                 <select
                                     value={selectedCompeticion}
                                     onChange={(e) => onCompeticionChange(e.target.value)}
-                                    className={`border text-sm rounded-lg block w-full p-2.5 appearance-none shadow-sm font-bold transition-all cursor-pointer ${selectedCompeticion ? 'bg-fcbq-blue text-white border-fcbq-blue' : 'bg-slate-50 border-slate-200 text-gray-700 hover:bg-slate-100'} disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-gray-400`}
+                                    className={`border text-base md:text-sm rounded-lg block w-full p-2.5 appearance-none shadow-sm font-bold transition-all cursor-pointer ${selectedCompeticion ? 'bg-fcbq-blue text-white border-fcbq-blue' : 'bg-slate-50 border-slate-200 text-gray-700 hover:bg-slate-100'} disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-gray-400`}
                                     disabled={loadingCompetitions || !selectedTemporada || !selectedCategoria}
                                 >
-                                    <option value="" disabled className="text-gray-500 bg-white">
+                                    <option value="" disabled className="text-base text-gray-500 bg-white">
                                         {loadingCompetitions ? 'CARGANDO...' : (!selectedTemporada || !selectedCategoria ? 'SELECCIONA FILTROS PREVIOS' : 'SELECCIONAR COMPETICIÓN')}
                                     </option>
-                                    {!loadingCompetitions && filteredCompeticiones.length === 0 && selectedCategoria && <option value="" disabled className="bg-white text-gray-800">SIN RESULTADOS</option>}
-                                    {filteredCompeticiones.map(c => <option key={c.id} value={c.id} className="bg-white text-gray-800">{c.nombre}</option>)}
+                                    {!loadingCompetitions && filteredCompeticiones.length === 0 && selectedCategoria && <option value="" disabled className="text-base bg-white text-gray-800">SIN RESULTADOS</option>}
+                                    {filteredCompeticiones.map(c => <option key={c.id} value={c.id} className="text-base bg-white text-gray-800">{c.nombre}</option>)}
                                 </select>
                                 <div className="absolute inset-y-0 right-0 flex items-center px-3 pointer-events-none">
                                     {loadingCompetitions ? (

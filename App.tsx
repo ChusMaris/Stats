@@ -56,6 +56,7 @@ const AppContent: React.FC = () => {
   // --- UI State ---
   const [isFilterExpanded, setIsFilterExpanded] = useState(true);
   const [isScrolled, setIsScrolled] = useState(false);
+  const isScrolledRef = useRef(false);
 
   // --- Global Data State ---
   const [isLoading, setIsLoading] = useState(false);
@@ -85,11 +86,49 @@ const AppContent: React.FC = () => {
 
   // --- Scroll Listener ---
   useEffect(() => {
-    const handleScroll = () => {
-      setIsScrolled(window.scrollY > 50);
+    let rafId: number | null = null;
+
+    // Hysteresis avoids oscillation/flicker when sticky header height changes near the threshold.
+    const MOBILE_ENTER_THRESHOLD = 92;
+    const MOBILE_LEAVE_THRESHOLD = 36;
+    const DESKTOP_ENTER_THRESHOLD = 72;
+    const DESKTOP_LEAVE_THRESHOLD = 28;
+
+    const updateScrollState = () => {
+      const y = window.scrollY || 0;
+      const isMobile = window.innerWidth < 768;
+
+      const enterThreshold = isMobile ? MOBILE_ENTER_THRESHOLD : DESKTOP_ENTER_THRESHOLD;
+      const leaveThreshold = isMobile ? MOBILE_LEAVE_THRESHOLD : DESKTOP_LEAVE_THRESHOLD;
+
+      const next = isScrolledRef.current
+        ? y > leaveThreshold
+        : y > enterThreshold;
+
+      if (next !== isScrolledRef.current) {
+        isScrolledRef.current = next;
+        setIsScrolled(next);
+      }
+
+      rafId = null;
     };
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
+
+    const handleScroll = () => {
+      if (rafId !== null) return;
+      rafId = window.requestAnimationFrame(updateScrollState);
+    };
+
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    window.addEventListener('resize', handleScroll, { passive: true });
+    handleScroll();
+
+    return () => {
+      window.removeEventListener('scroll', handleScroll);
+      window.removeEventListener('resize', handleScroll);
+      if (rafId !== null) {
+        window.cancelAnimationFrame(rafId);
+      }
+    };
   }, []);
 
   // --- Auto-Collapse Filters when Competition Selected ---
