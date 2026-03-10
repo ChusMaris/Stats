@@ -297,7 +297,7 @@ const TeamStats: React.FC<TeamStatsProps> = ({ equipoId, matches, plantilla, sta
   );
 
   const TableHeader = ({ label, column, align = 'center' }: { label: string, column: keyof PlayerAggregatedStats | 't1Pct', align?: 'left' | 'center' }) => (
-    <th className={`px-4 py-3 cursor-pointer hover:bg-gray-50 transition-colors group ${align === 'center' ? 'text-center' : 'text-left'}`} onClick={() => handleSort(column)}>
+    <th className={`px-2 md:px-4 py-2 md:py-3 cursor-pointer hover:bg-gray-50 transition-colors group ${align === 'center' ? 'text-center' : 'text-left'}`} onClick={() => handleSort(column)}>
       <div className={`flex items-center ${align === 'center' ? 'justify-center' : 'justify-start'}`}>
         <span className={`${sortConfig.key === column ? 'text-fcbq-blue' : 'text-gray-400'} group-hover:text-gray-600`}>{label}</span>
         {sortConfig.key === column ? (sortConfig.direction === 'asc' ? <ChevronUp size={14} /> : <ChevronDown size={14} />) : <ArrowUpDown size={12} className="opacity-20" />}
@@ -416,8 +416,8 @@ const TeamStats: React.FC<TeamStatsProps> = ({ equipoId, matches, plantilla, sta
              </div>
 
              {playerViewMode === 'table' && (
-                <div className="overflow-x-auto animate-fade-in">
-                    <table className="w-full text-base text-left">
+               <div className="-mx-4 md:mx-0 overflow-x-auto animate-fade-in">
+                    <table className="w-full text-sm md:text-base text-left">
                     <thead className="text-[10px] text-gray-400 font-bold uppercase border-b bg-transparent sticky top-0 bg-white z-10">
                         <tr>
                             <TableHeader label="#" column="dorsal" />
@@ -447,8 +447,8 @@ const TeamStats: React.FC<TeamStatsProps> = ({ equipoId, matches, plantilla, sta
                         return (
                           <React.Fragment key={player.jugadorId}>
                           <tr className={`hover:bg-blue-50/50 cursor-pointer transition group ${isExpanded ? 'bg-blue-50/40' : ''}`} onClick={() => togglePlayerExpansion(player.jugadorId)}>
-                            <td className="px-4 py-4 text-center text-gray-400 font-mono text-xl">{player.dorsal}</td>
-                            <td className="px-4 py-4">
+                            <td className="px-2 md:px-4 py-2.5 md:py-4 text-center text-gray-400 font-mono text-base md:text-xl">{player.dorsal}</td>
+                            <td className="px-2 md:px-4 py-2.5 md:py-4">
                               <div className="flex items-center gap-2 md:gap-4">
                                 <div className="w-10 h-10 rounded-full bg-gray-100 overflow-hidden border border-gray-100 shrink-0">
                                   <img src={player.fotoUrl || "https://image.singular.live/fit-in/450x450/filters:format(webp)/0d62960e1109063fb6b062e758907fb1/images/41uEQx58oj4zwPoOkM6uEO_w585h427.png"} className="w-full h-full object-cover" alt={player.nombre} />
@@ -466,24 +466,24 @@ const TeamStats: React.FC<TeamStatsProps> = ({ equipoId, matches, plantilla, sta
                                 </div>
                               </div>
                             </td>
-                            <td className="px-4 py-4 text-center text-gray-600 font-medium">{player.partidosJugados}</td>
-                            <td className="px-4 py-4 text-center"><span className="font-bold text-fcbq-blue text-lg">{player.ppg.toFixed(1)}</span></td>
-                            <td className="px-4 py-4 text-center text-gray-500">{player.mpg.toFixed(1)}</td>
-                            <td className="px-4 py-4 text-center text-gray-500">{player.ppm.toFixed(2)}</td>
-                            <td className="px-4 py-4 text-center text-gray-500">{player.fpg.toFixed(1)}</td>
-                            <td className={`px-4 py-4 text-center font-bold ${(player.avgMasMenos || 0) > 0 ? 'text-green-600' : (player.avgMasMenos || 0) < 0 ? 'text-red-500' : 'text-gray-400'}`}>
+                            <td className="px-2 md:px-4 py-2.5 md:py-4 text-center text-gray-600 font-medium">{player.partidosJugados}</td>
+                            <td className="px-2 md:px-4 py-2.5 md:py-4 text-center"><span className="font-bold text-fcbq-blue text-base md:text-lg">{player.ppg.toFixed(1)}</span></td>
+                            <td className="px-2 md:px-4 py-2.5 md:py-4 text-center text-gray-500">{player.mpg.toFixed(1)}</td>
+                            <td className="px-2 md:px-4 py-2.5 md:py-4 text-center text-gray-500">{player.ppm.toFixed(2)}</td>
+                            <td className="px-2 md:px-4 py-2.5 md:py-4 text-center text-gray-500">{player.fpg.toFixed(1)}</td>
+                            <td className={`px-2 md:px-4 py-2.5 md:py-4 text-center font-bold ${(player.avgMasMenos || 0) > 0 ? 'text-green-600' : (player.avgMasMenos || 0) < 0 ? 'text-red-500' : 'text-gray-400'}`}>
                               {(player.avgMasMenos || 0) > 0 ? '+' : ''}{(player.avgMasMenos || 0).toFixed(1)}
                             </td>
-                            <td className="px-4 py-4 flex justify-center">
+                            <td className="px-2 md:px-4 py-2.5 md:py-4 flex justify-center">
                               <MiniDonut value={(player as any).t1Pct} />
                             </td>
                           </tr>
 
                           {isExpanded && (
                             <tr className="bg-slate-50/60 animate-fade-in">
-                              <td className="px-4 pb-4" colSpan={9}>
+                              <td className="px-2 md:px-4 pb-3 md:pb-4" colSpan={9}>
                                 <div className="border border-slate-200 rounded-xl bg-white overflow-hidden">
-                                  <div className="px-4 py-3 bg-slate-50 border-b border-slate-100 text-[11px] font-bold uppercase tracking-wider text-slate-500">
+                                  <div className="px-2 md:px-4 py-2 md:py-3 bg-slate-50 border-b border-slate-100 text-[11px] font-bold uppercase tracking-wider text-slate-500">
                                     Desglose por partido
                                   </div>
 
@@ -491,24 +491,24 @@ const TeamStats: React.FC<TeamStatsProps> = ({ equipoId, matches, plantilla, sta
                                   <div className="px-4 py-5 text-sm text-slate-400 italic">Sin datos por partido.</div>
                                   ) : (
                                   <div className="overflow-x-auto">
-                                    <table className="w-full text-xs md:text-sm">
+                                    <table className="w-full text-[11px] md:text-sm">
                                       <thead className="bg-white text-slate-400 uppercase text-[10px] tracking-wider border-b border-slate-100">
                                         <tr>
-                                          <th className="px-4 py-2 text-left">Partido</th>
-                                          <th className="px-4 py-2 text-left">Equipos</th>
-                                          <th className="px-4 py-2 text-center">PTS</th>
-                                          <th className="px-4 py-2 text-center">MIN</th>
-                                          <th className="px-4 py-2 text-center">+/-</th>
-                                          <th className="px-4 py-2 text-center">T1</th>
-                                          <th className="px-4 py-2 text-center">T2</th>
-                                          <th className="px-4 py-2 text-center">T3</th>
+                                          <th className="px-2 md:px-4 py-1.5 md:py-2 text-left">Partido</th>
+                                          <th className="px-2 md:px-4 py-1.5 md:py-2 text-left">Equipos</th>
+                                          <th className="px-2 md:px-4 py-1.5 md:py-2 text-center">PTS</th>
+                                          <th className="px-2 md:px-4 py-1.5 md:py-2 text-center">MIN</th>
+                                          <th className="px-2 md:px-4 py-1.5 md:py-2 text-center">+/-</th>
+                                          <th className="px-2 md:px-4 py-1.5 md:py-2 text-center">T1</th>
+                                          <th className="px-2 md:px-4 py-1.5 md:py-2 text-center">T2</th>
+                                          <th className="px-2 md:px-4 py-1.5 md:py-2 text-center">T3</th>
                                         </tr>
                                       </thead>
                                       <tbody className="divide-y divide-slate-100">
                                         {playerMatchStats.map((item) => (
                                           <tr key={`${player.jugadorId}-${item.partido_id}`} className="hover:bg-blue-50/30 transition-colors">
-                                            <td className="px-4 py-2.5 font-semibold text-slate-600 whitespace-nowrap">{formatPartidoLabel(item.partido_id)}</td>
-                                            <td className="px-4 py-2.5">
+                                            <td className="px-2 md:px-4 py-2 md:py-2.5 font-semibold text-slate-600 whitespace-nowrap">{formatPartidoLabel(item.partido_id)}</td>
+                                            <td className="px-2 md:px-4 py-2 md:py-2.5">
                                               {(() => {
                                                 const match = getMatchById(item.partido_id);
                                                 const localLogo = match?.equipo_local?.clubs?.logo_url;
@@ -546,14 +546,14 @@ const TeamStats: React.FC<TeamStatsProps> = ({ equipoId, matches, plantilla, sta
                                                 );
                                               })()}
                                             </td>
-                                            <td className="px-4 py-2.5 text-center font-bold text-fcbq-blue">{item.puntos || 0}</td>
-                                            <td className="px-4 py-2.5 text-center text-slate-600">{formatTiempoPartido(item.tiempo_jugado)}</td>
-                                            <td className={`px-4 py-2.5 text-center font-bold ${(item.mas_menos || 0) > 0 ? 'text-green-600' : (item.mas_menos || 0) < 0 ? 'text-red-500' : 'text-slate-400'}`}>
+                                            <td className="px-2 md:px-4 py-2 md:py-2.5 text-center font-bold text-fcbq-blue">{item.puntos || 0}</td>
+                                            <td className="px-2 md:px-4 py-2 md:py-2.5 text-center text-slate-600">{formatTiempoPartido(item.tiempo_jugado)}</td>
+                                            <td className={`px-2 md:px-4 py-2 md:py-2.5 text-center font-bold ${(item.mas_menos || 0) > 0 ? 'text-green-600' : (item.mas_menos || 0) < 0 ? 'text-red-500' : 'text-slate-400'}`}>
                                               {(item.mas_menos || 0) > 0 ? '+' : ''}{item.mas_menos || 0}
                                             </td>
-                                            <td className="px-4 py-2.5 text-center text-slate-600">{item.t1_anotados || 0}/{item.t1_intentados || 0}</td>
-                                            <td className="px-4 py-2.5 text-center text-slate-600">{item.t2_anotados || 0}</td>
-                                            <td className="px-4 py-2.5 text-center text-slate-600">{item.t3_anotados || 0}</td>
+                                            <td className="px-2 md:px-4 py-2 md:py-2.5 text-center text-slate-600">{item.t1_anotados || 0}/{item.t1_intentados || 0}</td>
+                                            <td className="px-2 md:px-4 py-2 md:py-2.5 text-center text-slate-600">{item.t2_anotados || 0}</td>
+                                            <td className="px-2 md:px-4 py-2 md:py-2.5 text-center text-slate-600">{item.t3_anotados || 0}</td>
                                           </tr>
                                         ))}
                                       </tbody>

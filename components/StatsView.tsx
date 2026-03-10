@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import Standings from './Standings';
 import TeamStats from './TeamStats';
 import { fetchTeamStats } from '../services/dataService';
@@ -17,24 +17,69 @@ interface StatsViewProps {
 }
 
 const StatsView: React.FC<StatsViewProps> = ({ viewData, selectedCompeticionId }) => {
-  const [selectedTeamId, setSelectedTeamId] = useState<number | string | null>(null);
+  const initialCompetitionId = String(viewData?.competicion?.id || selectedCompeticionId || '');
+
+  const [selectedTeamId, setSelectedTeamId] = useState<number | string | null>(() => {
+    if (!initialCompetitionId) return null;
+    return sessionStorage.getItem(`stats:selectedTeam:${initialCompetitionId}`);
+  });
   const [teamDetails, setTeamDetails] = useState<{
     matches: any[],
     plantilla: any[],
     stats: any[],
     movements: any[]
-  } | null>(null);
+  } | null>(() => {
+    if (!initialCompetitionId) return null;
+
+    const raw = sessionStorage.getItem(`stats:teamDetails:${initialCompetitionId}`);
+    if (!raw) return null;
+
+    try {
+      return JSON.parse(raw);
+    } catch {
+      sessionStorage.removeItem(`stats:teamDetails:${initialCompetitionId}`);
+      return null;
+    }
+  });
   const [loadingTeam, setLoadingTeam] = useState(false);
+  const previousCompetitionIdRef = useRef<string>(String(viewData?.competicion?.id || selectedCompeticionId || ''));
+
+  // Clear team details only when the selected competition really changes.
+  useEffect(() => {
+    const currentCompetitionId = String(viewData?.competicion?.id || selectedCompeticionId || '');
+    const previousCompetitionId = previousCompetitionIdRef.current;
+
+    if (!previousCompetitionId) {
+      previousCompetitionIdRef.current = currentCompetitionId;
+      return;
+    }
+
+    if (previousCompetitionId !== currentCompetitionId) {
+      setSelectedTeamId(null);
+      setTeamDetails(null);
+      setLoadingTeam(false);
+      sessionStorage.removeItem(`stats:selectedTeam:${previousCompetitionId}`);
+      sessionStorage.removeItem(`stats:teamDetails:${previousCompetitionId}`);
+    }
+
+    previousCompetitionIdRef.current = currentCompetitionId;
+  }, [selectedCompeticionId, viewData?.competicion?.id]);
 
   // --- Team Selection Action ---
   const handleTeamSelect = async (teamId: number | string) => {
     if (teamId === selectedTeamId) return;
     setSelectedTeamId(teamId);
+    const compId = viewData?.competicion?.id || selectedCompeticionId;
+    if (compId) {
+      sessionStorage.setItem(`stats:selectedTeam:${String(compId)}`, String(teamId));
+    }
     setLoadingTeam(true);
     try {
-        const compId = viewData?.competicion?.id || selectedCompeticionId;
         const details = await fetchTeamStats(compId, teamId);
         setTeamDetails(details);
+        if (compId) {
+          sessionStorage.setItem(`stats:teamDetails:${String(compId)}`, JSON.stringify(details));
+        }
         // Scroll to details logic
         setTimeout(() => {
             document.getElementById('team-details')?.scrollIntoView({ behavior: 'smooth' });
