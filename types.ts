@@ -186,6 +186,9 @@ export interface PlayerAggregatedStats {
   mpg: number;
   fpg: number;
   ppm: number;
+  foulRatePct?: number; // % del limite de 5 faltas por partido
+  foulOutGames?: number; // Partidos con 5 o mas faltas
+  foulOutRatePct?: number; // % de partidos en los que llega a 5 faltas
   avgMasMenos?: number; // Average +/- per game
   // Analysis
   t1Pct?: number; // Only Free Throws have percentage

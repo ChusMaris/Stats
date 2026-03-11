@@ -851,7 +851,11 @@ const fetchParallelPlayerStats = async (seasonId: number | string, currentCompId
 const SHOOTING_FOUL_IDS = ['160', '161', '162', '165', '166', '537', '540', '544', '549'];
 
 const calculateTeamAggregates = (matches: Partido[], stats: EstadisticaJugadorPartido[], plantilla: any[], equipoId: number | string) => {
-    const playedMatches = matches.filter(m => m.puntos_local !== null && m.puntos_local !== undefined);
+    const playedMatches = matches.filter(m => {
+        const isTeamMatch = String(m.equipo_local_id) === String(equipoId) || String(m.equipo_visitante_id) === String(equipoId);
+        const hasScore = m.puntos_local !== null && m.puntos_local !== undefined;
+        return isTeamMatch && hasScore;
+    });
     const totalMatches = playedMatches.length;
 
     if (totalMatches === 0) return null;
@@ -943,6 +947,7 @@ export const getTeamScoutingReport = async (competicionId: number | string, equi
 
     // 4. Identify Key Players
     const playerStats: Record<string, PlayerAggregatedStats> = {};
+    const foulOutMatchesByPlayer: Record<string, Set<string>> = {};
     
     teamStatsOnly.forEach((s: any) => {
         const pid = String(s.jugador_id);
@@ -970,26 +975,40 @@ export const getTeamScoutingReport = async (competicionId: number | string, equi
                 totalMinutos: 0,
                 mpg: 0,
                 fpg: 0,
-                ppm: 0
+                ppm: 0,
+                foulRatePct: 0,
+                foulOutGames: 0,
+                foulOutRatePct: 0
             };
+            foulOutMatchesByPlayer[pid] = new Set<string>();
         }
         const ps = playerStats[pid];
+        const gameFouls = (s.faltas_cometidas || 0) + (s.tecnicas || 0) + (s.antideportivas || 0);
+
         ps.partidosJugados++;
         ps.totalPuntos += (s.puntos || 0);
         ps.totalTiros3Anotados += (s.t3_anotados || 0);
         ps.totalTiros3Intentados += (s.t3_intentados || 0);
         ps.totalTirosLibresAnotados += (s.t1_anotados || 0);
         ps.totalTirosLibresIntentados += (s.t1_intentados || 0);
-        ps.totalFaltas += (s.faltas_cometidas || 0);
+        ps.totalFaltas += gameFouls;
         ps.totalMinutos += parseTiempoJugado(s.tiempo_jugado);
+
+        if (gameFouls >= 5) {
+            foulOutMatchesByPlayer[pid].add(String(s.partido_id));
+        }
     });
 
     Object.values(playerStats).forEach(ps => {
+        const foulOutGames = foulOutMatchesByPlayer[String(ps.jugadorId)]?.size || 0;
         ps.ppg = ps.partidosJugados > 0 ? ps.totalPuntos / ps.partidosJugados : 0;
         ps.mpg = ps.partidosJugados > 0 ? ps.totalMinutos / ps.partidosJugados : 0;
         ps.fpg = ps.partidosJugados > 0 ? ps.totalFaltas / ps.partidosJugados : 0;
         ps.ppm = ps.totalMinutos > 0 ? ps.totalPuntos / ps.totalMinutos : 0;
         ps.t1Pct = ps.totalTirosLibresIntentados > 0 ? (ps.totalTirosLibresAnotados / ps.totalTirosLibresIntentados) * 100 : 0;
+        ps.foulOutGames = foulOutGames;
+        ps.foulOutRatePct = ps.partidosJugados > 0 ? (foulOutGames / ps.partidosJugados) * 100 : 0;
+        ps.foulRatePct = ps.partidosJugados > 0 ? Math.min(100, (ps.fpg / 5) * 100) : 0;
     });
 
     const sortedByPPG = Object.values(playerStats).sort((a, b) => b.ppg - a.ppg);
@@ -1075,6 +1094,18 @@ export const getTeamScoutingReport = async (competicionId: number | string, equi
             ? `Emparejamiento crítico: ${topScorer.nombre} (${topScorer.ppg.toFixed(1)} ppp) contra ${rivalTopScorer.nombre} (${rivalTopScorer.ppg.toFixed(1)} ppp). Forzar recepciones lejos de ventaja puede inclinar el partido.`
             : 'Duelo clave: contener al primer creador rival y asegurar rebote defensivo para cortar segundas opciones.';
 
+        const foulRiskPlayers = Object.values(playerStats)
+            .filter(p => p.partidosJugados >= 3 && ((p.foulOutGames || 0) > 1 || (p.foulRatePct || 0) >= 65))
+            .sort((a, b) => {
+                if ((b.foulOutGames || 0) !== (a.foulOutGames || 0)) return (b.foulOutGames || 0) - (a.foulOutGames || 0);
+                return (b.foulRatePct || 0) - (a.foulRatePct || 0);
+            })
+            .slice(0, 2);
+
+        const foulPlan = foulRiskPlayers.length > 0
+            ? `Plan de faltas: atacar a ${foulRiskPlayers.map(p => `${p.nombre} (${(p.foulRatePct || 0).toFixed(0)}% del limite de faltas por partido)`).join(' y ')} para condicionar su rotación.`
+            : 'Plan de faltas: no hay perfiles claros de carga de faltas; priorizar emparejamientos de ventaja y castigar cambios lentos.';
+
         const totalExpectedPoints = (myProjected || 0) + (rivalProjected || 0);
         const tempoAnalysis = totalExpectedPoints > 145
             ? `Ritmo alto previsto (${totalExpectedPoints.toFixed(0)} pts combinados). Prioridad: balance defensivo inmediato y buena toma de decisiones en transición.`
@@ -1085,13 +1116,13 @@ export const getTeamScoutingReport = async (competicionId: number | string, equi
         if (projectionGap !== null && Math.abs(projectionGap) < 3) {
             matchAnalysis = {
                 prediction: `${prediction} Se espera final cerrado, con alto valor de las últimas 4-5 posesiones.`,
-                keyMatchup,
+                keyMatchup: `${keyMatchup} ${foulPlan}`,
                 tempoAnalysis
             };
         } else {
             matchAnalysis = {
                 prediction,
-                keyMatchup,
+                keyMatchup: `${keyMatchup} ${foulPlan}`,
                 tempoAnalysis
             };
         }
@@ -1101,6 +1132,21 @@ export const getTeamScoutingReport = async (competicionId: number | string, equi
     if (topScorer) insights.push(`El máximo anotador es ${topScorer.nombre} con ${topScorer.ppg.toFixed(1)} puntos por partido.`);
     if (aggregates) insights.push(`El equipo anota una media de ${aggregates.avgPoints.toFixed(1)} puntos y recibe ${aggregates.avgPointsAgainst.toFixed(1)}.`);
     if (foulMagnet) insights.push(`${foulMagnet.nombre} fuerza ${((foulMagnet.totalTirosLibresIntentados || 0) / Math.max(foulMagnet.partidosJugados || 1, 1)).toFixed(1)} tiros libres por partido.`);
+
+    const repeatFoulOutPlayers = Object.values(playerStats)
+        .filter(p => (p.foulOutGames || 0) > 1)
+        .sort((a, b) => (b.foulOutGames || 0) - (a.foulOutGames || 0));
+    if (repeatFoulOutPlayers.length > 0) {
+        const p = repeatFoulOutPlayers[0];
+        insights.push(`${p.nombre} ha llegado a 5 faltas en ${(p.foulOutGames || 0)} partidos (${(p.foulOutRatePct || 0).toFixed(0)}% de sus partidos). Dato util para atacar su emparejamiento y forzar problemas de rotacion.`);
+    }
+
+    const highFoulRatePlayer = Object.values(playerStats)
+        .filter(p => p.partidosJugados >= 3)
+        .sort((a, b) => (b.foulRatePct || 0) - (a.foulRatePct || 0))[0];
+    if (highFoulRatePlayer && (highFoulRatePlayer.foulRatePct || 0) >= 55) {
+        insights.push(`${highFoulRatePlayer.nombre} comete ${highFoulRatePlayer.fpg.toFixed(1)} faltas por partido (${(highFoulRatePlayer.foulRatePct || 0).toFixed(0)}% del limite de 5), indicador clave para preparar emparejamientos y ritmo de ataque.`);
+    }
 
     return {
         teamStats: {
