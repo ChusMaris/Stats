@@ -69,8 +69,10 @@ const MiniDonut = ({ value }: { value: number }) => {
 const TeamStats: React.FC<TeamStatsProps> = ({ equipoId, matches, plantilla, stats, movements = [], esMini }) => {
   const [activeTab, setActiveTab] = useState<'matches' | 'players'>('players');
   const [playerViewMode, setPlayerViewMode] = useState<'table' | 'cards'>('table');
+  const [matchViewMode, setMatchViewMode] = useState<'table' | 'cards'>('table');
   const [selectedPlayer, setSelectedPlayer] = useState<PlayerAggregatedStats | null>(null);
   const [expandedPlayerIds, setExpandedPlayerIds] = useState<Set<string>>(new Set());
+  const [expandedMatchIds, setExpandedMatchIds] = useState<Set<string>>(new Set());
   
   const [sortConfig, setSortConfig] = useState<{ key: keyof PlayerAggregatedStats | 't1Pct'; direction: 'asc' | 'desc' }>({
     key: 'totalPuntos',
@@ -135,11 +137,37 @@ const TeamStats: React.FC<TeamStatsProps> = ({ equipoId, matches, plantilla, sta
     });
   };
 
+  const toggleMatchExpansion = (matchId: number | string) => {
+    const key = String(matchId);
+    setExpandedMatchIds(prev => {
+      const next = new Set(prev);
+      if (next.has(key)) {
+        next.delete(key);
+      } else {
+        next.add(key);
+      }
+      return next;
+    });
+  };
+
+  const teamPlayerIds = useMemo(() => {
+    return new Set((plantilla || []).map(p => p && String(p.jugador_id)).filter(Boolean));
+  }, [plantilla]);
+
+  const getPlayerMeta = (jugadorId: number | string) => {
+    const rosterItem = (plantilla || []).find(p => p && String(p.jugador_id) === String(jugadorId));
+    const playerData = Array.isArray(rosterItem?.jugadores) ? rosterItem?.jugadores[0] : rosterItem?.jugadores;
+
+    return {
+      dorsal: rosterItem?.dorsal?.toString() || '-',
+      nombre: playerData?.nombre_completo || 'Jugador',
+      fotoUrl: playerData?.foto_url || null
+    };
+  };
+
   const teamMatches = useMemo(() => {
     try {
       if (!matches || !Array.isArray(matches) || !plantilla) return [];
-      const teamPlayerIds = new Set(plantilla.map(p => p && String(p.jugador_id)).filter(Boolean));
-
       return matches
         .filter(m => m && (String(m.equipo_local_id) === String(equipoId) || String(m.equipo_visitante_id) === String(equipoId)))
         .map(m => {
@@ -195,7 +223,7 @@ const TeamStats: React.FC<TeamStatsProps> = ({ equipoId, matches, plantilla, sta
       console.error("Error processing team matches", e);
       return [];
     }
-  }, [matches, stats, equipoId, plantilla]);
+  }, [matches, stats, equipoId, teamPlayerIds]);
 
   const playerStats: PlayerAggregatedStats[] = useMemo(() => {
     try {
@@ -321,85 +349,242 @@ const TeamStats: React.FC<TeamStatsProps> = ({ equipoId, matches, plantilla, sta
 
       <div className="bg-white rounded-lg shadow p-4 min-h-[300px]">
         {activeTab === 'matches' && (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-fade-in">
-            {teamMatches.length === 0 && <p className="text-gray-500 col-span-full text-center py-10 italic text-lg">No hay registros de partidos.</p>}
-            {teamMatches.map((match) => (
-              <div key={match.id} className="border border-slate-100 rounded-2xl overflow-hidden hover:shadow-xl transition-all duration-300 bg-white flex flex-col group">
-                {/* Cabecera unificada en 1/3 */}
-                <div className="bg-slate-50/70 p-4 border-b border-slate-100">
-                    <div className="flex justify-between items-center mb-4">
-                         <span className="bg-slate-200 text-slate-600 text-[9px] font-black px-2 py-0.5 rounded uppercase tracking-widest">Jornada {match.jornada}</span>
-                         <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">{formatDate(match.fecha_hora)}</span>
-                    </div>
-                    <div className="flex items-center justify-between">
-                        <div className="flex flex-col items-center w-1/3">
-                            <div className={`w-12 h-12 p-1 bg-white rounded-full shadow-sm border border-slate-100 flex items-center justify-center transition-transform group-hover:scale-105 overflow-hidden ${match.local.isMyTeam ? 'ring-2 ring-fcbq-blue/30 border-fcbq-blue/20' : ''}`}>
-                                {match.local.logo ? <img src={match.local.logo} alt="" className="w-full h-full object-contain rounded-full" /> : <span className="text-[9px] font-bold text-slate-300 uppercase">Logo</span>}
-                            </div>
-                            <span className={`text-[10px] mt-2 text-center font-black truncate w-full uppercase tracking-tighter ${match.local.isMyTeam ? 'text-fcbq-blue' : 'text-slate-500'}`}>{match.local.name}</span>
-                        </div>
-                        <div className="flex flex-col items-center w-1/3">
-                            <div className="flex items-center gap-1.5 text-2xl font-black text-slate-800 tracking-tight leading-none">
-                                <span>{match.local.score}</span>
-                                <span className="text-slate-300 text-xl">-</span>
-                                <span>{match.visitor.score}</span>
-                            </div>
-                            <span className={`text-[8px] font-black px-2 py-0.5 rounded-full border mt-2 tracking-tighter ${match.resultStatus === 'W' ? 'bg-green-100 text-green-700 border-green-200' : match.resultStatus === 'L' ? 'bg-red-100 text-red-700 border-red-200' : 'bg-slate-100 text-slate-600 border-slate-200'}`}>
-                                {match.resultStatus === 'W' ? 'VICTORIA' : (match.resultStatus === 'L' ? 'DERROTA' : 'EMPATE')}
-                            </span>
-                        </div>
-                        <div className="flex flex-col items-center w-1/3">
-                            <div className={`w-12 h-12 p-1 bg-white rounded-full shadow-sm border border-slate-100 flex items-center justify-center transition-transform group-hover:scale-105 overflow-hidden ${match.visitor.isMyTeam ? 'ring-2 ring-fcbq-blue/30 border-fcbq-blue/20' : ''}`}>
-                                {match.visitor.logo ? <img src={match.visitor.logo} alt="" className="w-full h-full object-contain rounded-full" /> : <span className="text-[9px] font-bold text-slate-300 uppercase">Logo</span>}
-                            </div>
-                            <span className={`text-[10px] mt-2 text-center font-black truncate w-full uppercase tracking-tighter ${match.visitor.isMyTeam ? 'text-fcbq-blue' : 'text-slate-500'}`}>{match.visitor.name}</span>
-                        </div>
-                    </div>
-                </div>
-
-                {/* Cuerpo de Estadísticas alineadas */}
-                <div className="p-5 flex-1 flex flex-col justify-center bg-white space-y-1">
-                    <StatRow 
-                        label="T2 Anotados" 
-                        valLocal={match.local.stats.t2A} 
-                        valVisit={match.visitor.stats.t2A} 
-                    />
-                    <StatRow 
-                        label="T3 Anotados" 
-                        valLocal={match.local.stats.t3A} 
-                        valVisit={match.visitor.stats.t3A} 
-                    />
-                    <StatRow 
-                        label="Faltas Cometidas" 
-                        valLocal={match.local.stats.fouls} 
-                        valVisit={match.visitor.stats.fouls} 
-                        invert={true} 
-                    />
-
-                    {/* Fila Tiros Libres Alineada con los logos */}
-                    <div className="flex items-center justify-between pt-4 border-t border-slate-50 mt-3">
-                        <div className="w-1/3 flex flex-col items-center gap-1.5">
-                            <MiniDonut value={match.local.stats.t1Pct} />
-                            <span className="text-[11px] font-black text-slate-600 tracking-wider">
-                                {match.local.stats.t1A}/{match.local.stats.t1I}
-                            </span>
-                        </div>
-                        
-                        <div className="w-1/3 text-center">
-                            <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none block">TIROS</span>
-                            <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none block mt-0.5">LIBRES %</span>
-                        </div>
-
-                        <div className="w-1/3 flex flex-col items-center gap-1.5">
-                            <MiniDonut value={match.visitor.stats.t1Pct} />
-                            <span className="text-[11px] font-black text-slate-600 tracking-wider">
-                                {match.visitor.stats.t1A}/{match.visitor.stats.t1I}
-                            </span>
-                        </div>
-                    </div>
-                </div>
+          <div className="animate-fade-in">
+            <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mb-6">
+              <p className="text-sm text-gray-500 italic">Pulsa sobre un partido en tabla para ver el desglose de jugadores.</p>
+              <div className="inline-flex bg-gray-100 p-1 rounded-lg">
+                <button onClick={() => setMatchViewMode('table')} className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-bold uppercase transition-all ${matchViewMode === 'table' ? 'bg-white text-fcbq-blue shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}><Table size={16} /> Tabla</button>
+                <button onClick={() => setMatchViewMode('cards')} className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-bold uppercase transition-all ${matchViewMode === 'cards' ? 'bg-white text-fcbq-blue shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}><LayoutGrid size={16} /> Partidos</button>
               </div>
-            ))}
+            </div>
+
+            {matchViewMode === 'table' && (
+              <div className="-mx-4 md:mx-0 overflow-x-auto animate-fade-in">
+                {teamMatches.length === 0 ? (
+                  <p className="text-gray-500 text-center py-10 italic text-lg">No hay registros de partidos.</p>
+                ) : (
+                  <table className="w-full text-sm md:text-base text-left">
+                    <thead className="text-[10px] text-gray-400 font-bold uppercase border-b bg-transparent sticky top-0 bg-white z-10">
+                      <tr>
+                        <th className="px-2 md:px-4 py-2 md:py-3 text-left">Partido</th>
+                        <th className="px-2 md:px-4 py-2 md:py-3 text-center">Resultado</th>
+                        <th className="px-2 md:px-4 py-2 md:py-3 text-center">T1 (A/I)</th>
+                        <th className="px-2 md:px-4 py-2 md:py-3 text-center">%T1</th>
+                        <th className="px-2 md:px-4 py-2 md:py-3 text-center">T2</th>
+                        <th className="px-2 md:px-4 py-2 md:py-3 text-center">T3</th>
+                        <th className="px-2 md:px-4 py-2 md:py-3 text-center">Faltas</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100">
+                      {teamMatches.map((match) => {
+                        const isExpanded = expandedMatchIds.has(String(match.id));
+                        const myTeamStats = match.local.isMyTeam ? match.local.stats : match.visitor.stats;
+
+                        const matchPlayerStats = (stats || [])
+                          .filter(s => s && String(s.partido_id) === String(match.id) && teamPlayerIds.has(String(s.jugador_id)))
+                          .sort((a, b) => (b.puntos || 0) - (a.puntos || 0));
+
+                        return (
+                          <React.Fragment key={match.id}>
+                            <tr className={`hover:bg-blue-50/50 cursor-pointer transition group text-[11px] md:text-sm ${isExpanded ? 'bg-blue-50/40' : ''}`} onClick={() => toggleMatchExpansion(match.id)}>
+                              <td className="px-2 md:px-4 py-2.5 md:py-4 text-[11px] md:text-sm">
+                                <div className="flex flex-col gap-1 min-w-[260px]">
+                                  <div className="flex items-center gap-2 text-[10px] uppercase font-bold tracking-wider text-slate-400">
+                                    <span>Jornada {match.jornada || '-'}</span>
+                                    <span>•</span>
+                                    <span>{formatDate(match.fecha_hora)}</span>
+                                  </div>
+                                  <div className="flex items-center gap-2">
+                                    <span className={`font-bold text-[11px] md:text-sm uppercase tracking-tight truncate max-w-[110px] ${match.local.isMyTeam ? 'text-fcbq-blue' : 'text-slate-600'}`}>{match.local.name}</span>
+                                    <span className="font-black text-slate-400">vs</span>
+                                    <span className={`font-bold text-[11px] md:text-sm uppercase tracking-tight truncate max-w-[110px] ${match.visitor.isMyTeam ? 'text-fcbq-blue' : 'text-slate-600'}`}>{match.visitor.name}</span>
+                                  </div>
+                                </div>
+                              </td>
+                              <td className="px-2 md:px-4 py-2.5 md:py-4 text-center text-[11px] md:text-sm">
+                                <div className="flex items-center justify-center gap-2 min-w-[96px]">
+                                  <div className="w-5 h-5 rounded-full overflow-hidden bg-slate-100 border border-slate-200 shrink-0">
+                                    {match.local.logo ? (
+                                      <img src={match.local.logo} alt={match.local.name} className="w-full h-full object-contain" />
+                                    ) : (
+                                      <div className="w-full h-full flex items-center justify-center text-[8px] font-bold text-slate-400">L</div>
+                                    )}
+                                  </div>
+                                  <span
+                                    aria-label={`Resultado: ${match.local.score}-${match.visitor.score}`}
+                                    className="inline-flex items-center justify-center min-w-[40px] px-1.5 py-0.5 rounded-md text-[10px] font-bold border bg-slate-100 text-slate-700 border-slate-200"
+                                  >
+                                    {match.local.score}-{match.visitor.score}
+                                  </span>
+                                  <div className="w-5 h-5 rounded-full overflow-hidden bg-slate-100 border border-slate-200 shrink-0">
+                                    {match.visitor.logo ? (
+                                      <img src={match.visitor.logo} alt={match.visitor.name} className="w-full h-full object-contain" />
+                                    ) : (
+                                      <div className="w-full h-full flex items-center justify-center text-[8px] font-bold text-slate-400">V</div>
+                                    )}
+                                  </div>
+                                </div>
+                              </td>
+                              <td className="px-2 md:px-4 py-2.5 md:py-4 text-center text-[11px] md:text-sm text-slate-600 font-semibold">{myTeamStats.t1A}/{myTeamStats.t1I}</td>
+                              <td className="px-2 md:px-4 py-2.5 md:py-4 text-center text-[11px] md:text-sm text-slate-600 font-semibold">
+                                <span className="text-[11px] md:text-sm">{Math.round(myTeamStats.t1Pct)}%</span>
+                              </td>
+                              <td className="px-2 md:px-4 py-2.5 md:py-4 text-center text-[11px] md:text-sm text-slate-600 font-semibold">{myTeamStats.t2A}</td>
+                              <td className="px-2 md:px-4 py-2.5 md:py-4 text-center text-[11px] md:text-sm text-slate-600 font-semibold">{myTeamStats.t3A}</td>
+                              <td className="px-2 md:px-4 py-2.5 md:py-4 text-center text-[11px] md:text-sm text-slate-600 font-semibold">{myTeamStats.fouls}</td>
+                            </tr>
+
+                            {isExpanded && (
+                              <tr className="bg-slate-50/60 animate-fade-in">
+                                <td className="px-2 md:px-4 pb-3 md:pb-4" colSpan={7}>
+                                  <div className="border border-slate-200 rounded-xl bg-white overflow-hidden">
+                                    <div className="px-2 md:px-4 py-2 md:py-3 bg-slate-50 border-b border-slate-100 text-[11px] font-bold uppercase tracking-wider text-slate-500">
+                                      Desglose de jugadores ({matchPlayerStats.length})
+                                    </div>
+
+                                    {matchPlayerStats.length === 0 ? (
+                                      <div className="px-4 py-5 text-sm text-slate-400 italic">Sin estadísticas individuales para este partido.</div>
+                                    ) : (
+                                      <div className="overflow-x-auto">
+                                        <table className="w-full text-[11px] md:text-sm">
+                                          <thead className="bg-white text-slate-400 uppercase text-[10px] tracking-wider border-b border-slate-100">
+                                            <tr>
+                                              <th className="px-2 md:px-4 py-1.5 md:py-2 text-left">Jugador</th>
+                                              <th className="px-2 md:px-4 py-1.5 md:py-2 text-center">PTS</th>
+                                              <th className="px-2 md:px-4 py-1.5 md:py-2 text-center">MIN</th>
+                                              <th className="px-2 md:px-4 py-1.5 md:py-2 text-center">+/-</th>
+                                              <th className="px-2 md:px-4 py-1.5 md:py-2 text-center">T1</th>
+                                              <th className="px-2 md:px-4 py-1.5 md:py-2 text-center">T2</th>
+                                              <th className="px-2 md:px-4 py-1.5 md:py-2 text-center">T3</th>
+                                              <th className="px-2 md:px-4 py-1.5 md:py-2 text-center">F</th>
+                                            </tr>
+                                          </thead>
+                                          <tbody className="divide-y divide-slate-100">
+                                            {matchPlayerStats.map((item) => {
+                                              const playerMeta = getPlayerMeta(item.jugador_id);
+                                              const fouls = (item.faltas_cometidas || 0) + (item.tecnicas || 0) + (item.antideportivas || 0);
+
+                                              return (
+                                                <tr key={`${match.id}-${item.jugador_id}`} className="hover:bg-blue-50/30 transition-colors">
+                                                  <td className="px-2 md:px-4 py-2 md:py-2.5">
+                                                    <div className="flex items-center gap-2">
+                                                      <div className="w-7 h-7 rounded-full bg-gray-100 overflow-hidden border border-gray-100 shrink-0">
+                                                        <img src={playerMeta.fotoUrl || "https://image.singular.live/fit-in/450x450/filters:format(webp)/0d62960e1109063fb6b062e758907fb1/images/41uEQx58oj4zwPoOkM6uEO_w585h427.png"} className="w-full h-full object-cover" alt={playerMeta.nombre} />
+                                                      </div>
+                                                      <div className="flex items-center gap-2 min-w-0">
+                                                        <span className="font-mono text-slate-400">#{playerMeta.dorsal}</span>
+                                                        <span className="font-semibold text-slate-700 uppercase tracking-tight truncate max-w-[170px]">{playerMeta.nombre}</span>
+                                                      </div>
+                                                    </div>
+                                                  </td>
+                                                  <td className="px-2 md:px-4 py-2 md:py-2.5 text-center font-bold text-fcbq-blue">{item.puntos || 0}</td>
+                                                  <td className="px-2 md:px-4 py-2 md:py-2.5 text-center text-slate-600">{formatTiempoPartido(item.tiempo_jugado)}</td>
+                                                  <td className={`px-2 md:px-4 py-2 md:py-2.5 text-center font-bold ${(item.mas_menos || 0) > 0 ? 'text-green-600' : (item.mas_menos || 0) < 0 ? 'text-red-500' : 'text-slate-400'}`}>
+                                                    {(item.mas_menos || 0) > 0 ? '+' : ''}{item.mas_menos || 0}
+                                                  </td>
+                                                  <td className="px-2 md:px-4 py-2 md:py-2.5 text-center text-slate-600">{item.t1_anotados || 0}/{item.t1_intentados || 0}</td>
+                                                  <td className="px-2 md:px-4 py-2 md:py-2.5 text-center text-slate-600">{item.t2_anotados || 0}</td>
+                                                  <td className="px-2 md:px-4 py-2 md:py-2.5 text-center text-slate-600">{item.t3_anotados || 0}</td>
+                                                  <td className="px-2 md:px-4 py-2 md:py-2.5 text-center text-slate-600">{fouls}</td>
+                                                </tr>
+                                              );
+                                            })}
+                                          </tbody>
+                                        </table>
+                                      </div>
+                                    )}
+                                  </div>
+                                </td>
+                              </tr>
+                            )}
+                          </React.Fragment>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                )}
+              </div>
+            )}
+
+            {matchViewMode === 'cards' && (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-fade-in">
+                {teamMatches.length === 0 && <p className="text-gray-500 col-span-full text-center py-10 italic text-lg">No hay registros de partidos.</p>}
+                {teamMatches.map((match) => (
+                  <div key={match.id} className="border border-slate-100 rounded-2xl overflow-hidden hover:shadow-xl transition-all duration-300 bg-white flex flex-col group">
+                    <div className="bg-slate-50/70 p-4 border-b border-slate-100">
+                        <div className="flex justify-between items-center mb-4">
+                             <span className="bg-slate-200 text-slate-600 text-[9px] font-black px-2 py-0.5 rounded uppercase tracking-widest">Jornada {match.jornada}</span>
+                             <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">{formatDate(match.fecha_hora)}</span>
+                        </div>
+                        <div className="flex items-center justify-between">
+                            <div className="flex flex-col items-center w-1/3">
+                                <div className={`w-12 h-12 p-1 bg-white rounded-full shadow-sm border border-slate-100 flex items-center justify-center transition-transform group-hover:scale-105 overflow-hidden ${match.local.isMyTeam ? 'ring-2 ring-fcbq-blue/30 border-fcbq-blue/20' : ''}`}>
+                                    {match.local.logo ? <img src={match.local.logo} alt="" className="w-full h-full object-contain rounded-full" /> : <span className="text-[9px] font-bold text-slate-300 uppercase">Logo</span>}
+                                </div>
+                                <span className={`text-[10px] mt-2 text-center font-black truncate w-full uppercase tracking-tighter ${match.local.isMyTeam ? 'text-fcbq-blue' : 'text-slate-500'}`}>{match.local.name}</span>
+                            </div>
+                            <div className="flex flex-col items-center w-1/3">
+                                <div className="flex items-center gap-1.5 text-2xl font-black text-slate-800 tracking-tight leading-none">
+                                    <span>{match.local.score}</span>
+                                    <span className="text-slate-300 text-xl">-</span>
+                                    <span>{match.visitor.score}</span>
+                                </div>
+                                <span className={`text-[8px] font-black px-2 py-0.5 rounded-full border mt-2 tracking-tighter ${match.resultStatus === 'W' ? 'bg-green-100 text-green-700 border-green-200' : match.resultStatus === 'L' ? 'bg-red-100 text-red-700 border-red-200' : 'bg-slate-100 text-slate-600 border-slate-200'}`}>
+                                    {match.resultStatus === 'W' ? 'VICTORIA' : (match.resultStatus === 'L' ? 'DERROTA' : 'EMPATE')}
+                                </span>
+                            </div>
+                            <div className="flex flex-col items-center w-1/3">
+                                <div className={`w-12 h-12 p-1 bg-white rounded-full shadow-sm border border-slate-100 flex items-center justify-center transition-transform group-hover:scale-105 overflow-hidden ${match.visitor.isMyTeam ? 'ring-2 ring-fcbq-blue/30 border-fcbq-blue/20' : ''}`}>
+                                    {match.visitor.logo ? <img src={match.visitor.logo} alt="" className="w-full h-full object-contain rounded-full" /> : <span className="text-[9px] font-bold text-slate-300 uppercase">Logo</span>}
+                                </div>
+                                <span className={`text-[10px] mt-2 text-center font-black truncate w-full uppercase tracking-tighter ${match.visitor.isMyTeam ? 'text-fcbq-blue' : 'text-slate-500'}`}>{match.visitor.name}</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="p-5 flex-1 flex flex-col justify-center bg-white space-y-1">
+                        <StatRow 
+                            label="T2 Anotados" 
+                            valLocal={match.local.stats.t2A} 
+                            valVisit={match.visitor.stats.t2A} 
+                        />
+                        <StatRow 
+                            label="T3 Anotados" 
+                            valLocal={match.local.stats.t3A} 
+                            valVisit={match.visitor.stats.t3A} 
+                        />
+                        <StatRow 
+                            label="Faltas Cometidas" 
+                            valLocal={match.local.stats.fouls} 
+                            valVisit={match.visitor.stats.fouls} 
+                            invert={true} 
+                        />
+
+                        <div className="flex items-center justify-between pt-4 border-t border-slate-50 mt-3">
+                            <div className="w-1/3 flex flex-col items-center gap-1.5">
+                                <MiniDonut value={match.local.stats.t1Pct} />
+                                <span className="text-[11px] font-black text-slate-600 tracking-wider">
+                                    {match.local.stats.t1A}/{match.local.stats.t1I}
+                                </span>
+                            </div>
+                            
+                            <div className="w-1/3 text-center">
+                                <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none block">TIROS</span>
+                                <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest leading-none block mt-0.5">LIBRES %</span>
+                            </div>
+
+                            <div className="w-1/3 flex flex-col items-center gap-1.5">
+                                <MiniDonut value={match.visitor.stats.t1Pct} />
+                                <span className="text-[11px] font-black text-slate-600 tracking-wider">
+                                    {match.visitor.stats.t1A}/{match.visitor.stats.t1I}
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         )}
 
@@ -495,7 +680,7 @@ const TeamStats: React.FC<TeamStatsProps> = ({ equipoId, matches, plantilla, sta
                                       <thead className="bg-white text-slate-400 uppercase text-[10px] tracking-wider border-b border-slate-100">
                                         <tr>
                                           <th className="px-2 md:px-4 py-1.5 md:py-2 text-left">Partido</th>
-                                          <th className="px-2 md:px-4 py-1.5 md:py-2 text-left">Equipos</th>
+                                          <th className="px-2 md:px-4 py-1.5 md:py-2 text-left">Resultado</th>
                                           <th className="px-2 md:px-4 py-1.5 md:py-2 text-center">PTS</th>
                                           <th className="px-2 md:px-4 py-1.5 md:py-2 text-center">MIN</th>
                                           <th className="px-2 md:px-4 py-1.5 md:py-2 text-center">+/-</th>
