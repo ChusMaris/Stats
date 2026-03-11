@@ -350,11 +350,20 @@ const TeamStats: React.FC<TeamStatsProps> = ({ equipoId, matches, plantilla, sta
       <div className="bg-white rounded-lg shadow p-4 min-h-[300px]">
         {activeTab === 'matches' && (
           <div className="animate-fade-in">
-            <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mb-6">
-              <p className="text-sm text-gray-500 italic">Pulsa sobre un partido en tabla para ver el desglose de jugadores.</p>
-              <div className="inline-flex bg-gray-100 p-1 rounded-lg">
-                <button onClick={() => setMatchViewMode('table')} className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-bold uppercase transition-all ${matchViewMode === 'table' ? 'bg-white text-fcbq-blue shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}><Table size={16} /> Tabla</button>
-                <button onClick={() => setMatchViewMode('cards')} className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-bold uppercase transition-all ${matchViewMode === 'cards' ? 'bg-white text-fcbq-blue shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}><LayoutGrid size={16} /> Partidos</button>
+            <div className="mb-2 md:mb-3 flex items-center justify-end h-7">
+              <div className="inline-flex items-center gap-0.5 bg-slate-50 p-0.5 rounded-lg border border-slate-200">
+                <button
+                  onClick={() => setMatchViewMode('table')}
+                  className={`flex items-center justify-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-semibold uppercase tracking-[0.06em] transition-all ${matchViewMode === 'table' ? 'bg-white text-fcbq-blue shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                >
+                  <Table size={13} /> Tabla
+                </button>
+                <button
+                  onClick={() => setMatchViewMode('cards')}
+                  className={`flex items-center justify-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-semibold uppercase tracking-[0.06em] transition-all ${matchViewMode === 'cards' ? 'bg-white text-fcbq-blue shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}
+                >
+                  <LayoutGrid size={13} /> Tarjetas
+                </button>
               </div>
             </div>
 
@@ -590,14 +599,14 @@ const TeamStats: React.FC<TeamStatsProps> = ({ equipoId, matches, plantilla, sta
 
         {activeTab === 'players' && (
           <div className="animate-fade-in">
-             <div className="flex flex-col sm:flex-row justify-between items-center gap-4 mb-6">
-                <div className="flex items-center gap-2 text-sm text-gray-500 italic">
-                    <ArrowUpDown size={14} /> Ordenado por: <span className="font-bold text-fcbq-blue uppercase tracking-wider">{sortConfig.key}</span>
-                </div>
-                <div className="inline-flex bg-gray-100 p-1 rounded-lg">
-                    <button onClick={() => setPlayerViewMode('table')} className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-bold uppercase transition-all ${playerViewMode === 'table' ? 'bg-white text-fcbq-blue shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}><Table size={16} /> Tabla</button>
-                    <button onClick={() => setPlayerViewMode('cards')} className={`flex items-center gap-2 px-3 py-1.5 rounded-md text-sm font-bold uppercase transition-all ${playerViewMode === 'cards' ? 'bg-white text-fcbq-blue shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}><LayoutGrid size={16} /> Jugadores</button>
-                </div>
+             <div className="relative flex items-center justify-end mb-2 md:mb-3 h-7">
+              <div className="hidden md:flex absolute left-0 items-center gap-1.5 text-xs text-slate-400">
+                <ArrowUpDown size={12} /> Orden: <span className="font-semibold text-fcbq-blue uppercase tracking-wide">{sortConfig.key}</span>
+              </div>
+              <div className="inline-flex items-center gap-0.5 bg-slate-50 p-0.5 rounded-lg border border-slate-200">
+                <button onClick={() => setPlayerViewMode('table')} className={`flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-semibold uppercase tracking-[0.06em] transition-all ${playerViewMode === 'table' ? 'bg-white text-fcbq-blue shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}><Table size={13} /> Tabla</button>
+                <button onClick={() => setPlayerViewMode('cards')} className={`flex items-center gap-1 px-2.5 py-1 rounded-md text-[11px] font-semibold uppercase tracking-[0.06em] transition-all ${playerViewMode === 'cards' ? 'bg-white text-fcbq-blue shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}><LayoutGrid size={13} /> Tarjetas</button>
+              </div>
              </div>
 
              {playerViewMode === 'table' && (
