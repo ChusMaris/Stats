@@ -67,7 +67,7 @@ const MiniDonut = ({ value }: { value: number }) => {
 };
 
 const TeamStats: React.FC<TeamStatsProps> = ({ equipoId, matches, plantilla, stats, movements = [], esMini }) => {
-  const [activeTab, setActiveTab] = useState<'matches' | 'players'>('players');
+  const [activeTab, setActiveTab] = useState<'matches' | 'players'>('matches');
   const [playerViewMode, setPlayerViewMode] = useState<'table' | 'cards'>('table');
   const [matchViewMode, setMatchViewMode] = useState<'table' | 'cards'>('table');
   const [selectedPlayer, setSelectedPlayer] = useState<PlayerAggregatedStats | null>(null);
@@ -337,11 +337,11 @@ const TeamStats: React.FC<TeamStatsProps> = ({ equipoId, matches, plantilla, sta
     <div className="mt-8 animate-fade-in">
       <div className="flex border-b border-gray-200 mb-6 overflow-x-auto scrollbar-hide items-center justify-between">
         <div className="flex">
-          <button onClick={() => setActiveTab('players')} className={`flex items-center gap-2 px-6 py-3 font-medium text-base transition-colors border-b-2 whitespace-nowrap ${activeTab === 'players' ? 'border-fcbq-blue text-fcbq-blue' : 'border-transparent text-gray-500 hover:text-gray-700'}`}>
-            <User size={20} /> Jugadores
-          </button>
           <button onClick={() => setActiveTab('matches')} className={`flex items-center gap-2 px-6 py-3 font-medium text-base transition-colors border-b-2 whitespace-nowrap ${activeTab === 'matches' ? 'border-fcbq-blue text-fcbq-blue' : 'border-transparent text-gray-500 hover:text-gray-700'}`}>
             <Calendar size={20} /> Partidos
+          </button>
+          <button onClick={() => setActiveTab('players')} className={`flex items-center gap-2 px-6 py-3 font-medium text-base transition-colors border-b-2 whitespace-nowrap ${activeTab === 'players' ? 'border-fcbq-blue text-fcbq-blue' : 'border-transparent text-gray-500 hover:text-gray-700'}`}>
+            <User size={20} /> Jugadores
           </button>
         </div>
         <div className="text-[10px] text-gray-300 font-mono pr-4">v6.3</div>
