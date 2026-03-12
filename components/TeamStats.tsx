@@ -458,6 +458,7 @@ const TeamStats: React.FC<TeamStatsProps> = ({ equipoId, matches, plantilla, sta
                                         <table className="w-full text-[11px] md:text-sm">
                                           <thead className="bg-white text-slate-400 uppercase text-[10px] tracking-wider border-b border-slate-100">
                                             <tr>
+                                              <th className="px-2 md:px-4 py-1.5 md:py-2 text-center">#</th>
                                               <th className="px-2 md:px-4 py-1.5 md:py-2 text-left">Jugador</th>
                                               <th className="px-2 md:px-4 py-1.5 md:py-2 text-center">PTS</th>
                                               <th className="px-2 md:px-4 py-1.5 md:py-2 text-center">MIN</th>
@@ -475,15 +476,13 @@ const TeamStats: React.FC<TeamStatsProps> = ({ equipoId, matches, plantilla, sta
 
                                               return (
                                                 <tr key={`${match.id}-${item.jugador_id}`} className="hover:bg-blue-50/30 transition-colors">
+                                                  <td className="px-2 md:px-4 py-2 md:py-2.5 text-center text-slate-400 font-mono">{playerMeta.dorsal}</td>
                                                   <td className="px-2 md:px-4 py-2 md:py-2.5">
                                                     <div className="flex items-center gap-2">
                                                       <div className="w-7 h-7 rounded-full bg-gray-100 overflow-hidden border border-gray-100 shrink-0">
                                                         <img src={playerMeta.fotoUrl || "https://image.singular.live/fit-in/450x450/filters:format(webp)/0d62960e1109063fb6b062e758907fb1/images/41uEQx58oj4zwPoOkM6uEO_w585h427.png"} className="w-full h-full object-cover" alt={playerMeta.nombre} />
                                                       </div>
-                                                      <div className="flex items-center gap-2 min-w-0">
-                                                        <span className="font-mono text-slate-400">#{playerMeta.dorsal}</span>
-                                                        <span className="font-semibold text-slate-700 uppercase tracking-tight truncate max-w-[170px]">{playerMeta.nombre}</span>
-                                                      </div>
+                                                      <span className="font-semibold text-slate-700 uppercase tracking-tight truncate max-w-[170px]">{playerMeta.nombre}</span>
                                                     </div>
                                                   </td>
                                                   <td className="px-2 md:px-4 py-2 md:py-2.5 text-center font-bold text-fcbq-blue">{item.puntos || 0}</td>
