@@ -1,7 +1,7 @@
 
 import { supabase } from '../supabaseClient';
 import { 
-  Temporada, Categoria, Competicion, Partido, Equipo, EstadisticaJugadorPartido, PartidoMovimiento, PlayerAggregatedStats, ScoutingReport, CalendarioItem, CareerStats, ParallelStats 
+    Temporada, Categoria, Competicion, Partido, Equipo, EstadisticaJugadorPartido, PartidoMovimiento, PlayerAggregatedStats, ScoutingReport, CalendarioItem, CareerStats, ParallelStats, GlobalPlayerFilters, GlobalPlayerRow
 } from '../types';
 
 export const fetchTemporadas = async (): Promise<Temporada[]> => {
@@ -26,6 +26,579 @@ export const fetchCompeticiones = async (temporadaId: number | string, categoria
     
   if (error) throw error;
   return data as Competicion[];
+};
+
+const chunkArray = <T,>(items: T[], chunkSize: number): T[][] => {
+    if (items.length === 0) return [];
+
+    const chunks: T[][] = [];
+    for (let i = 0; i < items.length; i += chunkSize) {
+        chunks.push(items.slice(i, i + chunkSize));
+    }
+    return chunks;
+};
+
+const parseTiempoGlobal = (tiempo: string | number | undefined): number => {
+    if (!tiempo && tiempo !== 0) return 0;
+    if (typeof tiempo === 'number') return tiempo;
+
+    const safeTiempo = String(tiempo);
+    const parts = safeTiempo.split(':');
+
+    if (parts.length === 2) {
+        const min = parseInt(parts[0], 10) || 0;
+        const sec = parseInt(parts[1], 10) || 0;
+        return min + (sec / 60);
+    }
+
+    return parseFloat(safeTiempo) || 0;
+};
+
+const normalizeText = (value: string | null | undefined) => String(value || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .trim()
+    .toLowerCase();
+
+export const fetchCompeticionesByFilters = async (filters: {
+    temporadaId?: string;
+    categoriaId?: string;
+    fase?: string;
+}): Promise<Competicion[]> => {
+    let query = supabase
+        .from('competiciones')
+        .select('*')
+        .order('nombre');
+
+    if (filters.temporadaId) {
+        query = query.eq('temporada_id', filters.temporadaId);
+    }
+
+    if (filters.categoriaId) {
+        query = query.eq('categoria_id', filters.categoriaId);
+    }
+
+    const { data, error } = await query;
+    if (error) throw error;
+
+    const competitions = (data || []) as Competicion[];
+    if (!filters.fase) return competitions;
+
+    const phaseNeedle = normalizeText(filters.fase);
+    return competitions.filter((competition) => normalizeText(competition.nombre).includes(phaseNeedle));
+};
+
+export const fetchEquipos = async (): Promise<Equipo[]> => {
+    const { data, error } = await supabase
+        .from('equipos')
+        .select('*')
+        .order('nombre_especifico');
+
+    if (error) throw error;
+
+    const dedup = new Map<string, Equipo>();
+    for (const equipo of (data || []) as Equipo[]) {
+        const normalizedName = normalizeText(equipo.nombre_especifico || '');
+        if (!normalizedName) continue;
+        if (!dedup.has(normalizedName)) {
+            dedup.set(normalizedName, equipo);
+        }
+    }
+
+    return Array.from(dedup.values());
+};
+
+export const fetchPlayerFilterCatalog = async (filters: {
+    temporadaId?: string;
+    categoriaId?: string;
+    fase?: string;
+    competicionNombre?: string;
+}) => {
+    const competitions = await fetchCompeticionesByFilters({
+        temporadaId: filters.temporadaId,
+        categoriaId: filters.categoriaId,
+        fase: filters.fase,
+    });
+
+    const filteredCompetitions = filters.competicionNombre
+        ? competitions.filter((competition) => normalizeText(competition.nombre) === normalizeText(filters.competicionNombre))
+        : competitions;
+
+    const teamsData = await fetchEquipos();
+    const teamsMap = new Map<string, { id: string; nombre: string; club_id?: string; competicion_id: string }>();
+
+    for (const team of teamsData || []) {
+        const teamId = String(team.id);
+        teamsMap.set(teamId, {
+            id: teamId,
+            nombre: team.nombre_especifico || 'Equipo',
+            club_id: team.club_id ? String(team.club_id) : undefined,
+            competicion_id: String(team.competicion_id),
+        });
+    }
+
+    const competitionNameSet = new Set<string>();
+    const uniqueCompetitionsByName = filteredCompetitions.filter((competition) => {
+        const normalized = normalizeText(competition.nombre);
+        if (competitionNameSet.has(normalized)) return false;
+        competitionNameSet.add(normalized);
+        return true;
+    });
+
+    return {
+        competiciones: uniqueCompetitionsByName,
+        equipos: Array.from(teamsMap.values()).sort((a, b) => a.nombre.localeCompare(b.nombre)),
+    };
+};
+
+export const fetchGlobalPlayers = async (filters: GlobalPlayerFilters): Promise<GlobalPlayerRow[]> => {
+    const normalizedNameFilter = normalizeText(filters.nombreJugador);
+
+    // Definimos si el usuario está buscando algo específico de una competición.
+    const shouldScopeByCompetition = Boolean(filters.temporadaId || filters.categoriaId || filters.fase || filters.competicionNombre || filters.equipoNombre);
+
+    let competitionsQuery = supabase
+        .from('competiciones')
+        .select('id, nombre, temporada_id, categoria_id, categorias(id, nombre, es_mini)')
+        .order('nombre');
+
+    if (filters.temporadaId) {
+        competitionsQuery = competitionsQuery.eq('temporada_id', filters.temporadaId);
+    }
+
+    if (filters.categoriaId) {
+        competitionsQuery = competitionsQuery.eq('categoria_id', filters.categoriaId);
+    }
+
+    const { data: competitionsData, error: competitionsError } = await competitionsQuery;
+    if (competitionsError) throw competitionsError;
+
+    const [temporadas, categorias] = await Promise.all([
+        fetchTemporadas(),
+        fetchCategorias()
+    ]);
+
+    const competitions = ((competitionsData || []) as any[])
+        .filter((competition) => {
+            if (filters.competicionNombre && normalizeText(competition.nombre) !== normalizeText(filters.competicionNombre)) {
+                return false;
+            }
+            if (!filters.fase) return true;
+            return normalizeText(competition.nombre).includes(normalizeText(filters.fase));
+        });
+
+    const competitionMap = new Map<string, any>();
+    competitions.forEach((competition) => competitionMap.set(String(competition.id), competition));
+    const scopedCompetitionIds = Array.from(competitionMap.keys());
+
+    if (shouldScopeByCompetition && scopedCompetitionIds.length === 0) {
+        return [];
+    }
+
+    let teamsQuery = supabase
+        .from('equipos')
+        .select('id, nombre_especifico, competicion_id, club_id, clubs:clubs!equipos_club_id_fkey(id, nombre)')
+        .order('nombre_especifico');
+
+    if (scopedCompetitionIds.length > 0 && !filters.equipoNombre) {
+        teamsQuery = teamsQuery.in('competicion_id', scopedCompetitionIds);
+    }
+
+    const { data: teamsData, error: teamsError } = await teamsQuery;
+    if (teamsError) throw teamsError;
+
+    const filteredTeamsData = filters.equipoNombre
+        ? (teamsData || []).filter((team) => normalizeText(team.nombre_especifico || '') === normalizeText(filters.equipoNombre || ''))
+        : (teamsData || []).filter((team) => {
+            if (scopedCompetitionIds.length === 0) return true;
+            return scopedCompetitionIds.includes(String(team.competicion_id));
+        });
+
+    const teamMap = new Map<string, any>();
+    for (const team of filteredTeamsData) {
+        teamMap.set(String(team.id), team);
+    }
+
+    if (filters.equipoNombre && teamMap.size === 0) {
+        return [];
+    }
+
+    const scopedTeamIds = Array.from(teamMap.keys());
+
+    let rosterQuery = supabase
+        .from('plantillas')
+        .select('jugador_id, dorsal, equipo_id, jugadores!inner(id, nombre_completo, foto_url)');
+
+    if (normalizedNameFilter) {
+        // Usamos !inner para forzar el filtro en la relación join
+        rosterQuery = rosterQuery.ilike('jugadores.nombre_completo', `%${normalizedNameFilter}%`);
+    }
+
+    if (filters.playerIds && filters.playerIds.length > 0) {
+        rosterQuery = rosterQuery.in('jugador_id', filters.playerIds);
+    }
+
+    if (filters.dorsal) {
+        rosterQuery = rosterQuery.eq('dorsal', filters.dorsal);
+    }
+
+    if (scopedTeamIds.length > 0) {
+        rosterQuery = rosterQuery.in('equipo_id', scopedTeamIds);
+    }
+
+    const { data: rosterData, error: rosterError } = await rosterQuery;
+    if (rosterError) throw rosterError;
+
+    const filteredRoster = (rosterData || []).filter((entry: any) => {
+        if (!normalizedNameFilter) return true;
+        const player = Array.isArray(entry.jugadores) ? entry.jugadores[0] : entry.jugadores;
+        const playerNameNormalized = normalizeText(player?.nombre_completo);
+        return playerNameNormalized.includes(normalizedNameFilter);
+    });
+
+    if (filteredRoster.length === 0) {
+        return [];
+    }
+
+    const rosterByPlayer = new Map<string, any[]>();
+    for (const entry of filteredRoster) {
+        const playerId = String(entry.jugador_id);
+        if (!rosterByPlayer.has(playerId)) {
+            rosterByPlayer.set(playerId, []);
+        }
+        rosterByPlayer.get(playerId)!.push(entry);
+    }
+
+    const allPlayerIds = Array.from(rosterByPlayer.keys());
+    
+    const offset = Math.max(0, filters.offset || 0);
+    const limit = filters.limit && filters.limit > 0 ? filters.limit : 0;
+    const scopedPlayerIds = limit > 0
+        ? allPlayerIds.slice(offset, offset + limit)
+        : allPlayerIds.slice(offset);
+
+    if (scopedPlayerIds.length === 0) {
+        return [];
+    }
+
+    const matchMetaMap = new Map<string, { id: string; competicion_id: string; equipo_local_id: string; equipo_visitante_id: string }>();
+    let scopedMatchIds: string[] = [];
+
+    // CAMBIO CRÍTICO: Definimos si el usuario está buscando algo específico de una competición.
+    // Si NO hay filtros de temporada/cat/fase/equipo, NO debemos restringir los partidos.
+    const isFilteringByCompetition = Boolean(filters.temporadaId || filters.categoriaId || filters.fase || filters.competicionNombre || filters.equipoNombre);
+
+    if (isFilteringByCompetition) {
+        let matchesQuery = supabase
+            .from('partidos')
+            .select('id, competicion_id, equipo_local_id, equipo_visitante_id')
+            .order('fecha_hora', { ascending: false });
+
+        if (scopedCompetitionIds.length > 0) {
+            matchesQuery = matchesQuery.in('competicion_id', scopedCompetitionIds);
+        }
+
+        const { data: matchesData, error: matchesError } = await matchesQuery;
+        if (matchesError) throw matchesError;
+
+        const scopedTeamIdSet = new Set(scopedTeamIds.map(String));
+        const filteredMatches = (matchesData || []).filter((match: any) => {
+            if (scopedTeamIdSet.size === 0) return true;
+            return scopedTeamIdSet.has(String(match.equipo_local_id)) || scopedTeamIdSet.has(String(match.equipo_visitante_id));
+        });
+
+        for (const match of filteredMatches) {
+            const matchId = String(match.id);
+            matchMetaMap.set(matchId, {
+                id: matchId,
+                competicion_id: String(match.competicion_id),
+                equipo_local_id: String(match.equipo_local_id),
+                equipo_visitante_id: String(match.equipo_visitante_id),
+            });
+        }
+
+        scopedMatchIds = filteredMatches.map((match: any) => String(match.id));
+    }
+
+    const statsAccumulator = new Map<string, EstadisticaJugadorPartido>();
+    const playerChunks = chunkArray(scopedPlayerIds, 120);
+
+    // Si estamos filtrando por competición, solo pillamos stats de esos partidos.
+    // Si NO estamos filtrando, pillamos TODAS las stats de esos jugadores en la historia.
+    if (isFilteringByCompetition) {
+        if (scopedMatchIds.length > 0) {
+            const matchChunks = chunkArray(scopedMatchIds, 150);
+            for (const playerChunk of playerChunks) {
+                for (const matchChunk of matchChunks) {
+                    const { data: statsData, error: statsError } = await supabase
+                        .from('estadisticas_jugador_partido')
+                        .select('*')
+                        .in('jugador_id', playerChunk)
+                        .in('partido_id', matchChunk);
+                    if (statsError) throw statsError;
+                    for (const row of statsData || []) {
+                        statsAccumulator.set(String(row.id), row as EstadisticaJugadorPartido);
+                    }
+                }
+            }
+        }
+    } else {
+        // Modo búsqueda global (ej: Solo buscar "Oriol")
+        for (const playerChunk of playerChunks) {
+            const { data: statsData, error: statsError } = await supabase
+                .from('estadisticas_jugador_partido')
+                .select('*')
+                .in('jugador_id', playerChunk);
+            if (statsError) throw statsError;
+            for (const row of statsData || []) {
+                statsAccumulator.set(String(row.id), row as EstadisticaJugadorPartido);
+            }
+        }
+    }
+
+    const statsRows = Array.from(statsAccumulator.values());
+
+    // En modo global puede faltar metadata de partidos; la cargamos para poder desglosar por competición/temporada/categoría.
+    const missingMatchIds = Array.from(new Set(statsRows.map((row) => String(row.partido_id))))
+        .filter((matchId) => !matchMetaMap.has(matchId));
+
+    if (missingMatchIds.length > 0) {
+        const matchChunks = chunkArray(missingMatchIds, 200);
+        for (const matchChunk of matchChunks) {
+            const { data: extraMatchesData, error: extraMatchesError } = await supabase
+                .from('partidos')
+                .select('id, competicion_id, equipo_local_id, equipo_visitante_id')
+                .in('id', matchChunk);
+            if (extraMatchesError) throw extraMatchesError;
+
+            for (const match of extraMatchesData || []) {
+                const matchId = String(match.id);
+                matchMetaMap.set(matchId, {
+                    id: matchId,
+                    competicion_id: String(match.competicion_id),
+                    equipo_local_id: String(match.equipo_local_id),
+                    equipo_visitante_id: String(match.equipo_visitante_id),
+                });
+            }
+        }
+    }
+    
+    const matchDurationMap = new Map<string, number>();
+    for (const [matchId, match] of matchMetaMap.entries()) {
+        const competition = competitionMap.get(String(match.competicion_id));
+        const isMini = Boolean(competition?.categorias?.es_mini);
+        matchDurationMap.set(matchId, isMini ? 48 : 40);
+    }
+
+    const playerAggregates = new Map<string, {
+        jugadorId: string;
+        totalPuntos: number;
+        totalMinutos: number;
+        totalFaltas: number;
+        totalTirosLibresIntentados: number;
+        totalTirosLibresAnotados: number;
+        totalTiros2Intentados: number;
+        totalTiros2Anotados: number;
+        totalTiros3Intentados: number;
+        totalTiros3Anotados: number;
+        totalMasMenos: number;
+        matchIds: Set<string>;
+        expectedMinutes: number;
+    }>();
+
+    const expectedMinutesByPlayerMatch = new Set<string>();
+
+    for (const playerId of scopedPlayerIds) {
+        playerAggregates.set(playerId, {
+            jugadorId: playerId,
+            totalPuntos: 0,
+            totalMinutos: 0,
+            totalFaltas: 0,
+            totalTirosLibresIntentados: 0,
+            totalTirosLibresAnotados: 0,
+            totalTiros2Intentados: 0,
+            totalTiros2Anotados: 0,
+            totalTiros3Intentados: 0,
+            totalTiros3Anotados: 0,
+            totalMasMenos: 0,
+            matchIds: new Set<string>(),
+            expectedMinutes: 0,
+        });
+    }
+
+    for (const row of statsRows) {
+        const playerId = String(row.jugador_id);
+        const aggregate = playerAggregates.get(playerId);
+        if (!aggregate) continue;
+
+        const matchId = String(row.partido_id);
+
+        aggregate.totalPuntos += row.puntos || 0;
+        aggregate.totalMinutos += parseTiempoGlobal(row.tiempo_jugado);
+        aggregate.totalFaltas += (row.faltas_cometidas || 0) + (row.tecnicas || 0) + (row.antideportivas || 0);
+        aggregate.totalTirosLibresIntentados += row.t1_intentados || 0;
+        aggregate.totalTirosLibresAnotados += row.t1_anotados || 0;
+        aggregate.totalTiros2Intentados += row.t2_intentados || 0;
+        aggregate.totalTiros2Anotados += row.t2_anotados || 0;
+        aggregate.totalTiros3Intentados += row.t3_intentados || 0;
+        aggregate.totalTiros3Anotados += row.t3_anotados || 0;
+        aggregate.totalMasMenos += row.mas_menos || 0;
+        aggregate.matchIds.add(matchId);
+
+        const expectedMinutesKey = `${playerId}::${matchId}`;
+        if (!expectedMinutesByPlayerMatch.has(expectedMinutesKey)) {
+            aggregate.expectedMinutes += matchDurationMap.get(matchId) || 40;
+            expectedMinutesByPlayerMatch.add(expectedMinutesKey);
+        }
+    }
+
+    let rows: GlobalPlayerRow[] = [];
+
+    for (const [playerId, aggregate] of playerAggregates.entries()) {
+        const rosterEntries = rosterByPlayer.get(playerId) || [];
+        if (rosterEntries.length === 0) continue;
+
+        const playerDataRaw = Array.isArray(rosterEntries[0].jugadores) ? rosterEntries[0].jugadores[0] : rosterEntries[0].jugadores;
+        const playerName = playerDataRaw?.nombre_completo || 'Jugador';
+        const playerPhoto = playerDataRaw?.foto_url;
+
+        const dorsalCount: Record<string, number> = {};
+        const equiposMap = new Map<string, { id: string; nombre: string; clubId?: string; clubNombre?: string }>();
+        const desgloseMap = new Map<string, {
+            temporada: string;
+            categoria: string;
+            partidosJugados: number;
+            totalPuntos: number;
+            totalMinutos: number;
+            totalFaltas: number;
+            expectedMinutes: number;
+            totalLibresIntentados: number;
+            totalLibresAnotados: number;
+            totalT2Anotados: number;
+            totalT3Anotados: number;
+            matchIds: Set<string>;
+        }>();
+
+        for (const rosterEntry of rosterEntries) {
+            const teamId = String(rosterEntry.equipo_id);
+            const team = teamMap.get(teamId);
+            const competition = team ? competitionMap.get(String(team.competicion_id)) : null;
+
+            const dorsal = rosterEntry.dorsal !== null && rosterEntry.dorsal !== undefined ? String(rosterEntry.dorsal) : '-';
+            dorsalCount[dorsal] = (dorsalCount[dorsal] || 0) + 1;
+
+            if (team) {
+                const club = Array.isArray(team.clubs) ? team.clubs[0] : team.clubs;
+                equiposMap.set(teamId, {
+                    id: teamId,
+                    nombre: team.nombre_especifico || 'Equipo',
+                    clubId: club?.id ? String(club.id) : (team.club_id ? String(team.club_id) : undefined),
+                    clubNombre: club?.nombre || undefined,
+                });
+            }
+        }
+
+        const playerStatsRows = statsRows.filter((s) => String(s.jugador_id) === playerId);
+        for (const s of playerStatsRows) {
+            const match = matchMetaMap.get(String(s.partido_id));
+            if (!match) continue;
+
+            const competition = competitionMap.get(String(match.competicion_id));
+            const season = temporadas.find((seasonItem) => String(seasonItem.id) === String(competition?.temporada_id))?.nombre || 'Desconocida';
+            const category = categorias.find((categoryItem) => String(categoryItem.id) === String(competition?.categoria_id))?.nombre || 'Desconocida';
+            const key = `${season}__${category}`;
+
+            if (!desgloseMap.has(key)) {
+                desgloseMap.set(key, {
+                    temporada: season,
+                    categoria: category,
+                    partidosJugados: 0,
+                    totalPuntos: 0,
+                    totalMinutos: 0,
+                    totalFaltas: 0,
+                    expectedMinutes: 0,
+                    totalLibresIntentados: 0,
+                    totalLibresAnotados: 0,
+                    totalT2Anotados: 0,
+                    totalT3Anotados: 0,
+                    matchIds: new Set<string>(),
+                });
+            }
+
+            const entry = desgloseMap.get(key)!;
+            const matchId = String(s.partido_id);
+            if (!entry.matchIds.has(matchId)) {
+                entry.matchIds.add(matchId);
+                entry.partidosJugados += 1;
+                entry.expectedMinutes += matchDurationMap.get(matchId) || 40;
+            }
+
+            entry.totalPuntos += s.puntos || 0;
+            entry.totalMinutos += parseTiempoGlobal(s.tiempo_jugado);
+            entry.totalFaltas += (s.faltas_cometidas || 0) + (s.tecnicas || 0) + (s.antideportivas || 0);
+            entry.totalLibresIntentados += s.t1_intentados || 0;
+            entry.totalLibresAnotados += s.t1_anotados || 0;
+            entry.totalT2Anotados += s.t2_anotados || 0;
+            entry.totalT3Anotados += s.t3_anotados || 0;
+        }
+
+        const preferredDorsal = Object.entries(dorsalCount)
+            .sort((a, b) => b[1] - a[1])[0]?.[0] || '-';
+
+        const gamesPlayed = aggregate.matchIds.size;
+        const ppg = gamesPlayed > 0 ? aggregate.totalPuntos / gamesPlayed : 0;
+        const mpg = gamesPlayed > 0 ? aggregate.totalMinutos / gamesPlayed : 0;
+        const fpg = gamesPlayed > 0 ? aggregate.totalFaltas / gamesPlayed : 0;
+        const ppm = aggregate.expectedMinutes > 0 ? aggregate.totalPuntos / aggregate.expectedMinutes : 0;
+        const avgMasMenos = gamesPlayed > 0 ? aggregate.totalMasMenos / gamesPlayed : 0;
+        const t1Pct = aggregate.totalTirosLibresIntentados > 0
+            ? (aggregate.totalTirosLibresAnotados / aggregate.totalTirosLibresIntentados) * 100
+            : 0;
+
+        const desglose = Array.from(desgloseMap.values()).map(d => ({
+            temporada: d.temporada,
+            categoria: d.categoria,
+            partidosJugados: d.partidosJugados,
+            ppg: d.partidosJugados > 0 ? d.totalPuntos / d.partidosJugados : 0,
+            mpg: d.partidosJugados > 0 ? d.totalMinutos / d.partidosJugados : 0,
+            ppm: d.expectedMinutes > 0 ? d.totalPuntos / d.expectedMinutes : 0,
+            fpg: d.partidosJugados > 0 ? d.totalFaltas / d.partidosJugados : 0,
+            t1Pct: d.totalLibresIntentados > 0 ? (d.totalLibresAnotados / d.totalLibresIntentados) * 100 : 0,
+            t2Made: d.partidosJugados > 0 ? d.totalT2Anotados / d.partidosJugados : 0,
+            t3Made: d.partidosJugados > 0 ? d.totalT3Anotados / d.partidosJugados : 0,
+        })).sort((a, b) => b.temporada.localeCompare(a.temporada));
+
+        rows.push({
+            jugadorId: playerId,
+            nombre: playerName,
+            dorsal: preferredDorsal,
+            fotoUrl: playerPhoto,
+            partidosJugados: gamesPlayed,
+            totalPuntos: aggregate.totalPuntos,
+            totalMinutos: aggregate.totalMinutos,
+            totalFaltas: aggregate.totalFaltas,
+            totalFaltasTiro: 0,
+            totalTirosLibresIntentados: aggregate.totalTirosLibresIntentados,
+            totalTirosLibresAnotados: aggregate.totalTirosLibresAnotados,
+            totalTiros2Intentados: aggregate.totalTiros2Intentados,
+            totalTiros2Anotados: aggregate.totalTiros2Anotados,
+            totalTiros3Intentados: aggregate.totalTiros3Intentados,
+            totalTiros3Anotados: aggregate.totalTiros3Anotados,
+            totalMasMenos: aggregate.totalMasMenos,
+            avgMasMenos,
+            ppg,
+            mpg,
+            fpg,
+            ppm,
+            t1Pct,
+            equipos: Array.from(equiposMap.values()),
+            desglose,
+        });
+    }
+
+    rows = rows.sort((a, b) => b.ppg - a.ppg);
+
+    return rows;
 };
 
 // NEW: Función ligera para obtener resumen de la portada (Nº Equipos y Jornada Actual)

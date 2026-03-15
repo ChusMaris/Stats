@@ -239,3 +239,38 @@ export interface RecentCompetition {
   fase?: string; // Phase name for restoring filters
   timestamp: number;
 }
+
+export interface GlobalPlayerFilters {
+  temporadaId?: string;
+  categoriaId?: string;
+  fase?: string;
+  competicionNombre?: string;
+  equipoNombre?: string;
+  nombreJugador?: string;
+  dorsal?: string;
+  playerIds?: string[];
+  limit?: number;
+  offset?: number;
+}
+
+export interface GlobalPlayerRow extends PlayerAggregatedStats {
+  t1Pct: number;
+  equipos: Array<{
+    id: string;
+    nombre: string;
+    clubId?: string;
+    clubNombre?: string;
+  }>;
+  desglose?: Array<{
+    temporada: string;
+    categoria: string;
+    partidosJugados: number;
+    ppg: number;
+    mpg: number;
+    ppm: number;
+    fpg: number;
+    t1Pct: number;
+    t2Made: number;
+    t3Made: number;
+  }>;
+}
