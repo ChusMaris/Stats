@@ -1,15 +1,29 @@
 
-import React, { useState, useEffect, useMemo, useRef } from 'react';
-import { HashRouter as Router, Routes, Route, NavLink, useLocation } from 'react-router-dom';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { HashRouter as Router, Routes, Route, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { fetchTemporadas, fetchCategorias, fetchCompeticiones, fetchCompeticionDetails } from './services/dataService';
-import { Temporada, Categoria, Competicion } from './types';
+import { Temporada, Categoria, Competicion, RecentCompetition } from './types';
 import CompetitionFilters from './components/CompetitionFilters';
 import StatsView from './components/StatsView';
 import ScoutingView from './components/ScoutingView';
-import { Loader2, Trophy, AlertCircle, BarChart3, CalendarDays, Lock, Unlock } from 'lucide-react';
+import LandingPage from './components/LandingPage';
+import PlayersPage from './components/PlayersPage';
+import { Loader2, Trophy, AlertCircle, BarChart3, CalendarDays, Unlock, Users } from 'lucide-react';
+import { getActiveCompetition, getRecentCompetitions, setActiveCompetition, upsertRecentCompetition } from './utils/competitionStorage';
+
+type ViewDataState = {
+  matches: any[];
+  realMatches: any[];
+  equipos: any[];
+  competicion: Competicion | null;
+} | null;
+
+const getInitialSelection = () => getActiveCompetition();
 
 const AppContent: React.FC = () => {
   const location = useLocation();
+  const navigate = useNavigate();
+  const initialSelection = useMemo(() => getInitialSelection(), []);
 
   // --- Admin / Secret Mode Logic ---
   const [isAdmin, setIsAdmin] = useState<boolean>(() => {
@@ -47,11 +61,12 @@ const AppContent: React.FC = () => {
   const [categorias, setCategorias] = useState<Categoria[]>([]);
   const [competiciones, setCompeticiones] = useState<Competicion[]>([]);
   const [loadingCompetitions, setLoadingCompetitions] = useState(false);
+  const [recentSearches, setRecentSearches] = useState<RecentCompetition[]>(() => getRecentCompetitions());
 
-  const [selectedTemporada, setSelectedTemporada] = useState<string>('');
-  const [selectedCategoria, setSelectedCategoria] = useState<string>('');
-  const [selectedFase, setSelectedFase] = useState<string>('');
-  const [selectedCompeticion, setSelectedCompeticion] = useState<string>('');
+  const [selectedTemporada, setSelectedTemporada] = useState<string>(() => initialSelection?.temporadaId || '');
+  const [selectedCategoria, setSelectedCategoria] = useState<string>(() => initialSelection?.categoriaId || '');
+  const [selectedFase, setSelectedFase] = useState<string>(() => initialSelection?.fase || '');
+  const [selectedCompeticion, setSelectedCompeticion] = useState<string>(() => initialSelection?.id || '');
   
   // --- UI State ---
   const [isFilterExpanded, setIsFilterExpanded] = useState(true);
@@ -61,12 +76,13 @@ const AppContent: React.FC = () => {
   // --- Global Data State ---
   const [isLoading, setIsLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
-  const [viewData, setViewData] = useState<{
-    matches: any[],
-    realMatches: any[],
-    equipos: any[],
-    competicion: Competicion | null
-  } | null>(null);
+  const [viewData, setViewData] = useState<ViewDataState>(null);
+
+  const isLandingRoute = location.pathname === '/';
+  const isStatsRoute = location.pathname === '/stats';
+  const isMatchCenterRoute = location.pathname === '/match-center';
+  const isPlayersRoute = location.pathname === '/players';
+  const shouldShowStickyShell = isStatsRoute || isMatchCenterRoute;
 
   // --- Initial Load ---
   useEffect(() => {
@@ -145,13 +161,15 @@ const AppContent: React.FC = () => {
     if (selectedTemporada && selectedCategoria) {
       const loadComps = async () => {
         setLoadingCompetitions(true);
-        setCompeticiones([]);
-        setSelectedFase('');
-        setSelectedCompeticion('');
         setErrorMsg(null);
         try {
           const comps = await fetchCompeticiones(selectedTemporada, selectedCategoria);
           setCompeticiones(comps);
+
+          if (selectedCompeticion && !comps.some((comp) => String(comp.id) === selectedCompeticion)) {
+            setSelectedCompeticion('');
+            setViewData(null);
+          }
         } catch (error) {
           console.error("Error loading competitions", error);
           setErrorMsg("Error cargando las competiciones.");
@@ -162,8 +180,6 @@ const AppContent: React.FC = () => {
       loadComps();
     } else {
       setCompeticiones([]);
-      setSelectedFase('');
-      setSelectedCompeticion('');
     }
   }, [selectedTemporada, selectedCategoria]);
 
@@ -179,7 +195,7 @@ const AppContent: React.FC = () => {
         
         try {
           const details = await fetchCompeticionDetails(selectedCompeticion);
-          const comp = competiciones.find(c => c.id.toString() === selectedCompeticion) || null;
+          const comp = details.competicion || competiciones.find(c => c.id.toString() === selectedCompeticion) || null;
           
           const categoryInfo = categorias.find(c => c.id.toString() === selectedCategoria);
           const compWithCategory = comp ? { 
@@ -207,68 +223,257 @@ const AppContent: React.FC = () => {
     };
 
   useEffect(() => {
-    if (selectedCompeticion && competiciones.length > 0) {
-        loadCompetitionData();
+    if (selectedCompeticion) {
+      loadCompetitionData();
     }
-  }, [selectedCompeticion, competiciones, selectedCategoria, categorias]);
+  }, [selectedCompeticion, selectedCategoria, categorias]);
 
+  useEffect(() => {
+    if (!selectedCompeticion) return;
+    if (!shouldShowStickyShell) return;
 
-  const activeCategoryName = categorias.find(c => c.id.toString() === selectedCategoria)?.nombre;
-  const activeCompetitionName = competiciones.find(c => c.id.toString() === selectedCompeticion)?.nombre;
+    const loadedCompetitionId = viewData?.competicion?.id ? String(viewData.competicion.id) : '';
+
+    if (!viewData || loadedCompetitionId !== String(selectedCompeticion)) {
+      loadCompetitionData();
+    }
+  }, [shouldShowStickyShell, selectedCompeticion, viewData]);
+
+  useEffect(() => {
+    if ((isStatsRoute || isMatchCenterRoute) && !selectedCompeticion) {
+      navigate('/', { replace: true });
+    }
+  }, [isMatchCenterRoute, isStatsRoute, navigate, selectedCompeticion]);
+
+  const buildRecentCompetition = (competitionId = selectedCompeticion): RecentCompetition | null => {
+    if (!competitionId || !selectedTemporada || !selectedCategoria) return null;
+
+    const competencia = competiciones.find((item) => String(item.id) === String(competitionId));
+    const temporada = temporadas.find((item) => String(item.id) === selectedTemporada);
+    const categoria = categorias.find((item) => String(item.id) === selectedCategoria);
+
+    if (!competencia || !temporada || !categoria) return null;
+
+    return {
+      id: String(competencia.id),
+      nombre: competencia.nombre,
+      temporadaId: String(temporada.id),
+      categoriaId: String(categoria.id),
+      temporadaNombre: temporada.nombre,
+      categoriaNombre: categoria.nombre,
+      fase: selectedFase || undefined,
+      timestamp: Date.now(),
+    };
+  };
+
+  const syncStoredCompetition = (item: RecentCompetition, pushToHistory: boolean) => {
+    setActiveCompetition(item);
+
+    if (pushToHistory) {
+      setRecentSearches(upsertRecentCompetition(item));
+      return;
+    }
+
+    setRecentSearches(getRecentCompetitions());
+  };
+
+  useEffect(() => {
+    const item = buildRecentCompetition();
+    if (item) {
+      setActiveCompetition(item);
+    }
+  }, [selectedCompeticion, selectedTemporada, selectedCategoria, selectedFase, competiciones, temporadas, categorias]);
+
+  const handleTemporadaChange = (value: string) => {
+    if (value === selectedTemporada) return;
+    setSelectedTemporada(value);
+    setSelectedCategoria('');
+    setSelectedFase('');
+    setSelectedCompeticion('');
+    setCompeticiones([]);
+    setViewData(null);
+    setIsFilterExpanded(true);
+  };
+
+  const handleCategoriaChange = (value: string) => {
+    if (value === selectedCategoria) return;
+    setSelectedCategoria(value);
+    setSelectedFase('');
+    setSelectedCompeticion('');
+    setViewData(null);
+    setIsFilterExpanded(true);
+  };
+
+  const handleFaseChange = (value: string) => {
+    if (value === selectedFase) return;
+    setSelectedFase(value);
+    setSelectedCompeticion('');
+    setViewData(null);
+    setIsFilterExpanded(true);
+  };
+
+  const handleCompeticionChange = (value: string) => {
+    setSelectedCompeticion(value);
+
+    if (!value) {
+      setViewData(null);
+      return;
+    }
+
+    if (isLandingRoute) {
+      const competencia = competiciones.find((item) => String(item.id) === String(value));
+      const temporada = temporadas.find((item) => String(item.id) === selectedTemporada);
+      const categoria = categorias.find((item) => String(item.id) === selectedCategoria);
+
+      if (competencia && temporada && categoria) {
+        const item: RecentCompetition = {
+          id: String(competencia.id),
+          nombre: competencia.nombre,
+          temporadaId: String(temporada.id),
+          categoriaId: String(categoria.id),
+          temporadaNombre: temporada.nombre,
+          categoriaNombre: categoria.nombre,
+          fase: selectedFase || undefined,
+          timestamp: Date.now(),
+        };
+
+        syncStoredCompetition(item, true);
+        navigate('/stats');
+      }
+
+      return;
+    }
+
+    if (isStatsRoute || isMatchCenterRoute) {
+      const item = buildRecentCompetition(value);
+      if (item) {
+        syncStoredCompetition(item, true);
+      }
+    }
+  };
+
+  const handleOpenRecentSearch = (item: RecentCompetition) => {
+    setSelectedTemporada(item.temporadaId);
+    setSelectedCategoria(item.categoriaId);
+    setSelectedFase(item.fase || '');
+    setSelectedCompeticion(item.id);
+    setViewData(null);
+    setIsFilterExpanded(false);
+    syncStoredCompetition({ ...item, timestamp: Date.now() }, true);
+    navigate('/stats');
+  };
+
+  const activeCompetitionName = viewData?.competicion?.nombre || competiciones.find(c => c.id.toString() === selectedCompeticion)?.nombre;
+
+  const renderTopHeader = (sticky: boolean) => (
+    <header className={`bg-fcbq-blue text-white transition-all duration-300 ${sticky ? (isScrolled ? 'py-2 md:py-2' : 'py-2 md:py-4') : 'py-3 md:py-4'}`}>
+      <div className="container mx-auto px-4">
+        <div className="flex items-center justify-between">
+          <div
+            className="flex items-center gap-2 md:gap-3 overflow-hidden cursor-pointer select-none active:opacity-80"
+            onClick={handleSecretClick}
+          >
+            <div
+              className={`bg-white rounded-full flex items-center justify-center text-fcbq-blue font-bold border-2 transition-all duration-300 overflow-hidden ${isAdmin ? 'border-green-400 shadow-[0_0_10px_rgba(74,222,128,0.5)]' : 'border-fcbq-accent'} ${sticky ? (isScrolled ? 'w-8 h-8 text-base md:w-8 md:h-8 md:text-base' : 'w-8 h-8 text-base md:w-10 md:h-10 md:text-xl') : 'w-9 h-9 text-lg md:w-10 md:h-10 md:text-xl'}`}
+            >
+              <span className={sticky ? (isScrolled ? 'text-base md:text-base' : 'text-base md:text-xl') : 'text-lg md:text-xl'}>B</span>
+            </div>
+
+            <div className="flex flex-col justify-center">
+              <h1 className="text-base md:text-2xl font-bold tracking-tight animate-fade-in flex items-center gap-1.5 md:gap-2 leading-none">
+                Brafa Stats
+                {isAdmin && <Unlock size={14} className="text-green-400 opacity-70" />}
+              </h1>
+            </div>
+          </div>
+
+          <nav className="flex items-center gap-1 md:gap-2">
+            <NavLink
+              to="/stats"
+              className={({ isActive }) => `flex items-center gap-1 md:gap-2 px-2 py-1.5 md:px-3 md:py-2 rounded-md md:rounded-lg text-xs md:text-sm font-bold transition-all ${isActive ? 'bg-white text-fcbq-blue shadow-sm' : 'text-blue-100 hover:bg-white/10'}`}
+            >
+              <BarChart3 size={16} />
+              <span className="hidden md:inline">Estadísticas</span>
+            </NavLink>
+
+            <NavLink
+              to="/match-center"
+              className={({ isActive }) => `flex items-center gap-1 md:gap-2 px-2 py-1.5 md:px-3 md:py-2 rounded-md md:rounded-lg text-xs md:text-sm font-bold transition-all ${isActive ? 'bg-white text-fcbq-blue shadow-sm' : 'text-blue-100 hover:bg-white/10'}`}
+            >
+              <CalendarDays size={16} />
+              <span className="hidden md:inline">Match Center</span>
+            </NavLink>
+
+            <NavLink
+              to="/players"
+              className={({ isActive }) => `flex items-center gap-1 md:gap-2 px-2 py-1.5 md:px-3 md:py-2 rounded-md md:rounded-lg text-xs md:text-sm font-bold transition-all ${isActive ? 'bg-white text-fcbq-blue shadow-sm' : 'text-blue-100 hover:bg-white/10'}`}
+            >
+              <Users size={16} />
+              <span className="hidden md:inline">Jugadores</span>
+            </NavLink>
+          </nav>
+        </div>
+      </div>
+    </header>
+  );
+
+  const renderDataRoute = (route: 'stats' | 'match-center') => {
+    if (isLoading && !viewData) {
+      return (
+        <div className="bg-white rounded-lg shadow-sm p-12 text-center border border-gray-200 flex flex-col items-center justify-center min-h-[300px]">
+          <Loader2 size={56} className="text-fcbq-blue animate-spin mb-4" />
+          <h3 className="text-2xl font-bold text-gray-800">Cargando datos...</h3>
+          <p className="text-gray-500 mt-2 text-lg">Obteniendo información de la competición.</p>
+        </div>
+      );
+    }
+
+    if (!viewData && !isLoading && !errorMsg) {
+      return (
+        <div className="bg-white rounded-lg shadow-sm p-12 text-center border border-gray-200 mt-8">
+          <div className="inline-block p-4 bg-blue-50 rounded-full mb-4">
+            <Trophy size={56} className="text-fcbq-blue" />
+          </div>
+          <h3 className="text-2xl font-bold text-gray-800">Selecciona una competición</h3>
+          <p className="text-gray-500 mt-2 text-lg">Usa los filtros superiores para cargar los datos.</p>
+        </div>
+      );
+    }
+
+    if (!viewData) {
+      return null;
+    }
+
+    return (
+      <div className={`animate-fade-in relative transition-opacity duration-200 ${isLoading ? 'opacity-60 pointer-events-none' : ''}`}>
+        {isLoading && (
+          <div className="absolute inset-0 z-50 flex items-start justify-center pt-20">
+            <div className="bg-white/80 p-4 rounded-full shadow-lg border border-blue-100">
+              <Loader2 size={32} className="text-fcbq-blue animate-spin" />
+            </div>
+          </div>
+        )}
+
+        {route === 'stats' ? (
+          <StatsView viewData={viewData} selectedCompeticionId={selectedCompeticion} />
+        ) : (
+          <ScoutingView
+            viewData={viewData}
+            selectedCompeticionId={selectedCompeticion}
+            onMatchAdded={loadCompetitionData}
+            isAdmin={isAdmin}
+          />
+        )}
+      </div>
+    );
+  };
 
   return (
     <div className="min-h-screen flex flex-col font-sans text-slate-800 bg-slate-50">
-      
-      {/* Sticky Container Group: Navbar + Filters */}
-      <div className="sticky top-0 z-40 bg-white shadow-md flex flex-col transition-all duration-300">
-        
-        {/* Navbar - No Sticky here, strictly relative to wrapper */}
-        <header className={`bg-fcbq-blue text-white transition-all duration-300 ${isScrolled ? 'py-2 md:py-2' : 'py-2 md:py-4'}`}>
-            <div className="container mx-auto px-4">
-                <div className="flex items-center justify-between">
-                    {/* LOGO AREA */}
-                    <div 
-                className="flex items-center gap-2 md:gap-3 overflow-hidden cursor-pointer select-none active:opacity-80"
-                        onClick={handleSecretClick}
-                    >
-                        <div 
-                className={`bg-white rounded-full flex items-center justify-center text-fcbq-blue font-bold border-2 transition-all duration-300 overflow-hidden ${isAdmin ? 'border-green-400 shadow-[0_0_10px_rgba(74,222,128,0.5)]' : 'border-fcbq-accent'} ${isScrolled ? 'w-8 h-8 text-base md:w-8 md:h-8 md:text-base' : 'w-8 h-8 text-base md:w-10 md:h-10 md:text-xl'}`}
-                        >
-                  <span className={isScrolled ? 'text-base md:text-base' : 'text-base md:text-xl'}>B</span>
-                        </div>
-                        
-                        <div className="flex flex-col justify-center">
-                  <h1 className="text-base md:text-2xl font-bold tracking-tight animate-fade-in flex items-center gap-1.5 md:gap-2 leading-none">
-                                Brafa Stats
-                                {isAdmin && <Unlock size={14} className="text-green-400 opacity-70" />}
-                            </h1>
-                        </div>
-                    </div>
-
-                    {/* Navigation Links */}
-                    <nav className="flex items-center gap-1 md:gap-2">
-                        <NavLink 
-                            to="/" 
-                  className={({ isActive }) => `flex items-center gap-1 md:gap-2 px-2 py-1.5 md:px-3 md:py-2 rounded-md md:rounded-lg text-xs md:text-sm font-bold transition-all ${isActive ? 'bg-white text-fcbq-blue shadow-sm' : 'text-blue-100 hover:bg-white/10'}`}
-                        >
-                  <BarChart3 size={16} />
-                            <span className="hidden md:inline">Estadísticas</span>
-                        </NavLink>
-                        
-                        <NavLink 
-                            to="/match-center" 
-                  className={({ isActive }) => `flex items-center gap-1 md:gap-2 px-2 py-1.5 md:px-3 md:py-2 rounded-md md:rounded-lg text-xs md:text-sm font-bold transition-all ${isActive ? 'bg-white text-fcbq-blue shadow-sm' : 'text-blue-100 hover:bg-white/10'}`}
-                        >
-                  <CalendarDays size={16} />
-                            <span className="hidden md:inline">Match Center</span>
-                        </NavLink>
-                    </nav>
-                </div>
-            </div>
-        </header>
-
-        {/* Global Filter Section - Inside the sticky wrapper */}
-        <CompetitionFilters 
+      {shouldShowStickyShell ? (
+        <div className="sticky top-0 z-40 bg-white shadow-md flex flex-col transition-all duration-300">
+          {renderTopHeader(true)}
+          <CompetitionFilters
             temporadas={temporadas}
             categorias={categorias}
             competiciones={competiciones}
@@ -277,19 +482,20 @@ const AppContent: React.FC = () => {
             selectedCategoria={selectedCategoria}
             selectedFase={selectedFase}
             selectedCompeticion={selectedCompeticion}
-            onTemporadaChange={setSelectedTemporada}
-            onCategoriaChange={setSelectedCategoria}
-            onFaseChange={setSelectedFase}
-            onCompeticionChange={setSelectedCompeticion}
+            onTemporadaChange={handleTemporadaChange}
+            onCategoriaChange={handleCategoriaChange}
+            onFaseChange={handleFaseChange}
+            onCompeticionChange={handleCompeticionChange}
             isScrolled={isScrolled}
             isExpanded={isFilterExpanded}
             setIsExpanded={setIsFilterExpanded}
-        />
-      </div>
+          />
+        </div>
+      ) : (
+        renderTopHeader(false)
+      )}
 
-      {/* Main Content Area */}
-      <main className="flex-grow container mx-auto px-4 py-8 relative z-10">
-        
+      <main className={`flex-grow container mx-auto px-4 ${isLandingRoute ? 'py-6 md:py-8' : 'py-8'} relative z-10`}>
         {errorMsg && (
           <div className="bg-red-50 border-l-4 border-red-500 p-4 mb-6 rounded-r shadow-sm flex items-start gap-3">
              <AlertCircle className="text-red-500 shrink-0 mt-0.5" size={24} />
@@ -300,53 +506,33 @@ const AppContent: React.FC = () => {
           </div>
         )}
 
-        {/* Show loader ONLY if we don't have data yet (initial load) */}
-        {isLoading && !viewData && (
-             <div className="bg-white rounded-lg shadow-sm p-12 text-center border border-gray-200 flex flex-col items-center justify-center min-h-[300px]">
-                <Loader2 size={56} className="text-fcbq-blue animate-spin mb-4" />
-                <h3 className="text-2xl font-bold text-gray-800">Cargando datos...</h3>
-                <p className="text-gray-500 mt-2 text-lg">Obteniendo información de la competición.</p>
-             </div>
-        )}
-
-        {!viewData && !isLoading && !errorMsg && (
-             <div className="bg-white rounded-lg shadow-sm p-12 text-center border border-gray-200 mt-8">
-                <div className="inline-block p-4 bg-blue-50 rounded-full mb-4">
-                    <Trophy size={56} className="text-fcbq-blue" />
-                </div>
-                <h3 className="text-2xl font-bold text-gray-800">Selecciona una competición</h3>
-                <p className="text-gray-500 mt-2 text-lg">Usa los filtros superiores para cargar los datos.</p>
-             </div>
-        )}
-
-        {/* Routes Rendered Here - KEEP MOUNTED even if refreshing (loading=true but viewData exists) */}
-        {viewData && (
-            <div className={`animate-fade-in relative transition-opacity duration-200 ${isLoading ? 'opacity-60 pointer-events-none' : ''}`}>
-                {/* Overlay Loader for Refreshing Data */}
-                {isLoading && (
-                    <div className="absolute inset-0 z-50 flex items-start justify-center pt-20">
-                        <div className="bg-white/80 p-4 rounded-full shadow-lg border border-blue-100">
-                             <Loader2 size={32} className="text-fcbq-blue animate-spin" />
-                        </div>
-                    </div>
-                )}
-
-                <Routes>
-                    <Route path="/" element={<StatsView viewData={viewData} selectedCompeticionId={selectedCompeticion} />} />
-                    <Route 
-                        path="/match-center" 
-                        element={
-                            <ScoutingView 
-                                viewData={viewData} 
-                                selectedCompeticionId={selectedCompeticion} 
-                                onMatchAdded={loadCompetitionData}
-                                isAdmin={isAdmin}
-                            />
-                        } 
-                    />
-                </Routes>
-            </div>
-        )}
+        <Routes>
+          <Route
+            path="/"
+            element={
+              <LandingPage
+                temporadas={temporadas}
+                categorias={categorias}
+                competiciones={competiciones}
+                loadingCompetitions={loadingCompetitions}
+                selectedTemporada={selectedTemporada}
+                selectedCategoria={selectedCategoria}
+                selectedFase={selectedFase}
+                selectedCompeticion={selectedCompeticion}
+                onTemporadaChange={handleTemporadaChange}
+                onCategoriaChange={handleCategoriaChange}
+                onFaseChange={handleFaseChange}
+                onCompeticionChange={handleCompeticionChange}
+                recentSearches={recentSearches}
+                onOpenRecent={handleOpenRecentSearch}
+                hasActiveCompetition={Boolean(selectedCompeticion)}
+              />
+            }
+          />
+          <Route path="/stats" element={renderDataRoute('stats')} />
+          <Route path="/match-center" element={renderDataRoute('match-center')} />
+          <Route path="/players" element={<PlayersPage activeCompetitionName={activeCompetitionName} />} />
+        </Routes>
       </main>
 
       <footer className="bg-slate-900 text-slate-400 py-10 text-center text-base">
