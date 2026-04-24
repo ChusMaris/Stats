@@ -1,6 +1,6 @@
 import React, { useRef } from 'react';
 import { Link } from 'react-router-dom';
-import { ChevronLeft, ChevronRight, Clock3, Users } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Clock3, Shield, Users } from 'lucide-react';
 import { Categoria, Competicion, RecentCompetition, Temporada } from '../types';
 import CompetitionFilterForm from './CompetitionFilterForm';
 
@@ -131,24 +131,46 @@ const LandingPage: React.FC<LandingPageProps> = ({
       </section>
 
       <section className="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 md:p-6">
-        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-          <div>
-            <h3 className="text-base md:text-lg font-bold text-slate-800 flex items-center gap-2">
-              <Users size={18} className="text-fcbq-blue" />
-              Buscador de jugadores
-            </h3>
-            <p className="text-sm text-slate-500 mt-1">
-              Dejamos lista la navegación a la futura página de jugadores para integrarla en la arquitectura desde ahora.
-            </p>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div>
+              <h3 className="text-base md:text-lg font-bold text-slate-800 flex items-center gap-2">
+                <Users size={18} className="text-fcbq-blue" />
+                Buscador de jugadores
+              </h3>
+              <p className="text-sm text-slate-500 mt-1">
+                Acceso a la vista global de estadísticas agrupadas por jugador, con filtros avanzados y favoritos.
+              </p>
+            </div>
+
+            <Link
+              to="/players"
+              className="inline-flex items-center justify-center gap-2 px-4 py-3 rounded-lg bg-white text-slate-700 font-bold hover:bg-slate-100 transition-colors border border-slate-200"
+            >
+              Ir a jugadores
+              <ChevronRight size={16} />
+            </Link>
           </div>
 
-          <Link
-            to="/players"
-            className="inline-flex items-center justify-center gap-2 px-4 py-3 rounded-lg bg-slate-100 text-slate-700 font-bold hover:bg-slate-200 transition-colors"
-          >
-            Ir a jugadores
-            <ChevronRight size={16} />
-          </Link>
+          <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div>
+              <h3 className="text-base md:text-lg font-bold text-slate-800 flex items-center gap-2">
+                <Shield size={18} className="text-fcbq-blue" />
+                Buscador de equipos
+              </h3>
+              <p className="text-sm text-slate-500 mt-1">
+                Nueva vista global para ver estadísticas agregadas por club, con desglose por temporada y fase.
+              </p>
+            </div>
+
+            <Link
+              to="/teams"
+              className="inline-flex items-center justify-center gap-2 px-4 py-3 rounded-lg bg-white text-slate-700 font-bold hover:bg-slate-100 transition-colors border border-slate-200"
+            >
+              Ir a equipos
+              <ChevronRight size={16} />
+            </Link>
+          </div>
         </div>
       </section>
     </div>

@@ -1,7 +1,7 @@
 
 import { supabase } from '../supabaseClient';
 import { 
-    Temporada, Categoria, Competicion, Partido, Equipo, EstadisticaJugadorPartido, PartidoMovimiento, PlayerAggregatedStats, ScoutingReport, CalendarioItem, CareerStats, ParallelStats, GlobalPlayerFilters, GlobalPlayerRow
+    Temporada, Categoria, Competicion, Partido, Equipo, EstadisticaJugadorPartido, PartidoMovimiento, PlayerAggregatedStats, ScoutingReport, CalendarioItem, CareerStats, ParallelStats, GlobalPlayerFilters, GlobalPlayerRow, GlobalTeamFilters, GlobalTeamPhaseBreakdown, GlobalTeamRow, GlobalTeamSeasonBreakdown
 } from '../types';
 
 export const fetchTemporadas = async (): Promise<Temporada[]> => {
@@ -59,6 +59,14 @@ const normalizeText = (value: string | null | undefined) => String(value || '')
     .replace(/[\u0300-\u036f]/g, '')
     .trim()
     .toLowerCase();
+
+const inferCompetitionPhase = (competitionName: string | null | undefined) => {
+    const normalized = normalizeText(competitionName);
+    if (normalized.includes('segona fase')) return 'Segona Fase';
+    if (normalized.includes('segunda fase')) return 'Segunda Fase';
+    if (normalized.includes('primera fase')) return 'Primera Fase';
+    return 'Sin fase';
+};
 
 export const fetchCompeticionesByFilters = async (filters: {
     temporadaId?: string;
@@ -599,6 +607,471 @@ export const fetchGlobalPlayers = async (filters: GlobalPlayerFilters): Promise<
     rows = rows.sort((a, b) => b.ppg - a.ppg);
 
     return rows;
+};
+
+export const fetchGlobalTeams = async (filters: GlobalTeamFilters): Promise<GlobalTeamRow[]> => {
+    const normalizedClubFilter = normalizeText(filters.clubNombre);
+    const shouldScopeByCompetition = Boolean(filters.temporadaId || filters.categoriaId || filters.fase || filters.competicionNombre || filters.equipoNombre);
+
+    let competitionsQuery = supabase
+        .from('competiciones')
+        .select('id, nombre, temporada_id, categoria_id, categorias(id, nombre, es_mini)')
+        .order('nombre');
+
+    if (filters.temporadaId) {
+        competitionsQuery = competitionsQuery.eq('temporada_id', filters.temporadaId);
+    }
+
+    if (filters.categoriaId) {
+        competitionsQuery = competitionsQuery.eq('categoria_id', filters.categoriaId);
+    }
+
+    const { data: competitionsData, error: competitionsError } = await competitionsQuery;
+    if (competitionsError) throw competitionsError;
+
+    const [temporadas, categorias] = await Promise.all([
+        fetchTemporadas(),
+        fetchCategorias(),
+    ]);
+
+    const competitions = ((competitionsData || []) as any[])
+        .filter((competition) => {
+            if (filters.competicionNombre && normalizeText(competition.nombre) !== normalizeText(filters.competicionNombre)) {
+                return false;
+            }
+            if (!filters.fase) return true;
+            return normalizeText(competition.nombre).includes(normalizeText(filters.fase));
+        });
+
+    const competitionMap = new Map<string, any>();
+    competitions.forEach((competition) => competitionMap.set(String(competition.id), competition));
+    const scopedCompetitionIds = Array.from(competitionMap.keys());
+
+    if (shouldScopeByCompetition && scopedCompetitionIds.length === 0) {
+        return [];
+    }
+
+    let teamsQuery = supabase
+        .from('equipos')
+        .select('id, nombre_especifico, competicion_id, club_id, clubs:clubs!equipos_club_id_fkey(id, nombre, logo_url, nombre_corto)')
+        .order('nombre_especifico');
+
+    if (scopedCompetitionIds.length > 0) {
+        teamsQuery = teamsQuery.in('competicion_id', scopedCompetitionIds);
+    }
+
+    if (filters.clubIds && filters.clubIds.length > 0) {
+        teamsQuery = teamsQuery.in('club_id', filters.clubIds);
+    }
+
+    const { data: teamsData, error: teamsError } = await teamsQuery;
+    if (teamsError) throw teamsError;
+
+    const filteredTeams = (teamsData || []).filter((team: any) => {
+        const club = Array.isArray(team.clubs) ? team.clubs[0] : team.clubs;
+        const clubName = club?.nombre || club?.nombre_corto || team.nombre_especifico || 'Equipo';
+
+        if (filters.equipoNombre && normalizeText(team.nombre_especifico || '') !== normalizeText(filters.equipoNombre)) {
+            return false;
+        }
+
+        if (normalizedClubFilter && !normalizeText(clubName).includes(normalizedClubFilter)) {
+            return false;
+        }
+
+        return true;
+    });
+
+    if (filteredTeams.length === 0) {
+        return [];
+    }
+
+    const teamsByClub = new Map<string, any[]>();
+    const clubMetaById = new Map<string, { clubId: string; nombre: string; logoUrl?: string }>();
+
+    for (const team of filteredTeams) {
+        const club = Array.isArray(team.clubs) ? team.clubs[0] : team.clubs;
+        const clubId = club?.id ? String(club.id) : (team.club_id ? String(team.club_id) : `team-${team.id}`);
+        const clubName = club?.nombre || club?.nombre_corto || team.nombre_especifico || 'Equipo';
+        const logoUrl = club?.logo_url || undefined;
+
+        if (!teamsByClub.has(clubId)) {
+            teamsByClub.set(clubId, []);
+            clubMetaById.set(clubId, { clubId, nombre: clubName, logoUrl });
+        }
+
+        teamsByClub.get(clubId)!.push(team);
+    }
+
+    const orderedClubIds = Array.from(clubMetaById.values())
+        .sort((left, right) => left.nombre.localeCompare(right.nombre))
+        .map((club) => club.clubId);
+
+    const offset = Math.max(0, filters.offset || 0);
+    const limit = filters.limit && filters.limit > 0 ? filters.limit : 0;
+    const pagedClubIds = limit > 0
+        ? orderedClubIds.slice(offset, offset + limit)
+        : orderedClubIds.slice(offset);
+
+    if (pagedClubIds.length === 0) {
+        return [];
+    }
+
+    const selectedTeams = pagedClubIds.flatMap((clubId) => teamsByClub.get(clubId) || []);
+    const selectedTeamIds = selectedTeams.map((team) => String(team.id));
+    const selectedTeamIdSet = new Set(selectedTeamIds);
+
+    const rosterByPlayer = new Map<string, Set<string>>();
+    const teamIdsByClub = new Map<string, Set<string>>();
+
+    for (const clubId of pagedClubIds) {
+        teamIdsByClub.set(
+            clubId,
+            new Set((teamsByClub.get(clubId) || []).map((team) => String(team.id)))
+        );
+    }
+
+    const teamChunks = chunkArray(selectedTeamIds, 150);
+    for (const teamChunk of teamChunks) {
+        const { data: rosterData, error: rosterError } = await supabase
+            .from('plantillas')
+            .select('jugador_id, equipo_id')
+            .in('equipo_id', teamChunk);
+        if (rosterError) throw rosterError;
+
+        for (const row of rosterData || []) {
+            const playerId = String(row.jugador_id);
+            if (!rosterByPlayer.has(playerId)) {
+                rosterByPlayer.set(playerId, new Set<string>());
+            }
+            rosterByPlayer.get(playerId)!.add(String(row.equipo_id));
+        }
+    }
+
+    const selectedPlayerIds = Array.from(rosterByPlayer.keys());
+    if (selectedPlayerIds.length === 0) {
+        return pagedClubIds.map((clubId) => ({
+            clubId,
+            nombre: clubMetaById.get(clubId)?.nombre || 'Club',
+            logoUrl: clubMetaById.get(clubId)?.logoUrl,
+            equipos: [],
+            partidosJugados: 0,
+            partidosGanados: 0,
+            partidosPerdidos: 0,
+            puntosFavor: 0,
+            puntosContra: 0,
+            totalTirosLibresIntentados: 0,
+            totalTirosLibresAnotados: 0,
+            totalTiros2Anotados: 0,
+            totalTiros3Anotados: 0,
+            totalFaltas: 0,
+            t1Pct: 0,
+            desglose: [],
+        }));
+    }
+
+    const matchMetaMap = new Map<string, {
+        id: string;
+        competicion_id: string;
+        equipo_local_id: string;
+        equipo_visitante_id: string;
+        puntos_local: number;
+        puntos_visitante: number;
+    }>();
+
+    for (const teamChunk of teamChunks) {
+        let matchesQuery = supabase
+            .from('partidos')
+            .select('id, competicion_id, equipo_local_id, equipo_visitante_id, puntos_local, puntos_visitante');
+
+        if (scopedCompetitionIds.length > 0) {
+            matchesQuery = matchesQuery.in('competicion_id', scopedCompetitionIds);
+        }
+
+        const { data: matchesData, error: matchesError } = await matchesQuery.or(`equipo_local_id.in.(${teamChunk.join(',')}),equipo_visitante_id.in.(${teamChunk.join(',')})`);
+        if (matchesError) throw matchesError;
+
+        for (const match of matchesData || []) {
+            const localId = String(match.equipo_local_id);
+            const visitorId = String(match.equipo_visitante_id);
+            if (!selectedTeamIdSet.has(localId) && !selectedTeamIdSet.has(visitorId)) continue;
+
+            const matchId = String(match.id);
+            if (!matchMetaMap.has(matchId)) {
+                matchMetaMap.set(matchId, {
+                    id: matchId,
+                    competicion_id: String(match.competicion_id),
+                    equipo_local_id: localId,
+                    equipo_visitante_id: visitorId,
+                    puntos_local: Number(match.puntos_local || 0),
+                    puntos_visitante: Number(match.puntos_visitante || 0),
+                });
+            }
+
+            if (!competitionMap.has(String(match.competicion_id))) {
+                const { data: competitionData, error: competitionError } = await supabase
+                    .from('competiciones')
+                    .select('id, nombre, temporada_id, categoria_id, categorias(id, nombre, es_mini)')
+                    .eq('id', match.competicion_id)
+                    .maybeSingle();
+                if (competitionError) throw competitionError;
+                if (competitionData) {
+                    competitionMap.set(String(competitionData.id), competitionData);
+                }
+            }
+        }
+    }
+
+    const scopedMatchIds = Array.from(matchMetaMap.keys());
+    if (scopedMatchIds.length === 0) {
+        return [];
+    }
+
+    const statsAccumulator = new Map<string, EstadisticaJugadorPartido>();
+    const playerChunks = chunkArray(selectedPlayerIds, 120);
+    const matchChunks = chunkArray(scopedMatchIds, 150);
+
+    for (const playerChunk of playerChunks) {
+        for (const matchChunk of matchChunks) {
+            const { data: statsData, error: statsError } = await supabase
+                .from('estadisticas_jugador_partido')
+                .select('*')
+                .in('jugador_id', playerChunk)
+                .in('partido_id', matchChunk);
+            if (statsError) throw statsError;
+            for (const row of statsData || []) {
+                statsAccumulator.set(String(row.id), row as EstadisticaJugadorPartido);
+            }
+        }
+    }
+
+    const teamToClubMap = new Map<string, string>();
+    for (const clubId of pagedClubIds) {
+        for (const team of teamsByClub.get(clubId) || []) {
+            teamToClubMap.set(String(team.id), clubId);
+        }
+    }
+
+    type AggregateBucket = {
+        partidosJugados: number;
+        partidosGanados: number;
+        partidosPerdidos: number;
+        puntosFavor: number;
+        puntosContra: number;
+        totalTirosLibresIntentados: number;
+        totalTirosLibresAnotados: number;
+        totalTiros2Anotados: number;
+        totalTiros3Anotados: number;
+        totalFaltas: number;
+        matchIds: Set<string>;
+    };
+
+    const createAggregateBucket = (): AggregateBucket => ({
+        partidosJugados: 0,
+        partidosGanados: 0,
+        partidosPerdidos: 0,
+        puntosFavor: 0,
+        puntosContra: 0,
+        totalTirosLibresIntentados: 0,
+        totalTirosLibresAnotados: 0,
+        totalTiros2Anotados: 0,
+        totalTiros3Anotados: 0,
+        totalFaltas: 0,
+        matchIds: new Set<string>(),
+    });
+
+    const clubAggregates = new Map<string, AggregateBucket>();
+    const seasonAggregatesByClub = new Map<string, Map<string, AggregateBucket & { temporada: string; categoria: string; phases: Map<string, AggregateBucket & { fase: string; competicionNombre: string }> }>>();
+
+    for (const clubId of pagedClubIds) {
+        clubAggregates.set(clubId, createAggregateBucket());
+        seasonAggregatesByClub.set(clubId, new Map());
+    }
+
+    const registerMatchInBucket = (bucket: AggregateBucket, matchId: string, puntosFavor: number, puntosContra: number) => {
+        if (bucket.matchIds.has(matchId)) return;
+
+        bucket.matchIds.add(matchId);
+        bucket.partidosJugados += 1;
+        bucket.puntosFavor += puntosFavor;
+        bucket.puntosContra += puntosContra;
+
+        if (puntosFavor > puntosContra) {
+            bucket.partidosGanados += 1;
+        } else {
+            bucket.partidosPerdidos += 1;
+        }
+    };
+
+    for (const match of matchMetaMap.values()) {
+        const localClubId = teamToClubMap.get(match.equipo_local_id);
+        const visitorClubId = teamToClubMap.get(match.equipo_visitante_id);
+
+        const registerMatchForClub = (clubId: string | undefined, teamId: string, puntosFavor: number, puntosContra: number) => {
+            if (!clubId) return;
+
+            const rootBucket = clubAggregates.get(clubId);
+            if (!rootBucket) return;
+
+            registerMatchInBucket(rootBucket, match.id, puntosFavor, puntosContra);
+
+            const competition = competitionMap.get(String(match.competicion_id));
+            const temporada = temporadas.find((item) => String(item.id) === String(competition?.temporada_id))?.nombre || 'Desconocida';
+            const categoria = categorias.find((item) => String(item.id) === String(competition?.categoria_id))?.nombre || 'Desconocida';
+            const fase = inferCompetitionPhase(competition?.nombre);
+            const seasonKey = `${temporada}__${categoria}`;
+            const seasonMap = seasonAggregatesByClub.get(clubId)!;
+
+            if (!seasonMap.has(seasonKey)) {
+                seasonMap.set(seasonKey, {
+                    ...createAggregateBucket(),
+                    temporada,
+                    categoria,
+                    phases: new Map(),
+                });
+            }
+
+            const seasonBucket = seasonMap.get(seasonKey)!;
+            registerMatchInBucket(seasonBucket, match.id, puntosFavor, puntosContra);
+
+            const phaseKey = `${fase}__${String(match.competicion_id)}`;
+            if (!seasonBucket.phases.has(phaseKey)) {
+                seasonBucket.phases.set(phaseKey, {
+                    ...createAggregateBucket(),
+                    fase,
+                    competicionNombre: competition?.nombre || 'Competición',
+                });
+            }
+
+            const phaseBucket = seasonBucket.phases.get(phaseKey)!;
+            registerMatchInBucket(phaseBucket, match.id, puntosFavor, puntosContra);
+        };
+
+        if (localClubId) {
+            registerMatchForClub(localClubId, match.equipo_local_id, match.puntos_local, match.puntos_visitante);
+        }
+
+        if (visitorClubId) {
+            registerMatchForClub(visitorClubId, match.equipo_visitante_id, match.puntos_visitante, match.puntos_local);
+        }
+    }
+
+    for (const statRow of statsAccumulator.values()) {
+        const playerTeams = rosterByPlayer.get(String(statRow.jugador_id));
+        const match = matchMetaMap.get(String(statRow.partido_id));
+        if (!playerTeams || !match) continue;
+
+        let teamId: string | null = null;
+        if (playerTeams.has(match.equipo_local_id) && selectedTeamIdSet.has(match.equipo_local_id)) {
+            teamId = match.equipo_local_id;
+        } else if (playerTeams.has(match.equipo_visitante_id) && selectedTeamIdSet.has(match.equipo_visitante_id)) {
+            teamId = match.equipo_visitante_id;
+        }
+
+        if (!teamId) continue;
+
+        const clubId = teamToClubMap.get(teamId);
+        if (!clubId) continue;
+
+        const competition = competitionMap.get(String(match.competicion_id));
+        const temporada = temporadas.find((item) => String(item.id) === String(competition?.temporada_id))?.nombre || 'Desconocida';
+        const categoria = categorias.find((item) => String(item.id) === String(competition?.categoria_id))?.nombre || 'Desconocida';
+        const fase = inferCompetitionPhase(competition?.nombre);
+        const seasonKey = `${temporada}__${categoria}`;
+        const phaseKey = `${fase}__${String(match.competicion_id)}`;
+
+        const addStatsToBucket = (bucket: AggregateBucket) => {
+            bucket.totalTirosLibresIntentados += statRow.t1_intentados || 0;
+            bucket.totalTirosLibresAnotados += statRow.t1_anotados || 0;
+            bucket.totalTiros2Anotados += statRow.t2_anotados || 0;
+            bucket.totalTiros3Anotados += statRow.t3_anotados || 0;
+            bucket.totalFaltas += (statRow.faltas_cometidas || 0) + (statRow.tecnicas || 0) + (statRow.antideportivas || 0);
+        };
+
+        addStatsToBucket(clubAggregates.get(clubId)!);
+
+        const seasonBucket = seasonAggregatesByClub.get(clubId)?.get(seasonKey);
+        if (seasonBucket) {
+            addStatsToBucket(seasonBucket);
+            const phaseBucket = seasonBucket.phases.get(phaseKey);
+            if (phaseBucket) {
+                addStatsToBucket(phaseBucket);
+            }
+        }
+    }
+
+    return pagedClubIds.map((clubId) => {
+        const root = clubAggregates.get(clubId)!;
+        const clubMeta = clubMetaById.get(clubId);
+        const seasons = Array.from(seasonAggregatesByClub.get(clubId)?.values() || []).map((seasonBucket) => {
+            const phases = Array.from(seasonBucket.phases.values())
+                .map((phaseBucket): GlobalTeamPhaseBreakdown => ({
+                    fase: phaseBucket.fase,
+                    competicionNombre: phaseBucket.competicionNombre,
+                    partidosJugados: phaseBucket.partidosJugados,
+                    partidosGanados: phaseBucket.partidosGanados,
+                    partidosPerdidos: phaseBucket.partidosPerdidos,
+                    puntosFavor: phaseBucket.puntosFavor,
+                    puntosContra: phaseBucket.puntosContra,
+                    totalTirosLibresIntentados: phaseBucket.totalTirosLibresIntentados,
+                    totalTirosLibresAnotados: phaseBucket.totalTirosLibresAnotados,
+                    totalTiros2Anotados: phaseBucket.totalTiros2Anotados,
+                    totalTiros3Anotados: phaseBucket.totalTiros3Anotados,
+                    totalFaltas: phaseBucket.totalFaltas,
+                    t1Pct: phaseBucket.totalTirosLibresIntentados > 0 ? (phaseBucket.totalTirosLibresAnotados / phaseBucket.totalTirosLibresIntentados) * 100 : 0,
+                }))
+                .sort((left, right) => right.competicionNombre.localeCompare(left.competicionNombre));
+
+            return {
+                temporada: seasonBucket.temporada,
+                categoria: seasonBucket.categoria,
+                partidosJugados: seasonBucket.partidosJugados,
+                partidosGanados: seasonBucket.partidosGanados,
+                partidosPerdidos: seasonBucket.partidosPerdidos,
+                puntosFavor: seasonBucket.puntosFavor,
+                puntosContra: seasonBucket.puntosContra,
+                totalTirosLibresIntentados: seasonBucket.totalTirosLibresIntentados,
+                totalTirosLibresAnotados: seasonBucket.totalTirosLibresAnotados,
+                totalTiros2Anotados: seasonBucket.totalTiros2Anotados,
+                totalTiros3Anotados: seasonBucket.totalTiros3Anotados,
+                totalFaltas: seasonBucket.totalFaltas,
+                t1Pct: seasonBucket.totalTirosLibresIntentados > 0 ? (seasonBucket.totalTirosLibresAnotados / seasonBucket.totalTirosLibresIntentados) * 100 : 0,
+                fases: phases,
+            } as GlobalTeamSeasonBreakdown;
+        }).sort((left, right) => right.temporada.localeCompare(left.temporada) || right.categoria.localeCompare(left.categoria));
+
+        return {
+            clubId,
+            nombre: clubMeta?.nombre || 'Club',
+            logoUrl: clubMeta?.logoUrl,
+            equipos: (teamsByClub.get(clubId) || []).map((team) => {
+                const competition = competitionMap.get(String(team.competicion_id));
+                const temporada = temporadas.find((item) => String(item.id) === String(competition?.temporada_id))?.nombre || 'Desconocida';
+                const categoria = categorias.find((item) => String(item.id) === String(competition?.categoria_id))?.nombre || 'Desconocida';
+                return {
+                    id: String(team.id),
+                    nombre: team.nombre_especifico || 'Equipo',
+                    competicionId: competition?.id ? String(competition.id) : undefined,
+                    competicionNombre: competition?.nombre || undefined,
+                    temporada,
+                    categoria,
+                    fase: inferCompetitionPhase(competition?.nombre),
+                };
+            }),
+            partidosJugados: root.partidosJugados,
+            partidosGanados: root.partidosGanados,
+            partidosPerdidos: root.partidosPerdidos,
+            puntosFavor: root.puntosFavor,
+            puntosContra: root.puntosContra,
+            totalTirosLibresIntentados: root.totalTirosLibresIntentados,
+            totalTirosLibresAnotados: root.totalTirosLibresAnotados,
+            totalTiros2Anotados: root.totalTiros2Anotados,
+            totalTiros3Anotados: root.totalTiros3Anotados,
+            totalFaltas: root.totalFaltas,
+            t1Pct: root.totalTirosLibresIntentados > 0 ? (root.totalTirosLibresAnotados / root.totalTirosLibresIntentados) * 100 : 0,
+            desglose: seasons,
+        } as GlobalTeamRow;
+    });
 };
 
 // NEW: Función ligera para obtener resumen de la portada (Nº Equipos y Jornada Actual)

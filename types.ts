@@ -274,3 +274,75 @@ export interface GlobalPlayerRow extends PlayerAggregatedStats {
     t3Made: number;
   }>;
 }
+
+export interface GlobalTeamFilters {
+  temporadaId?: string;
+  categoriaId?: string;
+  fase?: string;
+  competicionNombre?: string;
+  equipoNombre?: string;
+  clubNombre?: string;
+  limit?: number;
+  offset?: number;
+  clubIds?: string[];
+}
+
+export interface GlobalTeamPhaseBreakdown {
+  fase: string;
+  competicionNombre: string;
+  partidosJugados: number;
+  partidosGanados: number;
+  partidosPerdidos: number;
+  puntosFavor: number;
+  puntosContra: number;
+  totalTirosLibresIntentados: number;
+  totalTirosLibresAnotados: number;
+  totalTiros2Anotados: number;
+  totalTiros3Anotados: number;
+  totalFaltas: number;
+  t1Pct: number;
+}
+
+export interface GlobalTeamSeasonBreakdown {
+  temporada: string;
+  categoria: string;
+  partidosJugados: number;
+  partidosGanados: number;
+  partidosPerdidos: number;
+  puntosFavor: number;
+  puntosContra: number;
+  totalTirosLibresIntentados: number;
+  totalTirosLibresAnotados: number;
+  totalTiros2Anotados: number;
+  totalTiros3Anotados: number;
+  totalFaltas: number;
+  t1Pct: number;
+  fases: GlobalTeamPhaseBreakdown[];
+}
+
+export interface GlobalTeamRow {
+  clubId: string;
+  nombre: string;
+  logoUrl?: string;
+  equipos: Array<{
+    id: string;
+    nombre: string;
+    competicionId?: string;
+    competicionNombre?: string;
+    temporada?: string;
+    categoria?: string;
+    fase?: string;
+  }>;
+  partidosJugados: number;
+  partidosGanados: number;
+  partidosPerdidos: number;
+  puntosFavor: number;
+  puntosContra: number;
+  totalTirosLibresIntentados: number;
+  totalTirosLibresAnotados: number;
+  totalTiros2Anotados: number;
+  totalTiros3Anotados: number;
+  totalFaltas: number;
+  t1Pct: number;
+  desglose: GlobalTeamSeasonBreakdown[];
+}

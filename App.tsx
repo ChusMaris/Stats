@@ -8,7 +8,8 @@ import StatsView from './components/StatsView';
 import ScoutingView from './components/ScoutingView';
 import LandingPage from './components/LandingPage';
 import PlayersPage from './components/PlayersPage';
-import { Loader2, Trophy, AlertCircle, BarChart3, CalendarDays, Unlock, Users } from 'lucide-react';
+import TeamsPage from './components/TeamsPage';
+import { Loader2, Trophy, AlertCircle, BarChart3, CalendarDays, Shield, Unlock, Users } from 'lucide-react';
 import { getActiveCompetition, getRecentCompetitions, setActiveCompetition, upsertRecentCompetition } from './utils/competitionStorage';
 
 type ViewDataState = {
@@ -82,6 +83,7 @@ const AppContent: React.FC = () => {
   const isStatsRoute = location.pathname === '/stats';
   const isMatchCenterRoute = location.pathname === '/match-center';
   const isPlayersRoute = location.pathname === '/players';
+  const isTeamsRoute = location.pathname === '/teams';
   const shouldShowStickyShell = isStatsRoute || isMatchCenterRoute;
 
   // --- Initial Load ---
@@ -411,6 +413,14 @@ const AppContent: React.FC = () => {
               <Users size={16} />
               <span className="hidden md:inline">Jugadores</span>
             </NavLink>
+
+            <NavLink
+              to="/teams"
+              className={({ isActive }) => `flex items-center gap-1 md:gap-2 px-2 py-1.5 md:px-3 md:py-2 rounded-md md:rounded-lg text-xs md:text-sm font-bold transition-all ${isActive ? 'bg-white text-fcbq-blue shadow-sm' : 'text-blue-100 hover:bg-white/10'}`}
+            >
+              <Shield size={16} />
+              <span className="hidden md:inline">Equipos</span>
+            </NavLink>
           </nav>
         </div>
       </div>
@@ -532,6 +542,7 @@ const AppContent: React.FC = () => {
           <Route path="/stats" element={renderDataRoute('stats')} />
           <Route path="/match-center" element={renderDataRoute('match-center')} />
           <Route path="/players" element={<PlayersPage activeCompetitionName={activeCompetitionName} />} />
+          <Route path="/teams" element={<TeamsPage />} />
         </Routes>
       </main>
 

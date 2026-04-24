@@ -383,7 +383,7 @@ const PlayersPage: React.FC<PlayersPageProps> = () => {
             <label className="block mb-1 text-[10px] font-bold uppercase tracking-wide text-slate-400">Temporada</label>
             <select
               value={filters.temporadaId || ''}
-              onChange={(event) => updateFilter({ temporadaId: event.target.value, categoriaId: '', competicionNombre: '', equipoNombre: '' })}
+              onChange={(event) => updateFilter({ temporadaId: event.target.value })}
               className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm"
             >
               <option value="">Todas</option>
@@ -397,7 +397,7 @@ const PlayersPage: React.FC<PlayersPageProps> = () => {
             <label className="block mb-1 text-[10px] font-bold uppercase tracking-wide text-slate-400">Categoría</label>
             <select
               value={filters.categoriaId || ''}
-              onChange={(event) => updateFilter({ categoriaId: event.target.value, competicionNombre: '', equipoNombre: '' })}
+              onChange={(event) => updateFilter({ categoriaId: event.target.value })}
               className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm"
             >
               <option value="">Todas</option>
@@ -411,7 +411,7 @@ const PlayersPage: React.FC<PlayersPageProps> = () => {
             <label className="block mb-1 text-[10px] font-bold uppercase tracking-wide text-slate-400">Fase</label>
             <select
               value={filters.fase || ''}
-              onChange={(event) => updateFilter({ fase: event.target.value, competicionNombre: '', equipoNombre: '' })}
+              onChange={(event) => updateFilter({ fase: event.target.value })}
               className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm"
             >
               <option value="">Todas</option>
@@ -446,16 +446,6 @@ const PlayersPage: React.FC<PlayersPageProps> = () => {
                 <option key={team.id} value={team.nombre}>{team.nombre}</option>
               ))}
             </select>
-          </div>
-
-          <div className="hidden md:block">
-            <label className="block mb-1 text-[10px] font-bold uppercase tracking-wide text-slate-400">Nombre jugador</label>
-            <input
-              value={filters.nombreJugador || ''}
-              onChange={(event) => updateFilter({ nombreJugador: event.target.value })}
-              className="w-full rounded-lg border border-slate-200 bg-slate-50 px-3 py-2.5 text-sm"
-              placeholder="Buscar por nombre"
-            />
           </div>
 
           <div>
