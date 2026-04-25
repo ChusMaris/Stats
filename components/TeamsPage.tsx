@@ -443,6 +443,7 @@ const TeamsPage: React.FC = () => {
                 <option value="">Todas</option>
                 <option value="Primera Fase">Primera Fase</option>
                 <option value="Segona Fase">Segona Fase</option>
+                <option value="Tercera Fase">Tercera Fase</option>
               </select>
             </div>
 

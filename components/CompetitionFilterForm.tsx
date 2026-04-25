@@ -99,6 +99,7 @@ const CompetitionFilterForm: React.FC<CompetitionFilterFormProps> = ({
               <option value="" className="text-base">TODAS LAS FASES</option>
               <option value="Primera Fase" className="text-base">PRIMERA FASE</option>
               <option value="Segona Fase" className="text-base">SEGONA FASE</option>
+              <option value="Tercera Fase" className="text-base">TERCERA FASE</option>
             </select>
             <ChevronDown className="absolute right-3 top-3 text-gray-400 pointer-events-none" size={16} />
           </div>

@@ -62,10 +62,20 @@ const normalizeText = (value: string | null | undefined) => String(value || '')
 
 const inferCompetitionPhase = (competitionName: string | null | undefined) => {
     const normalized = normalizeText(competitionName);
-    if (normalized.includes('segona fase')) return 'Segona Fase';
-    if (normalized.includes('segunda fase')) return 'Segunda Fase';
+    if (normalized.includes('tercera fase')) return 'Tercera Fase';
+    if (normalized.includes('segona fase') || normalized.includes('segunda fase')) return 'Segona Fase';
     if (normalized.includes('primera fase')) return 'Primera Fase';
     return 'Sin fase';
+};
+
+// Compara el nombre de una competición con un filtro de fase,
+// gestionando equivalencias castellano/catalán (segunda ↔ segona).
+const matchesPhaseFilter = (competitionName: string | null | undefined, fase: string): boolean => {
+    const normalizedName = normalizeText(competitionName);
+    const normalizedFase = normalizeText(fase);
+    if (normalizedName.includes(normalizedFase)) return true;
+    if (normalizedFase === 'segona fase') return normalizedName.includes('segunda fase');
+    return false;
 };
 
 export const fetchCompeticionesByFilters = async (filters: {
@@ -92,8 +102,7 @@ export const fetchCompeticionesByFilters = async (filters: {
     const competitions = (data || []) as Competicion[];
     if (!filters.fase) return competitions;
 
-    const phaseNeedle = normalizeText(filters.fase);
-    return competitions.filter((competition) => normalizeText(competition.nombre).includes(phaseNeedle));
+    return competitions.filter((competition) => matchesPhaseFilter(competition.nombre, filters.fase!));
 };
 
 export const fetchEquipos = async (): Promise<Equipo[]> => {
@@ -192,7 +201,7 @@ export const fetchGlobalPlayers = async (filters: GlobalPlayerFilters): Promise<
                 return false;
             }
             if (!filters.fase) return true;
-            return normalizeText(competition.nombre).includes(normalizeText(filters.fase));
+            return matchesPhaseFilter(competition.nombre, filters.fase);
         });
 
     const competitionMap = new Map<string, any>();
@@ -208,19 +217,19 @@ export const fetchGlobalPlayers = async (filters: GlobalPlayerFilters): Promise<
         .select('id, nombre_especifico, competicion_id, club_id, clubs:clubs!equipos_club_id_fkey(id, nombre)')
         .order('nombre_especifico');
 
-    if (scopedCompetitionIds.length > 0 && !filters.equipoNombre) {
+    if (scopedCompetitionIds.length > 0) {
         teamsQuery = teamsQuery.in('competicion_id', scopedCompetitionIds);
     }
 
     const { data: teamsData, error: teamsError } = await teamsQuery;
     if (teamsError) throw teamsError;
 
-    const filteredTeamsData = filters.equipoNombre
-        ? (teamsData || []).filter((team) => normalizeText(team.nombre_especifico || '') === normalizeText(filters.equipoNombre || ''))
-        : (teamsData || []).filter((team) => {
-            if (scopedCompetitionIds.length === 0) return true;
-            return scopedCompetitionIds.includes(String(team.competicion_id));
-        });
+    const filteredTeamsData = (teamsData || []).filter((team: any) => {
+        if (filters.equipoNombre) {
+            return normalizeText(team.nombre_especifico || '') === normalizeText(filters.equipoNombre);
+        }
+        return true;
+    });
 
     const teamMap = new Map<string, any>();
     for (const team of filteredTeamsData) {
@@ -640,7 +649,7 @@ export const fetchGlobalTeams = async (filters: GlobalTeamFilters): Promise<Glob
                 return false;
             }
             if (!filters.fase) return true;
-            return normalizeText(competition.nombre).includes(normalizeText(filters.fase));
+            return matchesPhaseFilter(competition.nombre, filters.fase);
         });
 
     const competitionMap = new Map<string, any>();
@@ -1998,7 +2007,7 @@ export const getTeamScoutingReport = async (competicionId: number | string, equi
     teamStatsOnly.forEach((s: any) => {
         const pid = String(s.jugador_id);
         if (!playerStats[pid]) {
-            const pInfo = plantilla.find(p => String(p.jugador_id) === pid);
+            const pInfo = plantilla.find((p: any) => String(p.jugador_id) === pid);
             const jugadorInfo = pInfo?.jugadores || {};
             const fullNameFromParts = [jugadorInfo?.nombre, jugadorInfo?.apellido].filter(Boolean).join(' ').trim();
             const displayName = fullNameFromParts || jugadorInfo?.nombre_completo || jugadorInfo?.name || `Jugador ${pid.slice(0, 8)}`;
