@@ -468,6 +468,28 @@ const LandingPage: React.FC<LandingPageProps> = ({
         </div>
       </section>
 
+      {/* Or Search by Competition Filters */}
+      <div className="w-full max-w-2xl bg-white border border-[#c2c6d2] rounded-2xl p-6 shadow-sm text-left space-y-4">
+        <div className="flex items-center gap-2 pb-2 border-b border-slate-100">
+          <span className="material-symbols-outlined text-primary text-xl">filter_list</span>
+          <h3 className="font-extrabold text-sm text-slate-800 uppercase tracking-wider">Buscador por Competición</h3>
+        </div>
+        <CompetitionFilterForm
+          temporadas={temporadas}
+          categorias={categorias}
+          competiciones={competiciones}
+          loadingCompetitions={loadingCompetitions}
+          selectedTemporada={selectedTemporada}
+          selectedCategoria={selectedCategoria}
+          selectedFase={selectedFase}
+          selectedCompeticion={selectedCompeticion}
+          onTemporadaChange={onTemporadaChange}
+          onCategoriaChange={onCategoriaChange}
+          onFaseChange={onFaseChange}
+          onCompeticionChange={onCompeticionChange}
+        />
+      </div>
+
       {/* Interactive Search Overlay (Modal UI) */}
       {isSearchFocused && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex flex-col p-4 md:p-8 animate-fade-in">

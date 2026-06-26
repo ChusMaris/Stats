@@ -15,9 +15,6 @@ interface CompetitionFilterFormProps {
   onCategoriaChange: (val: string) => void;
   onFaseChange: (val: string) => void;
   onCompeticionChange: (val: string) => void;
-  submitLabel?: string;
-  onSubmit?: () => void;
-  submitDisabled?: boolean;
 }
 
 const CompetitionFilterForm: React.FC<CompetitionFilterFormProps> = ({
@@ -33,9 +30,6 @@ const CompetitionFilterForm: React.FC<CompetitionFilterFormProps> = ({
   onCategoriaChange,
   onFaseChange,
   onCompeticionChange,
-  submitLabel,
-  onSubmit,
-  submitDisabled,
 }) => {
   const filteredCompeticiones = useMemo(() => {
     if (!selectedFase) return competiciones;
@@ -146,19 +140,6 @@ const CompetitionFilterForm: React.FC<CompetitionFilterFormProps> = ({
           </div>
         </div>
       </div>
-
-      {onSubmit && (
-        <div className="flex justify-end pt-2">
-          <button
-            onClick={onSubmit}
-            disabled={submitDisabled}
-            className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 h-12 rounded-lg bg-primary text-white font-label-sm text-label-sm shadow-md hover:bg-primary-container active:scale-95 transition-all disabled:bg-slate-300 disabled:cursor-not-allowed"
-          >
-            <Search size={16} />
-            {submitLabel || 'Continuar'}
-          </button>
-        </div>
-      )}
     </div>
   );
 };

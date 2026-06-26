@@ -1005,13 +1005,13 @@ const AppContent: React.FC = () => {
       </main>
 
       {!isLandingRoute && (
-        <footer className="w-full bg-tertiary text-on-tertiary py-4 px-6 flex flex-col md:flex-row items-center justify-between text-center md:text-left gap-4 pb-24 md:pb-4 mt-auto">
-          <div className="flex flex-col md:flex-row items-center gap-2 md:gap-4">
-            <span className="text-sm font-black tracking-wider uppercase">FedStats</span>
-            <p className="text-[11px] opacity-70">© {new Date().getFullYear()} FedStats. Datos no oficiales para uso analítico.</p>
+        <footer className="w-full bg-tertiary text-on-tertiary pt-3 pb-20 px-4 md:py-4 md:px-6 flex flex-col md:flex-row items-center justify-between text-center md:text-left gap-2 md:gap-4 mt-auto">
+          <div className="flex flex-col md:flex-row items-center gap-1 md:gap-4">
+            <span className="text-xs font-black tracking-wider uppercase">FedStats</span>
+            <p className="text-[10px] opacity-70">© {new Date().getFullYear()} FedStats. Datos no oficiales para uso analítico.</p>
           </div>
 
-          <nav className="flex justify-center gap-4 text-[11px]">
+          <nav className="flex justify-center gap-4 text-[10px]">
             <a className="text-on-tertiary opacity-70 hover:opacity-100 transition-opacity" href="#/privacy" onClick={(e) => e.preventDefault()}>Privacidad</a>
             <a className="text-on-tertiary opacity-70 hover:opacity-100 transition-opacity" href="#/terms" onClick={(e) => e.preventDefault()}>Términos</a>
             <a className="text-on-tertiary opacity-70 hover:opacity-100 transition-opacity" href="#/contact" onClick={(e) => e.preventDefault()}>Contacto</a>
