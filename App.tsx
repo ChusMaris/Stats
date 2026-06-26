@@ -446,11 +446,7 @@ const AppContent: React.FC = () => {
     }
   }, [shouldShowStickyShell, selectedCompeticion, viewData]);
 
-  useEffect(() => {
-    if ((isStatsRoute || isMatchCenterRoute) && !selectedCompeticion) {
-      navigate('/', { replace: true });
-    }
-  }, [isMatchCenterRoute, isStatsRoute, navigate, selectedCompeticion]);
+
 
   const buildRecentCompetition = (competitionId = selectedCompeticion): RecentCompetition | null => {
     if (!competitionId || !selectedTemporada || !selectedCategoria) return null;
