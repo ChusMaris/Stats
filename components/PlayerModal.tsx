@@ -269,15 +269,15 @@ const PlayerModal: React.FC<PlayerModalProps> = ({ player, equipoId, matchStats,
                     <div className="grid grid-cols-3 gap-3 bg-white p-3 rounded-lg border border-slate-100 shadow-sm">
                         <div className="text-center border-r border-slate-50 last:border-0">
                             <span className="block text-xl font-black text-slate-700 leading-none">{player.mpg.toFixed(1)}</span>
-                            <span className="text-[9px] font-bold text-slate-400 uppercase">Minutos / Part.</span>
+                            <span className="text-[10px] font-bold text-slate-400 uppercase">Minutos / Part.</span>
                         </div>
                         <div className="text-center border-r border-slate-50 last:border-0">
                             <span className="block text-xl font-black text-slate-700 leading-none">{player.totalFaltas}</span>
-                            <span className="text-[9px] font-bold text-slate-400 uppercase">Faltas Totales</span>
+                            <span className="text-[10px] font-bold text-slate-400 uppercase">Faltas Totales</span>
                         </div>
                          <div className="text-center border-r border-slate-50 last:border-0">
                             <span className="block text-xl font-black text-slate-700 leading-none">{player.totalFaltasTiro}</span>
-                            <span className="text-[9px] font-bold text-slate-400 uppercase">Faltas de Tiro</span>
+                            <span className="text-[10px] font-bold text-slate-400 uppercase">Faltas de Tiro</span>
                         </div>
                     </div>
 
@@ -348,7 +348,7 @@ const PlayerModal: React.FC<PlayerModalProps> = ({ player, equipoId, matchStats,
                                  </div>
                                  <div className="flex flex-col items-end">
                                      <span className="text-3xl font-black text-fcbq-blue leading-none">{stat.puntos}</span>
-                                     <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">Puntos</span>
+                                     <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Puntos</span>
                                  </div>
                               </div>
 

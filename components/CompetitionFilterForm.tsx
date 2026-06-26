@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { ChevronDown, Loader2, Search } from 'lucide-react';
+import { ChevronDown, Loader2, Search, Lock } from 'lucide-react';
 import { Temporada, Categoria, Competicion } from '../types';
 
 interface CompetitionFilterFormProps {
@@ -47,90 +47,100 @@ const CompetitionFilterForm: React.FC<CompetitionFilterFormProps> = ({
 
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-12 gap-4 lg:gap-6 items-end">
-        <div className="lg:col-span-2">
-          <label className="block mb-2 text-xs font-bold tracking-wide text-gray-500 uppercase">Temporada</label>
-          <div className="relative">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-sm">
+        {/* Temporada */}
+        <div className="space-y-base text-left">
+          <label className="text-[10px] font-bold text-outline uppercase block">Temporada</label>
+          <div className="relative group">
             <select
               value={selectedTemporada}
               onChange={(e) => onTemporadaChange(e.target.value)}
-              className="bg-slate-50 border border-slate-200 text-gray-700 text-base md:text-sm rounded-lg focus:ring-fcbq-blue focus:border-fcbq-blue block w-full p-2.5 appearance-none shadow-sm font-medium transition-colors hover:bg-slate-100 cursor-pointer"
+              className="w-full h-10 bg-surface-container-low border border-outline-variant rounded px-2 text-data-tabular outline-none focus:border-primary transition-colors appearance-none cursor-pointer text-slate-800"
             >
-              <option value="" disabled className="text-base">SELECCIONAR...</option>
+              <option value="" disabled className="text-xs text-slate-500">SELECCIONAR...</option>
               {temporadas.map((temporada) => (
-                <option key={temporada.id} value={temporada.id} className="text-base">
+                <option key={temporada.id} value={temporada.id} className="text-xs text-slate-800">
                   {temporada.nombre}
                 </option>
               ))}
             </select>
-            <ChevronDown className="absolute right-3 top-3 text-gray-400 pointer-events-none" size={16} />
+            <span className="material-symbols-outlined absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-outline text-lg">expand_more</span>
           </div>
         </div>
 
-        <div className="lg:col-span-3">
-          <label className="block mb-2 text-xs font-bold tracking-wide text-gray-500 uppercase">Categoría</label>
+        {/* Categoría */}
+        <div className="space-y-base text-left">
+          <label className="text-[10px] font-bold text-outline uppercase block">Categoría</label>
           <div className="relative">
             <select
               value={selectedCategoria}
               onChange={(e) => onCategoriaChange(e.target.value)}
-              className="bg-slate-50 border border-slate-200 text-gray-700 text-base md:text-sm rounded-lg focus:ring-fcbq-blue focus:border-fcbq-blue block w-full p-2.5 appearance-none shadow-sm font-medium transition-colors hover:bg-slate-100 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full h-10 bg-surface-container-low border border-outline-variant rounded px-2 text-data-tabular outline-none focus:border-primary transition-colors appearance-none cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed text-slate-800"
               disabled={!selectedTemporada}
             >
-              <option value="" disabled className="text-base">SELECCIONAR CATEGORÍA</option>
+              <option value="" disabled className="text-xs text-slate-500">SELECCIONAR CATEGORÍA</option>
               {categorias.map((categoria) => (
-                <option key={categoria.id} value={categoria.id} className="text-base">
+                <option key={categoria.id} value={categoria.id} className="text-xs text-slate-800">
                   {categoria.nombre}
                 </option>
               ))}
             </select>
-            <ChevronDown className="absolute right-3 top-3 text-gray-400 pointer-events-none" size={16} />
+            <span className="material-symbols-outlined absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-outline text-lg">expand_more</span>
           </div>
         </div>
 
-        <div className="lg:col-span-3">
-          <label className="block mb-2 text-xs font-bold tracking-wide text-gray-500 uppercase">Fase</label>
+        {/* Fase */}
+        <div className="space-y-base text-left">
+          <label className="text-[10px] font-bold text-outline uppercase block">Fase</label>
           <div className="relative">
             <select
               value={selectedFase}
               onChange={(e) => onFaseChange(e.target.value)}
-              className="bg-slate-50 border border-slate-200 text-gray-700 text-base md:text-sm rounded-lg focus:ring-fcbq-blue focus:border-fcbq-blue block w-full p-2.5 appearance-none shadow-sm font-medium transition-colors hover:bg-slate-100 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full h-10 bg-surface-container-low border border-outline-variant rounded px-2 text-data-tabular outline-none focus:border-primary transition-colors appearance-none cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed text-slate-800"
               disabled={!selectedCategoria}
             >
-              <option value="" className="text-base">TODAS LAS FASES</option>
-              <option value="Primera Fase" className="text-base">PRIMERA FASE</option>
-              <option value="Segona Fase" className="text-base">SEGONA FASE</option>
-              <option value="Tercera Fase" className="text-base">TERCERA FASE</option>
+              <option value="" className="text-xs text-slate-800">TODAS LAS FASES</option>
+              <option value="Primera Fase" className="text-xs text-slate-800">Primera Fase</option>
+              <option value="Segona Fase" className="text-xs text-slate-800">Segona Fase</option>
+              <option value="Tercera Fase" className="text-xs text-slate-800">Tercera Fase</option>
             </select>
-            <ChevronDown className="absolute right-3 top-3 text-gray-400 pointer-events-none" size={16} />
+            <span className="material-symbols-outlined absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-outline text-lg">expand_more</span>
           </div>
         </div>
 
-        <div className="lg:col-span-4">
-          <label className="block mb-2 text-xs font-bold tracking-wide text-gray-500 uppercase">Competición</label>
+        {/* Competición */}
+        <div className="space-y-base text-left">
+          <label className="text-[10px] font-bold text-outline uppercase block">Competición</label>
           <div className="relative">
             <select
               value={selectedCompeticion}
               onChange={(e) => onCompeticionChange(e.target.value)}
-              className={`border text-base md:text-sm rounded-lg block w-full p-2.5 appearance-none shadow-sm font-bold transition-all cursor-pointer ${selectedCompeticion ? 'bg-fcbq-blue text-white border-fcbq-blue' : 'bg-slate-50 border-slate-200 text-gray-700 hover:bg-slate-100'} disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-gray-400`}
+              className={`w-full h-10 appearance-none px-2 text-data-tabular font-bold outline-none rounded border transition-all ${
+                selectedCompeticion 
+                  ? 'bg-primary text-white border-primary cursor-pointer' 
+                  : 'bg-surface-container-low border border-outline-variant focus:border-primary text-slate-800 cursor-pointer'
+              } disabled:bg-surface-container-low/50 disabled:border-outline-variant/40 disabled:text-on-surface-variant/60 disabled:cursor-not-allowed`}
               disabled={loadingCompetitions || !selectedTemporada || !selectedCategoria}
             >
-              <option value="" disabled className="text-base text-gray-500 bg-white">
-                {loadingCompetitions ? 'CARGANDO...' : (!selectedTemporada || !selectedCategoria ? 'SELECCIONA FILTROS PREVIOS' : 'SELECCIONAR COMPETICIÓN')}
+              <option value="" disabled className="text-xs text-slate-500 bg-white">
+                {loadingCompetitions ? 'CARGANDO...' : (!selectedTemporada || !selectedCategoria ? 'SELECCIONA FILTROS' : 'SELECCIONAR COMPETICIÓN')}
               </option>
               {!loadingCompetitions && filteredCompeticiones.length === 0 && selectedCategoria && (
-                <option value="" disabled className="text-base bg-white text-gray-800">SIN RESULTADOS</option>
+                <option value="" disabled className="text-xs bg-white text-slate-800">SIN RESULTADOS</option>
               )}
               {filteredCompeticiones.map((competicion) => (
-                <option key={competicion.id} value={competicion.id} className="text-base bg-white text-gray-800">
+                <option key={competicion.id} value={competicion.id} className="text-xs bg-white text-slate-800">
                   {competicion.nombre}
                 </option>
               ))}
             </select>
-            <div className="absolute inset-y-0 right-0 flex items-center px-3 pointer-events-none">
+            <div className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none flex items-center">
               {loadingCompetitions ? (
-                <Loader2 size={16} className="animate-spin text-gray-400" />
+                <Loader2 size={14} className="animate-spin text-slate-400" />
+              ) : (!selectedTemporada || !selectedCategoria) ? (
+                <span className="material-symbols-outlined text-lg text-outline-variant">lock</span>
               ) : (
-                <ChevronDown className={`${selectedCompeticion ? 'text-white' : 'text-gray-400'}`} size={16} />
+                <span className={`material-symbols-outlined text-lg ${selectedCompeticion ? 'text-white' : 'text-outline'}`}>expand_more</span>
               )}
             </div>
           </div>
@@ -138,13 +148,13 @@ const CompetitionFilterForm: React.FC<CompetitionFilterFormProps> = ({
       </div>
 
       {onSubmit && (
-        <div className="flex justify-end">
+        <div className="flex justify-end pt-2">
           <button
             onClick={onSubmit}
             disabled={submitDisabled}
-            className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-5 py-3 rounded-lg bg-fcbq-blue text-white font-bold shadow-sm hover:bg-fcbq-dark transition-colors disabled:bg-slate-300 disabled:cursor-not-allowed"
+            className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-6 h-12 rounded-lg bg-primary text-white font-label-sm text-label-sm shadow-md hover:bg-primary-container active:scale-95 transition-all disabled:bg-slate-300 disabled:cursor-not-allowed"
           >
-            <Search size={18} />
+            <Search size={16} />
             {submitLabel || 'Continuar'}
           </button>
         </div>

@@ -28,6 +28,16 @@ export const fetchCompeticiones = async (temporadaId: number | string, categoria
   return data as Competicion[];
 };
 
+export const fetchCompeticionesByIds = async (ids: (string | number)[]): Promise<Competicion[]> => {
+  if (ids.length === 0) return [];
+  const { data, error } = await supabase
+    .from('competiciones')
+    .select('*')
+    .in('id', ids);
+  if (error) throw error;
+  return data as Competicion[];
+};
+
 const chunkArray = <T,>(items: T[], chunkSize: number): T[][] => {
     if (items.length === 0) return [];
 
@@ -222,104 +232,171 @@ export const fetchGlobalPlayers = async (filters: GlobalPlayerFilters): Promise<
     // Definimos si el usuario está buscando algo específico de una competición.
     const shouldScopeByCompetition = Boolean(filters.temporadaId || filters.categoriaId || filters.fase || filters.competicionNombre || filters.equipoNombre);
 
-    let competitionsQuery = supabase
-        .from('competiciones')
-        .select('id, nombre, temporada_id, categoria_id, categorias(id, nombre, es_mini)')
-        .order('nombre');
-
-    if (filters.temporadaId) {
-        competitionsQuery = competitionsQuery.eq('temporada_id', filters.temporadaId);
-    }
-
-    if (filters.categoriaId) {
-        competitionsQuery = competitionsQuery.eq('categoria_id', filters.categoriaId);
-    }
-
-    const { data: competitionsData, error: competitionsError } = await competitionsQuery;
-    if (competitionsError) throw competitionsError;
+    const teamMap = new Map<string, any>();
+    const competitionMap = new Map<string, any>();
+    let filteredRoster: any[] = [];
 
     const [temporadas, categorias] = await Promise.all([
         fetchTemporadas(),
         fetchCategorias()
     ]);
 
-    const competitions = ((competitionsData || []) as any[])
-        .filter((competition) => {
-            if (filters.competicionNombre && normalizeText(competition.nombre) !== normalizeText(filters.competicionNombre)) {
-                return false;
+    if (shouldScopeByCompetition) {
+        // --- BRANCH A: Scoped by Competition/Category/Season filters ---
+        let competitionsQuery = supabase
+            .from('competiciones')
+            .select('id, nombre, temporada_id, categoria_id, categorias(id, nombre, es_mini)')
+            .order('nombre');
+
+        if (filters.temporadaId) {
+            competitionsQuery = competitionsQuery.eq('temporada_id', filters.temporadaId);
+        }
+
+        if (filters.categoriaId) {
+            competitionsQuery = competitionsQuery.eq('categoria_id', filters.categoriaId);
+        }
+
+        const { data: competitionsData, error: competitionsError } = await competitionsQuery;
+        if (competitionsError) throw competitionsError;
+
+        const competitions = ((competitionsData || []) as any[])
+            .filter((competition) => {
+                if (filters.competicionNombre && normalizeText(competition.nombre) !== normalizeText(filters.competicionNombre)) {
+                    return false;
+                }
+                if (!filters.fase) return true;
+                return matchesPhaseFilter(competition.nombre, filters.fase);
+            });
+
+        competitions.forEach((competition) => competitionMap.set(String(competition.id), competition));
+        const scopedCompetitionIds = Array.from(competitionMap.keys());
+
+        if (scopedCompetitionIds.length === 0) {
+            return [];
+        }
+
+        let teamsQuery = supabase
+            .from('equipos')
+            .select('id, nombre_especifico, competicion_id, club_id, clubs:clubs!equipos_club_id_fkey(id, nombre)')
+            .order('nombre_especifico');
+
+        if (scopedCompetitionIds.length > 0) {
+            teamsQuery = teamsQuery.in('competicion_id', scopedCompetitionIds);
+        }
+
+        const { data: teamsData, error: teamsError } = await teamsQuery;
+        if (teamsError) throw teamsError;
+
+        const filteredTeamsData = (teamsData || []).filter((team: any) => {
+            if (filters.equipoNombre) {
+                return normalizeText(team.nombre_especifico || '') === normalizeText(filters.equipoNombre);
             }
-            if (!filters.fase) return true;
-            return matchesPhaseFilter(competition.nombre, filters.fase);
+            return true;
         });
 
-    const competitionMap = new Map<string, any>();
-    competitions.forEach((competition) => competitionMap.set(String(competition.id), competition));
-    const scopedCompetitionIds = Array.from(competitionMap.keys());
-
-    if (shouldScopeByCompetition && scopedCompetitionIds.length === 0) {
-        return [];
-    }
-
-    let teamsQuery = supabase
-        .from('equipos')
-        .select('id, nombre_especifico, competicion_id, club_id, clubs:clubs!equipos_club_id_fkey(id, nombre)')
-        .order('nombre_especifico');
-
-    if (scopedCompetitionIds.length > 0) {
-        teamsQuery = teamsQuery.in('competicion_id', scopedCompetitionIds);
-    }
-
-    const { data: teamsData, error: teamsError } = await teamsQuery;
-    if (teamsError) throw teamsError;
-
-    const filteredTeamsData = (teamsData || []).filter((team: any) => {
-        if (filters.equipoNombre) {
-            return normalizeText(team.nombre_especifico || '') === normalizeText(filters.equipoNombre);
+        for (const team of filteredTeamsData) {
+            teamMap.set(String(team.id), team);
         }
-        return true;
-    });
 
-    const teamMap = new Map<string, any>();
-    for (const team of filteredTeamsData) {
-        teamMap.set(String(team.id), team);
+        if (filters.equipoNombre && teamMap.size === 0) {
+            return [];
+        }
+
+        const scopedTeamIds = Array.from(teamMap.keys());
+
+        let rosterQuery = supabase
+            .from('plantillas')
+            .select('jugador_id, dorsal, equipo_id, jugadores!inner(id, nombre_completo, foto_url)');
+
+        if (normalizedNameFilter) {
+            rosterQuery = rosterQuery.ilike('jugadores.nombre_completo', `%${normalizedNameFilter}%`);
+        }
+
+        if (filters.playerIds && filters.playerIds.length > 0) {
+            rosterQuery = rosterQuery.in('jugador_id', filters.playerIds);
+        }
+
+        if (filters.dorsal) {
+            rosterQuery = rosterQuery.eq('dorsal', filters.dorsal);
+        }
+
+        if (scopedTeamIds.length > 0) {
+            rosterQuery = rosterQuery.in('equipo_id', scopedTeamIds);
+        }
+
+        const { data: rosterData, error: rosterError } = await rosterQuery;
+        if (rosterError) throw rosterError;
+
+        filteredRoster = (rosterData || []).filter((entry: any) => {
+            if (!normalizedNameFilter) return true;
+            const player = Array.isArray(entry.jugadores) ? entry.jugadores[0] : entry.jugadores;
+            const playerNameNormalized = normalizeText(player?.nombre_completo);
+            return playerNameNormalized.includes(normalizedNameFilter);
+        });
+    } else {
+        // --- BRANCH B: Global Search (Fast, complete, avoids 1000 row limits) ---
+        let rosterQuery = supabase
+            .from('plantillas')
+            .select('jugador_id, dorsal, equipo_id, jugadores!inner(id, nombre_completo, foto_url)');
+
+        if (normalizedNameFilter) {
+            rosterQuery = rosterQuery.ilike('jugadores.nombre_completo', `%${normalizedNameFilter}%`);
+        }
+
+        if (filters.playerIds && filters.playerIds.length > 0) {
+            rosterQuery = rosterQuery.in('jugador_id', filters.playerIds);
+        }
+
+        if (filters.dorsal) {
+            rosterQuery = rosterQuery.eq('dorsal', filters.dorsal);
+        }
+
+        const { data: rosterData, error: rosterError } = await rosterQuery;
+        if (rosterError) throw rosterError;
+
+        filteredRoster = (rosterData || []).filter((entry: any) => {
+            if (!normalizedNameFilter) return true;
+            const player = Array.isArray(entry.jugadores) ? entry.jugadores[0] : entry.jugadores;
+            const playerNameNormalized = normalizeText(player?.nombre_completo);
+            return playerNameNormalized.includes(normalizedNameFilter);
+        });
+
+        if (filteredRoster.length > 0) {
+            const uniqueTeamIds = Array.from(new Set(filteredRoster.map(entry => String(entry.equipo_id))));
+            if (uniqueTeamIds.length > 0) {
+                const teamChunks = chunkArray(uniqueTeamIds, 150);
+                for (const teamChunk of teamChunks) {
+                    const { data: teamsData, error: teamsError } = await supabase
+                        .from('equipos')
+                        .select('id, nombre_especifico, competicion_id, club_id, clubs:clubs!equipos_club_id_fkey(id, nombre)')
+                        .in('id', teamChunk);
+                    if (teamsError) throw teamsError;
+
+                    for (const team of teamsData || []) {
+                        teamMap.set(String(team.id), team);
+                    }
+                }
+
+                const uniqueCompIds = Array.from(new Set(Array.from(teamMap.values()).map(t => String(t.competicion_id))));
+                if (uniqueCompIds.length > 0) {
+                    const compChunks = chunkArray(uniqueCompIds, 150);
+                    for (const compChunk of compChunks) {
+                        const { data: compsData, error: compsError } = await supabase
+                            .from('competiciones')
+                            .select('id, nombre, temporada_id, categoria_id, categorias(id, nombre, es_mini)')
+                            .in('id', compChunk);
+                        if (compsError) throw compsError;
+
+                        for (const comp of compsData || []) {
+                            competitionMap.set(String(comp.id), comp);
+                        }
+                    }
+                }
+            }
+        }
     }
 
-    if (filters.equipoNombre && teamMap.size === 0) {
-        return [];
-    }
-
-    const scopedTeamIds = Array.from(teamMap.keys());
-
-    let rosterQuery = supabase
-        .from('plantillas')
-        .select('jugador_id, dorsal, equipo_id, jugadores!inner(id, nombre_completo, foto_url)');
-
-    if (normalizedNameFilter) {
-        // Usamos !inner para forzar el filtro en la relación join
-        rosterQuery = rosterQuery.ilike('jugadores.nombre_completo', `%${normalizedNameFilter}%`);
-    }
-
-    if (filters.playerIds && filters.playerIds.length > 0) {
-        rosterQuery = rosterQuery.in('jugador_id', filters.playerIds);
-    }
-
-    if (filters.dorsal) {
-        rosterQuery = rosterQuery.eq('dorsal', filters.dorsal);
-    }
-
-    if (scopedTeamIds.length > 0) {
-        rosterQuery = rosterQuery.in('equipo_id', scopedTeamIds);
-    }
-
-    const { data: rosterData, error: rosterError } = await rosterQuery;
-    if (rosterError) throw rosterError;
-
-    const filteredRoster = (rosterData || []).filter((entry: any) => {
-        if (!normalizedNameFilter) return true;
-        const player = Array.isArray(entry.jugadores) ? entry.jugadores[0] : entry.jugadores;
-        const playerNameNormalized = normalizeText(player?.nombre_completo);
-        return playerNameNormalized.includes(normalizedNameFilter);
-    });
+    const scopedCompetitionIds = Array.from(competitionMap.keys());
 
     if (filteredRoster.length === 0) {
         return [];
@@ -345,6 +422,8 @@ export const fetchGlobalPlayers = async (filters: GlobalPlayerFilters): Promise<
     if (scopedPlayerIds.length === 0) {
         return [];
     }
+
+    const scopedTeamIds = Array.from(teamMap.keys());
 
     const matchMetaMap = new Map<string, { id: string; competicion_id: string; equipo_local_id: string; equipo_visitante_id: string }>();
     let scopedMatchIds: string[] = [];
@@ -528,7 +607,7 @@ export const fetchGlobalPlayers = async (filters: GlobalPlayerFilters): Promise<
         const playerPhoto = playerDataRaw?.foto_url;
 
         const dorsalCount: Record<string, number> = {};
-        const equiposMap = new Map<string, { id: string; nombre: string; clubId?: string; clubNombre?: string }>();
+        const equiposMap = new Map<string, { id: string; nombre: string; clubId?: string; clubNombre?: string; competicionId?: string; competicionNombre?: string }>();
         const desgloseMap = new Map<string, {
             temporada: string;
             categoria: string;
@@ -559,6 +638,8 @@ export const fetchGlobalPlayers = async (filters: GlobalPlayerFilters): Promise<
                     nombre: team.nombre_especifico || 'Equipo',
                     clubId: club?.id ? String(club.id) : (team.club_id ? String(team.club_id) : undefined),
                     clubNombre: club?.nombre || undefined,
+                    competicionId: team.competicion_id ? String(team.competicion_id) : undefined,
+                    competicionNombre: competition?.nombre || undefined,
                 });
             }
         }
@@ -1660,6 +1741,11 @@ export const fetchTeamStats = async (competicionId: number | string, equipoId: n
 
     const matchIds = matches.map((m: any) => m.id);
 
+    const opponentTeamIds = matches.map((m: any) => 
+        String(m.equipo_local_id) === String(equipoId) ? String(m.equipo_visitante_id) : String(m.equipo_local_id)
+    );
+    const allTeamIds = Array.from(new Set([String(equipoId), ...opponentTeamIds]));
+
     const plantillaResponse = await supabase
         .from('plantillas')
         .select(`
@@ -1668,9 +1754,12 @@ export const fetchTeamStats = async (competicionId: number | string, equipoId: n
             equipo_id,
             jugadores (*)
         `)
-        .eq('equipo_id', equipoId);
+        .in('equipo_id', allTeamIds);
     
     if (plantillaResponse.error) throw plantillaResponse.error;
+
+    const allPlantillas = plantillaResponse.data || [];
+    const mainPlantilla = allPlantillas.filter((p: any) => String(p.equipo_id) === String(equipoId));
 
     let statsData: EstadisticaJugadorPartido[] = [];
     if (matchIds.length > 0) {
@@ -1744,7 +1833,7 @@ export const fetchTeamStats = async (competicionId: number | string, equipoId: n
     }
 
     // --- CALCULATE PLUS MINUS & MINUTES ---
-    const myTeamPlayerIds = new Set<string>(plantillaResponse.data?.map((p: any) => String(p.jugador_id)) || []);
+    const myTeamPlayerIds = new Set<string>(mainPlantilla.map((p: any) => String(p.jugador_id)));
     
     const matchIsLocal: Record<string, boolean> = {};
     matches.forEach((m: any) => {
@@ -1780,7 +1869,8 @@ export const fetchTeamStats = async (competicionId: number | string, equipoId: n
 
     return {
         matches: matches, // Use patched matches
-        plantilla: plantillaResponse.data,
+        plantilla: mainPlantilla,
+        allPlantillas: allPlantillas,
         stats: finalStats,
         movements: movementsData
     };

@@ -260,6 +260,8 @@ export interface GlobalPlayerRow extends PlayerAggregatedStats {
     nombre: string;
     clubId?: string;
     clubNombre?: string;
+    competicionId?: string;
+    competicionNombre?: string;
   }>;
   desglose?: Array<{
     temporada: string;
@@ -324,6 +326,7 @@ export interface GlobalTeamRow {
   clubId: string;
   nombre: string;
   logoUrl?: string;
+  searchContext?: string;
   equipos: Array<{
     id: string;
     nombre: string;

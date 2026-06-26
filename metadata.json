@@ -1,5 +1,5 @@
 {
-  "name": "DB Stats",
+  "name": "FedStats",
   "description": "Estadísticas de competiciones de la Federación Catalana de Baloncesto.",
   "requestFramePermissions": []
 }

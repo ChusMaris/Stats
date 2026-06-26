@@ -1,5 +1,6 @@
 
 import React, { useEffect, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import Standings from './Standings';
 import TeamStats from './TeamStats';
 import { fetchTeamStats } from '../services/dataService';
@@ -17,6 +18,7 @@ interface StatsViewProps {
 }
 
 const StatsView: React.FC<StatsViewProps> = ({ viewData, selectedCompeticionId }) => {
+  const navigate = useNavigate();
   const initialCompetitionId = String(viewData?.competicion?.id || selectedCompeticionId || '');
 
   const [selectedTeamId, setSelectedTeamId] = useState<number | string | null>(() => {
@@ -26,6 +28,7 @@ const StatsView: React.FC<StatsViewProps> = ({ viewData, selectedCompeticionId }
   const [teamDetails, setTeamDetails] = useState<{
     matches: any[],
     plantilla: any[],
+    allPlantillas?: any[],
     stats: any[],
     movements: any[]
   } | null>(() => {
@@ -92,11 +95,9 @@ const StatsView: React.FC<StatsViewProps> = ({ viewData, selectedCompeticionId }
   };
 
   return (
-    <div className="animate-fade-in space-y-8">
-      <section>
-          <div className="flex justify-between items-end mb-4 ml-1">
-            <h3 className="text-xl font-semibold text-gray-600">Clasificación</h3>
-          </div>
+    <div className="animate-fade-in space-y-6 pb-20">
+      {/* Compact Clasificación Section */}
+      <section className="mb-lg">
           {viewData.equipos.length > 0 ? (
               <Standings 
                   equipos={viewData.equipos} 
@@ -106,23 +107,32 @@ const StatsView: React.FC<StatsViewProps> = ({ viewData, selectedCompeticionId }
                   selectedTeamId={selectedTeamId}
               />
           ) : (
-              <div className="bg-white p-6 rounded-lg shadow text-center text-gray-500 text-lg">
+              <div className="p-8 text-center text-outline bg-surface-container-lowest border border-outline-variant rounded-xl text-sm italic">
                   No hay equipos registrados en esta competición.
               </div>
           )}
-          <p className="text-sm text-gray-400 mt-2 italic">* Haz click en un equipo para ver estadísticas detalladas.</p>
+          <p className="text-[10px] text-outline mt-2 italic font-medium">
+            * Selecciona un equipo para cargar estadísticas avanzadas y listado de partidos.
+          </p>
       </section>
 
       {selectedTeamId && (
-          <section id="team-details" className="scroll-mt-24">
-               <div className="flex items-center justify-between mb-4 mt-12 border-b pb-2">
+          <section id="team-details" className="scroll-mt-24 space-y-md">
+               {/* Selected Team Details Header */}
+               <div className="flex items-start justify-between mb-sm border-b border-outline-variant/30 pb-3">
                    <div>
-                      <h3 className="text-2xl font-bold text-fcbq-blue">
-                          {viewData.equipos.find(e => e.id === selectedTeamId)?.nombre_especifico}
-                      </h3>
-                      <p className="text-base text-gray-500">Estadísticas detalladas</p>
+                      <h1 className="text-headline-lg-mobile font-bold text-primary tracking-tight leading-tight uppercase">
+                         {viewData.equipos.find(e => e.id === selectedTeamId)?.nombre_especifico || 'Equipo Seleccionado'}
+                      </h1>
+                      <p className="text-body-md font-medium text-outline flex items-center gap-xs mt-0.5">
+                         Temporada 2025/26 <span className="w-1 h-1 bg-outline-variant rounded-full"></span> Estadísticas
+                      </p>
                    </div>
-                   {loadingTeam && <Loader2 className="animate-spin text-fcbq-blue" size={24} />}
+                   {loadingTeam && (
+                     <div className="flex items-center justify-center p-2 bg-primary/5 rounded-full shrink-0 animate-spin">
+                       <Loader2 className="text-primary" size={20} />
+                     </div>
+                   )}
                </div>
 
                {teamDetails ? (
@@ -130,12 +140,17 @@ const StatsView: React.FC<StatsViewProps> = ({ viewData, selectedCompeticionId }
                       equipoId={selectedTeamId}
                       matches={teamDetails.matches}
                       plantilla={teamDetails.plantilla}
+                       allPlantillas={teamDetails.allPlantillas}
                       stats={teamDetails.stats}
                       movements={teamDetails.movements}
                       esMini={viewData.competicion?.categorias?.es_mini || false}
                    />
                ) : (
-                  !loadingTeam && <div className="p-8 text-center text-gray-500 bg-white rounded-lg border border-dashed text-lg">Selecciona un equipo para ver datos.</div>
+                  !loadingTeam && (
+                    <div className="p-8 text-center text-outline bg-surface-container-lowest border border-dashed border-outline-variant rounded-xl text-sm italic">
+                      Cargando detalles del equipo...
+                    </div>
+                  )
                )}
           </section>
       )}

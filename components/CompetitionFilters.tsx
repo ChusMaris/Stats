@@ -59,7 +59,7 @@ const CompetitionFilters: React.FC<CompetitionFiltersProps> = ({
                         {/* Contexto compacto en una sola línea */}
                         <div className="flex-1 min-w-0 flex items-center gap-1.5 md:gap-2 overflow-hidden">
                             {currentCatName && (
-                                <span className="inline-flex items-center gap-1 px-1.5 md:px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 text-[9px] md:text-[10px] font-bold uppercase tracking-wide max-w-[120px] md:max-w-[220px] truncate shrink-0">
+                                <span className="inline-flex items-center gap-1 px-1.5 md:px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 text-[10px] md:text-[10px] font-bold uppercase tracking-wide max-w-[120px] md:max-w-[220px] truncate shrink-0">
                                     <Layers size={9} />
                                     {currentCatName}
                                 </span>

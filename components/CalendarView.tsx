@@ -43,7 +43,7 @@ const MiniDonut = ({ value, size = 40 }: { value: number, size?: number }) => {
                 className="transition-all duration-1000 ease-out"
               />
           </svg>
-          <span className="absolute text-[9px] font-black text-slate-700">{Math.round(normalizedValue)}%</span>
+          <span className="absolute text-[10px] font-black text-slate-700">{Math.round(normalizedValue)}%</span>
       </div>
   );
 };
@@ -245,7 +245,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({ matches, competicionId, equ
                                          </span>
                                      </div>
                                  ) : (
-                                     <div className="flex items-center justify-center bg-blue-50/50 px-3 py-1 rounded-lg border border-blue-100/50 text-fcbq-blue text-[11px] font-extrabold tracking-wider">
+                                     <div className="flex items-center justify-center bg-blue-50/50 px-3 py-1 rounded-lg border border-blue-100/50 text-fcbq-blue text-[14px] font-extrabold tracking-wider">
                                          VS
                                      </div>
                                  )}
@@ -424,7 +424,7 @@ const ScoutingCard = ({ report, teamName, color, onClose }: { report: ScoutingRe
                             {p.parallelStats.ppg.toFixed(1)}
                         </span>
                         <div className="flex flex-col">
-                            <span className="text-[9px] font-bold text-slate-400 uppercase leading-none">PPG (Otra Liga)</span>
+                            <span className="text-[10px] font-bold text-slate-400 uppercase leading-none">PPG (Otra Liga)</span>
                             <span className="text-[8px] font-bold text-purple-600 uppercase leading-none mt-0.5">
                                 {p.parallelStats.gamesPlayed} partidos jugados
                             </span>
@@ -446,7 +446,7 @@ const ScoutingCard = ({ report, teamName, color, onClose }: { report: ScoutingRe
                             +{p.avgMasMenos.toFixed(1)}
                         </span>
                         <div className="flex flex-col">
-                            <span className="text-[9px] font-bold text-slate-400 uppercase leading-none">Diferencial</span>
+                            <span className="text-[10px] font-bold text-slate-400 uppercase leading-none">Diferencial</span>
                             <span className="text-[8px] font-bold text-emerald-600 uppercase leading-none mt-0.5">
                                 Gana por {Math.floor(p.avgMasMenos)} pts con él
                             </span>
@@ -468,12 +468,12 @@ const ScoutingCard = ({ report, teamName, color, onClose }: { report: ScoutingRe
                     <div className="flex items-center gap-3">
                          <div className="flex flex-col">
                             <span className="text-xl font-black text-indigo-600 leading-none">{p.totalTiros3Anotados}</span>
-                            <span className="text-[9px] text-indigo-300 font-bold uppercase">Total T3</span>
+                            <span className="text-[10px] text-indigo-300 font-bold uppercase">Total T3</span>
                         </div>
                         <div className="h-6 w-px bg-slate-200"></div>
                         <div className="flex flex-col">
                             <span className="text-xl font-black text-slate-700 leading-none">{t3PerGame.toFixed(1)}</span>
-                            <span className="text-[9px] text-slate-400 font-bold uppercase">/Partido</span>
+                            <span className="text-[10px] text-slate-400 font-bold uppercase">/Partido</span>
                         </div>
                     </div>
                 )
@@ -495,7 +495,7 @@ const ScoutingCard = ({ report, teamName, color, onClose }: { report: ScoutingRe
                             {recentTotalPoints}
                         </span>
                         <div className="flex flex-col">
-                            <span className="text-[9px] font-bold text-slate-400 uppercase leading-none">Puntos Totales</span>
+                            <span className="text-[10px] font-bold text-slate-400 uppercase leading-none">Puntos Totales</span>
                             <span className="text-[8px] font-bold text-green-600 uppercase leading-none mt-0.5">en los últ. {p.lastGamesPlayed} part.</span>
                         </div>
                     </div>
@@ -513,7 +513,7 @@ const ScoutingCard = ({ report, teamName, color, onClose }: { report: ScoutingRe
                     <div className="flex items-center justify-between w-full pr-2">
                         <div className="flex flex-col">
                             <span className="text-xl font-black text-slate-700 leading-none">{(p.t1Pct || 0).toFixed(0)}%</span>
-                            <span className="text-[9px] text-slate-400 font-bold">{p.totalTirosLibresAnotados}/{p.totalTirosLibresIntentados} TL</span>
+                            <span className="text-[10px] text-slate-400 font-bold">{p.totalTirosLibresAnotados}/{p.totalTirosLibresIntentados} TL</span>
                         </div>
                         <MiniDonut value={p.t1Pct || 0} size={32} />
                     </div>
@@ -532,7 +532,7 @@ const ScoutingCard = ({ report, teamName, color, onClose }: { report: ScoutingRe
                         {p.totalPuntos}
                     </span>
                     <div className="flex flex-col">
-                         <span className="text-[9px] font-bold text-slate-400 uppercase leading-none">Acumulados</span>
+                         <span className="text-[10px] font-bold text-slate-400 uppercase leading-none">Acumulados</span>
                          <span className="text-[8px] font-bold text-slate-500 uppercase leading-none mt-0.5">en {p.partidosJugados} partidos</span>
                     </div>
                 </div>
@@ -644,26 +644,26 @@ const ScoutingCard = ({ report, teamName, color, onClose }: { report: ScoutingRe
                             {/* Stats Grid */}
                             <div className="p-3 grid grid-cols-4 gap-2 border-b border-slate-100">
                                 <div className="text-center">
-                                    <span className="block text-[9px] font-bold text-slate-400 uppercase">PPG</span>
+                                    <span className="block text-[10px] font-bold text-slate-400 uppercase">PPG</span>
                                     <span className="block text-lg font-black text-slate-800 leading-none">{(selectedPlayer.ppg || 0).toFixed(1)}</span>
                                 </div>
                                 <div className="text-center">
-                                    <span className="block text-[9px] font-bold text-slate-400 uppercase" title="Minutos por Partido">MIN/P</span>
+                                    <span className="block text-[10px] font-bold text-slate-400 uppercase" title="Minutos por Partido">MIN/P</span>
                                     <span className="block text-lg font-black text-slate-800 leading-none">{(selectedPlayer.mpg || 0).toFixed(0)}</span>
                                 </div>
                                 <div className="text-center">
-                                    <span className="block text-[9px] font-bold text-slate-400 uppercase" title="Faltas por Partido">FAL/P</span>
+                                    <span className="block text-[10px] font-bold text-slate-400 uppercase" title="Faltas por Partido">FAL/P</span>
                                     <span className="block text-lg font-black text-slate-800 leading-none">{(selectedPlayer.fpg || 0).toFixed(1)}</span>
                                 </div>
                                 <div className="text-center">
-                                    <span className="block text-[9px] font-bold text-slate-400 uppercase" title="% de Puntos del Equipo">% PTS</span>
+                                    <span className="block text-[10px] font-bold text-slate-400 uppercase" title="% de Puntos del Equipo">% PTS</span>
                                     <span className="block text-lg font-black text-slate-800 leading-none">{(selectedPlayer.pointsShare || 0).toFixed(0)}%</span>
                                 </div>
                             </div>
 
                             {/* Scoring DNA (Visual Bar) */}
                             <div className="p-3 border-b border-slate-100">
-                                <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1.5 block flex justify-between">
+                                <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5 block flex justify-between">
                                     <span>ADN de Anotación (Volumen)</span>
                                 </span>
                                 <div className="h-2.5 w-full bg-slate-100 rounded-full overflow-hidden flex">
@@ -674,7 +674,7 @@ const ScoutingCard = ({ report, teamName, color, onClose }: { report: ScoutingRe
                                     {/* T1 */}
                                     <div style={{ width: `${(selectedPlayer.totalTirosLibresAnotados / (selectedPlayer.totalPuntos || 1)) * 100}%` }} className="bg-amber-400 h-full" title="Tiros Libres"></div>
                                 </div>
-                                <div className="flex justify-between text-[9px] font-bold text-slate-400 mt-1 uppercase">
+                                <div className="flex justify-between text-[10px] font-bold text-slate-400 mt-1 uppercase">
                                     <span className="flex items-center gap-1"><div className="w-1.5 h-1.5 rounded-full bg-indigo-500"></div> Triple</span>
                                     <span className="flex items-center gap-1"><div className="w-1.5 h-1.5 rounded-full bg-emerald-500"></div> Juego T2</span>
                                     <span className="flex items-center gap-1"><div className="w-1.5 h-1.5 rounded-full bg-amber-400"></div> Libres</span>
@@ -685,7 +685,7 @@ const ScoutingCard = ({ report, teamName, color, onClose }: { report: ScoutingRe
                             <div className="p-3 grid grid-cols-2 gap-3 bg-slate-50/50">
                                 {/* DYNAMIC SLOT REPLACEMENT */}
                                 <div>
-                                    <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-1">
+                                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">
                                         {dynamicContext.title}
                                     </span>
                                     {dynamicContext.content}
@@ -693,7 +693,7 @@ const ScoutingCard = ({ report, teamName, color, onClose }: { report: ScoutingRe
                                 
                                 {/* TACTICAL ADVICE */}
                                 <div>
-                                    <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest block mb-1">Táctica Sugerida</span>
+                                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Táctica Sugerida</span>
                                     <div className="flex items-start gap-1.5">
                                         <ShieldAlert size={14} className="text-slate-600 mt-0.5 shrink-0" />
                                         <span className="text-[10px] font-bold text-slate-700 leading-tight">{getTacticalAdvice(selectedPlayer)}</span>

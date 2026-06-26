@@ -1,27 +1,154 @@
 
 <!DOCTYPE html>
-<html lang="es">
+<html lang="es" class="light">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Brafa Stats - FCBQ Data</title>
-    <script src="https://cdn.tailwindcss.com"></script>
+    <title>FedStats | Basketball Analytics</title>
+    <!-- Google Fonts: Inter for the modern, high-performance feel -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <!-- Material Symbols Outlined -->
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet" />
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
     <script>
       tailwind.config = {
+        darkMode: "class",
         theme: {
           extend: {
             colors: {
-              fcbq: {
-                blue: '#005eb8', // Official-ish FCBQ blue
-                light: '#3b82f6',
-                dark: '#1e3a8a',
-                accent: '#fbbf24' // Yellow accent
+              "outline": "#727782",
+              "on-secondary-fixed": "#410004",
+              "secondary-fixed-dim": "#ffb3ae",
+              "tertiary-fixed": "#d2e4ff",
+              "primary": "#003465",
+              "on-surface": "#191c1e",
+              "primary-container": "#004b8d",
+              "background": "#f7f9fb",
+              "surface-tint": "#265fa2",
+              "secondary-fixed": "#ffdad7",
+              "surface-container-high": "#e6e8ea",
+              "surface-bright": "#f7f9fb",
+              "on-tertiary-fixed": "#001c37",
+              "surface-container-low": "#f2f4f6",
+              "on-primary": "#ffffff",
+              "surface-dim": "#d8dadc",
+              "primary-fixed-dim": "#a6c8ff",
+              "outline-variant": "#c2c6d2",
+              "on-primary-container": "#91bdff",
+              "on-secondary-container": "#fffbff",
+              "error": "#ba1a1a",
+              "on-tertiary-container": "#9abdec",
+              "on-surface-variant": "#424750",
+              "on-error-container": "#93000a",
+              "inverse-surface": "#2d3133",
+              "inverse-on-surface": "#eff1f3",
+              "tertiary-container": "#284c75",
+              "surface": "#f7f9fb",
+              "on-secondary": "#ffffff",
+              "error-container": "#ffdad6",
+              "secondary-container": "#e41e2e",
+              "on-error": "#ffffff",
+              "on-primary-fixed": "#001c3a",
+              "on-secondary-fixed-variant": "#930014",
+              "inverse-primary": "#a6c8ff",
+              "on-primary-fixed-variant": "#004786",
+              "on-tertiary-fixed-variant": "#244871",
+              "surface-container": "#eceef0",
+              "secondary": "#bb001d",
+              "on-tertiary": "#ffffff",
+              "tertiary": "#0a355c",
+              "on-background": "#191c1e",
+              "surface-container-lowest": "#ffffff",
+              "surface-variant": "#e0e3e5",
+              "surface-container-highest": "#e0e3e5",
+              "primary-fixed": "#d4e3ff",
+              "tertiary-fixed-dim": "#a6c9f8",
+              // Maintain compatibility with existing code mappings using fcbq keys
+              "fcbq": {
+                "blue": "#003465",
+                "light": "#004b8d",
+                "dark": "#0a355c",
+                "accent": "#bb001d"
               }
+            },
+            borderRadius: {
+              "DEFAULT": "0.125rem",
+              "lg": "0.25rem",
+              "xl": "0.5rem",
+              "full": "0.75rem"
+            },
+            spacing: {
+              "xl": "64px",
+              "md": "24px",
+              "margin-mobile": "16px",
+              "gutter": "16px",
+              "sm": "16px",
+              "base": "4px",
+              "xs": "8px",
+              "lg": "40px",
+              "margin-desktop": "32px"
+            },
+            fontFamily: {
+              "sans": ["Inter", "sans-serif"],
+              "label-sm": ["Inter"],
+              "headline-lg": ["Inter"],
+              "data-tabular": ["Inter"],
+              "headline-xl": ["Inter"],
+              "headline-lg-mobile": ["Inter"],
+              "body-lg": ["Inter"],
+              "headline-md": ["Inter"],
+              "body-md": ["Inter"]
+            },
+            fontSize: {
+              "label-sm": ["12px", {"lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "600"}],
+              "headline-lg": ["32px", {"lineHeight": "40px", "letterSpacing": "-0.01em", "fontWeight": "700"}],
+              "data-tabular": ["14px", {"lineHeight": "20px", "fontWeight": "500"}],
+              "headline-xl": ["40px", {"lineHeight": "48px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+              "headline-lg-mobile": ["24px", {"lineHeight": "32px", "fontWeight": "700"}],
+              "body-lg": ["18px", {"lineHeight": "28px", "fontWeight": "400"}],
+              "headline-md": ["20px", {"lineHeight": "28px", "fontWeight": "600"}],
+              "body-md": ["16px", {"lineHeight": "24px", "fontWeight": "400"}]
             }
           }
         }
-      }
+      };
     </script>
+    <style>
+      body {
+        font-family: 'Inter', sans-serif;
+        background-color: #f7f9fb;
+      }
+      .material-symbols-outlined {
+        font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+      }
+      .hide-scrollbar::-webkit-scrollbar { display: none; }
+      .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+      
+      /* Fixed columns styles */
+      .sticky-col-1 {
+        position: sticky;
+        left: 0;
+        z-index: 20;
+        border-right: 1px solid #c2c6d2;
+      }
+      .sticky-col-2 {
+        position: sticky;
+        left: 48px; /* Adjusted to fit the '#' column width */
+        z-index: 20;
+        border-right: 2px solid #727782;
+      }
+      /* Custom scrollbar for data tables if any */
+      ::-webkit-scrollbar {
+        width: 6px;
+      }
+      ::-webkit-scrollbar-track {
+        background: #f1f1f1;
+      }
+      ::-webkit-scrollbar-thumb {
+        background: #c2c6d2;
+        border-radius: 10px;
+      }
+    </style>
     <script type="importmap">
     {
       "imports": {
@@ -39,7 +166,7 @@
     }
     </script>
   </head>
-  <body class="bg-slate-50">
+  <body class="bg-slate-50 text-on-background min-h-screen flex flex-col pb-20 md:pb-0">
     <div id="root"></div>
     <script type="module" src="/index.tsx"></script>
   </body>

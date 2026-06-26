@@ -1,10 +1,11 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { ArrowDownUp, ChevronDown, ChevronUp, Filter, FilterX, History, Loader2, RotateCcw, Search, SlidersHorizontal, Star, StarOff, X } from 'lucide-react';
 import { fetchCategorias, fetchCompeticionesByFilters, fetchEquiposByFilters, fetchGlobalPlayers, fetchTemporadas } from '../services/dataService';
 import { Categoria, GlobalPlayerFilters, GlobalPlayerRow, Temporada } from '../types';
 import { getPlayerFavorites, togglePlayerFavorite } from '../utils/playerFavoritesStorage';
 
-type SortKey = 'dorsal' | 'nombre' | 'partidosJugados' | 'ppg' | 'mpg' | 'ppm' | 'fpg' | 't1Pct' | 't2Made' | 't3Made';
+type SortKey = 'dorsal' | 'nombre' | 'partidosJugados' | 'ppg' | 'mpg' | 'ppm' | 'fpg' | 't1Pct' | 't2Made' | 't3Made' | 'avgMasMenos';
 
 interface PlayersPageProps {
   activeCompetitionName?: string;
@@ -54,6 +55,9 @@ const inferCompetitionPhase = (competitionName: string) => {
 };
 
 const PlayersPage: React.FC<PlayersPageProps> = () => {
+  const [searchParams] = useSearchParams();
+  const initialSearch = searchParams.get('search') || '';
+
   const [temporadas, setTemporadas] = useState<Temporada[]>([]);
   const [categorias, setCategorias] = useState<Categoria[]>([]);
   const [categoriasDisponibles, setCategoriasDisponibles] = useState<Categoria[]>([]);
@@ -67,9 +71,16 @@ const PlayersPage: React.FC<PlayersPageProps> = () => {
     fase: '',
     competicionNombre: '',
     equipoNombre: '',
-    nombreJugador: '',
+    nombreJugador: initialSearch,
     dorsal: '',
   });
+
+  useEffect(() => {
+    const q = searchParams.get('search') || '';
+    if (q !== filters.nombreJugador) {
+      setFilters(prev => ({ ...prev, nombreJugador: q }));
+    }
+  }, [searchParams]);
 
   const [players, setPlayers] = useState<GlobalPlayerRow[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -339,6 +350,10 @@ const PlayersPage: React.FC<PlayersPageProps> = () => {
           return merged;
         });
 
+        if (isFirstPage && searchParams.get('search') && nextPageRows.length > 0) {
+          setExpandedPlayerId(String(nextPageRows[0].jugadorId));
+        }
+
         setHasMore(nextPageRows.length === PAGE_SIZE);
       } catch (error) {
         console.error(error);
@@ -379,6 +394,7 @@ const PlayersPage: React.FC<PlayersPageProps> = () => {
       if (key === 'dorsal') return toNumber(player.dorsal);
       if (key === 't2Made') return player.totalTiros2Anotados / Math.max(1, player.partidosJugados);
       if (key === 't3Made') return player.totalTiros3Anotados / Math.max(1, player.partidosJugados);
+      if (key === 'avgMasMenos') return player.avgMasMenos || 0;
       const value = player[key as keyof GlobalPlayerRow];
       if (typeof value === 'number') return value;
       return String(value || '').toLowerCase();
@@ -613,7 +629,7 @@ const PlayersPage: React.FC<PlayersPageProps> = () => {
             <Search size={16} className="text-fcbq-blue" />
             {isLoading ? 'Buscando jugadores...' : `${visiblePlayers.length} jugadores`}
           </p>
-          <p className="text-[11px] uppercase font-bold tracking-wide text-slate-400">{onlyFavorites ? 'Solo favoritos' : 'Favoritos primero'}</p>
+          <p className="text-[14px] uppercase font-bold tracking-wide text-slate-400">{onlyFavorites ? 'Solo favoritos' : 'Favoritos primero'}</p>
         </div>
 
         {errorMsg && (
@@ -633,24 +649,24 @@ const PlayersPage: React.FC<PlayersPageProps> = () => {
           </div>
         ) : (
           <>
-            <div className="overflow-x-auto scrollbar-thin">
-              <table className="w-full min-w-[850px]">
-                <thead className="border-b border-slate-100 bg-white sticky top-0 z-10">
-                  <tr>
-                    <th className="px-3 py-2 text-center text-[10px] uppercase font-bold tracking-wide text-slate-400">Fav</th>
-                    {renderSortHeader('#', 'dorsal')}
-                    {renderSortHeader('Jugador', 'nombre', 'left')}
-                    {renderSortHeader('PJ', 'partidosJugados')}
-                    {renderSortHeader('PPG', 'ppg')}
-                    {renderSortHeader('MPG', 'mpg', 'center')}
-                    {renderSortHeader('PPM', 'ppm', 'center')}
-                    {renderSortHeader('FPG', 'fpg', 'center')}
-                    {renderSortHeader('%T1', 't1Pct', 'center')}
-                    {renderSortHeader('T2/g', 't2Made', 'center')}
-                    {renderSortHeader('T3/g', 't3Made', 'center')}
+            <div className="overflow-x-auto hide-scrollbar">
+              <table className="w-full text-left text-data-tabular border-collapse min-w-[950px]">
+                <thead>
+                  <tr className="text-on-surface-variant opacity-70 bg-surface-container-low border-b border-outline-variant uppercase text-[10px]">
+                    {renderSortHeader('#', 'dorsal', 'center', 'w-[48px] py-xs px-sm font-semibold')}
+                    {renderSortHeader('Jugador', 'nombre', 'left', 'w-[100px] sm:w-[240px] py-xs px-sm font-semibold')}
+                    {renderSortHeader('PJ', 'partidosJugados', 'center', 'w-12 py-xs px-xs font-semibold')}
+                    {renderSortHeader('PPG', 'ppg', 'center', 'w-12 py-xs px-xs font-semibold')}
+                    {renderSortHeader('MPG', 'mpg', 'center', 'w-12 py-xs px-xs font-semibold')}
+                    {renderSortHeader('PPM', 'ppm', 'center', 'w-12 py-xs px-xs font-semibold')}
+                    {renderSortHeader('FPG', 'fpg', 'center', 'w-12 py-xs px-xs font-semibold')}
+                    {renderSortHeader('+/-', 'avgMasMenos', 'center', 'w-12 py-xs px-xs font-semibold')}
+                    {renderSortHeader('% T1', 't1Pct', 'center', 'w-14 py-xs px-sm font-semibold')}
+                    {renderSortHeader('T2/g', 't2Made', 'center', 'w-12 py-xs px-xs font-semibold')}
+                    {renderSortHeader('T3/g', 't3Made', 'center', 'w-12 py-xs px-xs font-semibold')}
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100">
+                <tbody className="divide-y divide-outline-variant">
                   {visiblePlayers.map((player) => {
                     const isFavorite = favoriteIds.includes(String(player.jugadorId));
                     const isExpanded = expandedPlayerId === String(player.jugadorId);
@@ -659,87 +675,91 @@ const PlayersPage: React.FC<PlayersPageProps> = () => {
                       <React.Fragment key={player.jugadorId}>
                         <tr 
                           onClick={() => setExpandedPlayerId(isExpanded ? null : String(player.jugadorId))}
-                          className={`transition-colors cursor-pointer border-l-4 ${isExpanded ? 'bg-slate-50 border-fcbq-blue' : 'hover:bg-slate-50/80 border-transparent'}`}
+                          className={`transition-colors cursor-pointer border-l-4 ${isExpanded ? 'bg-surface-container-low/50 border-primary' : 'hover:bg-surface-container-low border-transparent'}`}
                         >
-                          <td className="px-3 py-2.5 text-center">
-                            <button
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                setFavoriteIds(togglePlayerFavorite(player.jugadorId));
-                              }}
-                              className="inline-flex items-center justify-center w-8 h-8 rounded-full hover:bg-slate-100"
-                              aria-label={isFavorite ? 'Quitar favorito' : 'Marcar favorito'}
-                            >
-                              {isFavorite ? <Star size={16} className="text-amber-500 fill-amber-500" /> : <StarOff size={16} className="text-slate-300" />}
-                            </button>
+                          <td className="py-sm px-sm font-bold text-center text-outline text-[14px]">
+                            {player.dorsal}
                           </td>
-                          <td className="px-3 py-2.5 text-center font-mono text-sm text-slate-500 font-bold">{player.dorsal}</td>
-                          <td className="px-3 py-2.5 text-left min-w-[240px]">
-                            <div className="flex items-center gap-3">
-                              <div className="w-9 h-9 rounded-full overflow-hidden bg-slate-100 border border-slate-200 shadow-sm">
+                          <td className="py-sm px-sm font-bold">
+                            <div className="flex items-center gap-xs">
+                              {/* Fav Button */}
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  setFavoriteIds(togglePlayerFavorite(player.jugadorId));
+                                }}
+                                className="inline-flex items-center justify-center w-6 h-6 rounded-full hover:bg-surface-container-low shrink-0"
+                                aria-label={isFavorite ? 'Quitar favorito' : 'Marcar favorito'}
+                              >
+                                {isFavorite ? <Star size={14} className="text-amber-500 fill-amber-500" /> : <StarOff size={14} className="text-outline-variant" />}
+                              </button>
+
+                              <div className="w-8 h-8 rounded-full border border-outline-variant overflow-hidden shrink-0 bg-slate-50 flex items-center justify-center">
                                 {player.fotoUrl ? (
-                                  <img src={player.fotoUrl} alt={player.nombre} className="w-full h-full object-cover" />
+                                  <img src={player.fotoUrl} alt={player.nombre} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
                                 ) : (
-                                  <div className="w-full h-full flex items-center justify-center text-[11px] text-slate-400 font-bold">J</div>
+                                  <span className="material-symbols-outlined text-[20px] text-slate-400">person</span>
                                 )}
                               </div>
-                              <div>
-                                <p className="font-bold text-sm text-slate-800 uppercase tracking-tight flex items-center gap-2">
-                                  {player.nombre}
-                                  {isExpanded ? <ChevronUp size={14} className="text-slate-400" /> : <ChevronDown size={14} className="text-slate-400" />}
-                                </p>
-                                {player.equipos.length > 0 && (
-                                  <p className="text-[11px] text-slate-400 truncate max-w-[240px]">
-                                    {player.equipos.slice(0, 2).map((team) => team.nombre).join(' · ')}
-                                    {player.equipos.length > 2 ? ` +${player.equipos.length - 2}` : ''}
-                                  </p>
-                                )}
-                              </div>
+                              <div className="min-w-0 flex-1">
+                                  <div className="flex items-center gap-1">
+                                    <span className="leading-none text-[12px] font-bold text-on-surface uppercase tracking-tight truncate max-w-[85px] xs:max-w-[120px] sm:max-w-[200px] md:max-w-[320px]">
+                                      {player.nombre}
+                                    </span>
+                                    {isExpanded ? <ChevronUp size={12} className="text-outline shrink-0" /> : <ChevronDown size={12} className="text-outline shrink-0" />}
+                                  </div>
+                                  {player.equipos.length > 0 && (
+                                    <p className="text-[10px] text-slate-400 font-medium truncate max-w-[85px] xs:max-w-[120px] sm:max-w-[200px] md:max-w-[320px] mt-0.5 leading-none">
+                                      {player.equipos.slice(0, 2).map((team) => team.nombre).join(' · ')}
+                                      {player.equipos.length > 2 ? ` +${player.equipos.length - 2}` : ''}
+                                    </p>
+                                  )}
+                                </div>
                             </div>
                           </td>
-                          <td className="px-3 py-2.5 text-center text-sm text-slate-600 font-medium">{player.partidosJugados}</td>
-                          <td className="px-3 py-2.5 text-center text-sm font-bold text-fcbq-blue bg-fcbq-blue/5">{player.ppg.toFixed(1)}</td>
-                          <td className="px-3 py-2.5 text-center text-sm text-slate-600">{player.mpg.toFixed(1)}</td>
-                          <td className="px-3 py-2.5 text-center text-sm text-slate-600">{player.ppm.toFixed(2)}</td>
-                          <td className="px-3 py-2.5 text-center text-sm text-slate-600">{player.fpg.toFixed(1)}</td>
-                          <td className="px-3 py-2.5 text-center text-sm text-slate-600 font-medium">{player.t1Pct.toFixed(1)}%</td>
-                          <td className="px-3 py-2.5 text-center text-sm text-slate-600 font-medium">{(player.totalTiros2Anotados / Math.max(1, player.partidosJugados)).toFixed(1)}</td>
-                          <td className="px-3 py-2.5 text-center text-sm text-slate-600 font-medium">{(player.totalTiros3Anotados / Math.max(1, player.partidosJugados)).toFixed(1)}</td>
+                          <td className="py-sm px-xs text-center text-[12px] text-slate-600 font-medium">{player.partidosJugados}</td>
+                          <td className="py-sm px-xs text-center text-[12px] font-bold text-primary">{player.ppg.toFixed(1)}</td>
+                          <td className="py-sm px-xs text-center text-[12px] text-slate-600 font-medium">{player.mpg.toFixed(1)}</td>
+                          <td className="py-sm px-xs text-center text-[12px] text-slate-600 font-medium">{player.ppm.toFixed(2)}</td>
+                          <td className="py-sm px-xs text-center text-[12px] text-slate-600 font-medium">{player.fpg.toFixed(1)}</td>
+                          <td className={`py-sm px-xs text-center text-[12px] font-bold ${
+                            (player.avgMasMenos || 0) > 0 
+                              ? 'text-green-600' 
+                              : (player.avgMasMenos || 0) < 0 
+                                ? 'text-red-600' 
+                                : 'text-slate-600'
+                          }`}>
+                            {(player.avgMasMenos || 0) > 0 ? '+' : ''}{(player.avgMasMenos || 0).toFixed(1)}
+                          </td>
+                          <td className="py-sm px-sm text-center text-[12px] text-slate-600 font-bold">{player.t1Pct.toFixed(1)}%</td>
+                          <td className="py-sm px-xs text-center text-[12px] text-slate-600 font-medium">{(player.totalTiros2Anotados / Math.max(1, player.partidosJugados)).toFixed(1)}</td>
+                          <td className="py-sm px-xs text-center text-[12px] text-slate-600 font-medium">{(player.totalTiros3Anotados / Math.max(1, player.partidosJugados)).toFixed(1)}</td>
                         </tr>
                         {isExpanded && player.desglose && player.desglose.length > 0 && (
                           <>
-                            <tr className="bg-slate-50/80 border-l-4 border-fcbq-blue">
-                              <td className="px-3 py-2"></td>
-                              <td className="px-3 py-2"></td>
-                              <td className="px-3 py-2 text-[10px] uppercase tracking-wider font-bold text-slate-500 inline-flex items-center gap-2">
-                                <History size={12} className="text-fcbq-blue" />
-                                Desglose por temporada y categoria
+                            <tr className="bg-surface-container-low/30 border-b border-outline-variant">
+                              <td colSpan={11} className="px-sm py-2 text-[10px] uppercase tracking-wider font-bold text-slate-500">
+                                <div className="flex items-center gap-2 pl-4">
+                                  <History size={12} className="text-primary" />
+                                  Desglose por temporada y categoria
+                                </div>
                               </td>
-                              <td className="px-3 py-2"></td>
-                              <td className="px-3 py-2"></td>
-                              <td className="px-3 py-2"></td>
-                              <td className="px-3 py-2"></td>
-                              <td className="px-3 py-2"></td>
-                              <td className="px-3 py-2"></td>
-                              <td className="px-3 py-2"></td>
-                              <td className="px-3 py-2"></td>
                             </tr>
                             {player.desglose.map((d, idx) => (
-                              <tr key={`${player.jugadorId}-desglose-${idx}`} className="bg-slate-50/60 border-l-4 border-fcbq-blue/60">
-                                <td className="px-3 py-2"></td>
-                                <td className="px-3 py-2"></td>
-                                <td className="px-3 py-2 text-left min-w-[240px]">
+                              <tr key={`${player.jugadorId}-desglose-${idx}`} className="bg-surface-container-low/10 transition-colors border-b border-outline-variant/50">
+                                <td className="px-xs py-2 text-left pl-10" colSpan={2}>
                                   <div className="text-xs font-semibold text-slate-700">{d.temporada}</div>
-                                  <div className="text-[11px] text-slate-500">{d.categoria}</div>
+                                  <div className="text-[14px] text-slate-500">{d.categoria}</div>
                                 </td>
-                                <td className="px-3 py-2 text-center text-xs text-slate-600">{d.partidosJugados}</td>
-                                <td className="px-3 py-2 text-center text-xs font-bold text-fcbq-blue">{Number(d.ppg ?? 0).toFixed(1)}</td>
-                                <td className="px-3 py-2 text-center text-xs text-slate-600">{Number(d.mpg ?? 0).toFixed(1)}</td>
-                                <td className="px-3 py-2 text-center text-xs text-slate-600">{Number(d.ppm ?? 0).toFixed(2)}</td>
-                                <td className="px-3 py-2 text-center text-xs text-slate-600">{Number(d.fpg ?? 0).toFixed(1)}</td>
-                                <td className="px-3 py-2 text-center text-xs text-slate-600">{Number(d.t1Pct ?? 0).toFixed(1)}%</td>
-                                <td className="px-3 py-2 text-center text-xs text-slate-600">{Number(d.t2Made ?? 0).toFixed(1)}</td>
-                                <td className="px-3 py-2 text-center text-xs text-slate-600">{Number(d.t3Made ?? 0).toFixed(1)}</td>
+                                <td className="px-xs py-2 text-center text-xs text-slate-600 font-medium">{d.partidosJugados}</td>
+                                <td className="px-xs py-2 text-center text-xs font-bold text-primary">{Number(d.ppg ?? 0).toFixed(1)}</td>
+                                <td className="px-xs py-2 text-center text-xs text-slate-600 font-medium">{Number(d.mpg ?? 0).toFixed(1)}</td>
+                                <td className="px-xs py-2 text-center text-xs text-slate-600 font-medium">{Number(d.ppm ?? 0).toFixed(2)}</td>
+                                <td className="px-xs py-2 text-center text-xs text-slate-600 font-medium">{Number(d.fpg ?? 0).toFixed(1)}</td>
+                                <td className="px-xs py-2 text-center text-xs text-slate-600 font-medium">-</td>
+                                <td className="px-sm py-2 text-center text-xs text-slate-600 font-bold">{Number(d.t1Pct ?? 0).toFixed(1)}%</td>
+                                <td className="px-xs py-2 text-center text-xs text-slate-600 font-medium">{Number(d.t2Made ?? 0).toFixed(1)}</td>
+                                <td className="px-xs py-2 text-center text-xs text-slate-600 font-medium">{Number(d.t3Made ?? 0).toFixed(1)}</td>
                               </tr>
                             ))}
                           </>

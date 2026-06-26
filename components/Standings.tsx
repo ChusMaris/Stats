@@ -133,56 +133,138 @@ const Standings: React.FC<StandingsProps> = ({ equipos, partidos, esMini, onSele
     }
   }, [equipos, partidos, esMini]);
 
+  const getInitials = (name: string) => {
+    if (!name) return '';
+    const clean = name.replace(/[^A-Z0-9\s]/gi, '').trim();
+    const words = clean.split(/\s+/).filter(w => {
+      const u = w.toUpperCase();
+      return u !== 'C' && u !== 'CB' && u !== 'CE' && u !== 'A' && u !== 'B' && u !== 'CLUB' && u !== 'BASKET' && u !== 'BÀSQUET';
+    });
+    if (words.length >= 2) {
+      return (words[0][0] + words[1][0]).toUpperCase();
+    }
+    if (words.length === 1) {
+      return words[0].substring(0, 2).toUpperCase();
+    }
+    return name.substring(0, 2).toUpperCase();
+  };
+
   return (
-    <div className="overflow-x-auto bg-white rounded-2xl shadow-sm border border-slate-100">
-      <table className="w-full text-xs md:text-sm text-left text-gray-700">
-        <thead className="text-[10px] md:text-xs uppercase bg-slate-50 text-slate-500 border-b border-slate-100 font-bold">
-          <tr>
-            <th className="pl-2 md:pl-4 pr-1 py-2 md:py-3 text-left w-1 whitespace-nowrap">Pos</th>
-            <th className="px-2 md:px-4 py-2 md:py-3">Equipo</th>
-            <th className="px-1.5 md:px-4 py-2 md:py-3 text-center">PJ</th>
-            <th className="px-1.5 md:px-4 py-2 md:py-3 text-center">PG</th>
-            <th className="px-1.5 md:px-4 py-2 md:py-3 text-center">PP</th>
-            <th className="px-2 md:px-4 py-2 md:py-3 text-center hidden sm:table-cell">PF</th>
-            <th className="px-2 md:px-4 py-2 md:py-3 text-center hidden sm:table-cell">PC</th>
-            <th className="px-2 md:px-4 py-2 md:py-3 text-center hidden sm:table-cell">DIF</th>
-            <th className="px-2 md:px-4 py-2 md:py-3 text-center rounded-tr-lg">PTS</th>
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-slate-100">
-          {standings.map((team, index) => (
-            <tr 
-              key={team.equipoId} 
-              onClick={() => onSelectTeam(team.equipoId)}
-              className={`hover:bg-blue-50/50 cursor-pointer transition-colors ${selectedTeamId === team.equipoId ? 'bg-blue-50 font-black border-l-4 border-l-fcbq-blue' : ''}`}
-            >
-              <td className="pl-2 md:pl-4 pr-1 py-2.5 md:py-3.5 text-left font-bold text-fcbq-blue">{index + 1}</td>
-              <td className="px-2 md:px-4 py-2.5 md:py-3.5 font-semibold flex items-center gap-1.5 md:gap-3">
-                <div className="w-6 h-6 md:w-8 md:h-8 rounded-full overflow-hidden border border-slate-100 flex items-center justify-center bg-white shadow-xs shrink-0">
-                  {team.clubLogo ? (
-                    <img src={team.clubLogo} alt="" className="w-full h-full object-contain rounded-full" />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center bg-slate-50 text-[8px] text-slate-300 font-bold">LOGO</div>
-                  )}
-                </div>
-                <span className="truncate max-w-[110px] sm:max-w-[200px] md:max-w-xs uppercase tracking-tight text-slate-700 text-[10.5px] md:text-sm">{team.nombre}</span>
-              </td>
-              <td className="px-1.5 md:px-4 py-2.5 md:py-3.5 text-center text-slate-500 font-medium">{team.pj}</td>
-              <td className="px-1.5 md:px-4 py-2.5 md:py-3.5 text-center text-green-600 font-bold">{team.pg}</td>
-              <td className="px-1.5 md:px-4 py-2.5 md:py-3.5 text-center text-red-600 font-bold">{team.pp}</td>
-              <td className="px-2 md:px-4 py-2.5 md:py-3.5 text-center text-slate-400 hidden sm:table-cell">{team.pf}</td>
-              <td className="px-2 md:px-4 py-2.5 md:py-3.5 text-center text-slate-400 hidden sm:table-cell">{team.pc}</td>
-              <td className="px-2 md:px-4 py-2.5 md:py-3.5 text-center text-slate-400 hidden sm:table-cell">{team.diff}</td>
-              <td className="px-2 md:px-4 py-2.5 md:py-3.5 text-center font-bold text-slate-800">{team.puntos}</td>
+    <div className="bg-surface-container-lowest border border-outline-variant rounded-xl overflow-hidden shadow-sm">
+      <div className="bg-surface-container-low px-sm py-2.5 border-b border-outline-variant/30 flex justify-between items-center">
+        <h2 className="text-[10px] font-bold text-outline uppercase tracking-wider">Clasificación Actual</h2>
+        <span className="text-[10px] font-medium text-outline truncate max-w-[180px]">
+          {esMini ? 'Mini-Basket' : 'Principal'}
+        </span>
+      </div>
+      <div className="overflow-x-auto">
+        <table className="w-full text-left min-w-[550px] lg:min-w-full">
+          <thead>
+            <tr className="bg-surface-container-lowest border-b border-outline-variant/20">
+              <th className="px-base py-2.5 text-[10px] font-bold text-outline uppercase pl-4 w-10">Pos</th>
+              <th className="px-base py-2.5 text-[10px] font-bold text-outline uppercase">Equipo</th>
+              <th className="px-base py-2.5 text-[10px] font-bold text-outline uppercase text-center w-10">PJ</th>
+              <th className="px-base py-2.5 text-[10px] font-bold text-outline uppercase text-center w-10">PG</th>
+              <th className="px-base py-2.5 text-[10px] font-bold text-outline uppercase text-center w-10">PP</th>
+              <th className="px-base py-2.5 text-[10px] font-bold text-outline uppercase text-center w-12">PF</th>
+              <th className="px-base py-2.5 text-[10px] font-bold text-outline uppercase text-center w-12">PC</th>
+              <th className="px-base py-2.5 text-[10px] font-bold text-outline uppercase text-center w-12">DIF</th>
+              <th className="px-base py-2.5 text-[10px] font-bold text-outline uppercase text-center pr-4 w-12">PTS</th>
             </tr>
-          ))}
-          {standings.length === 0 && (
-            <tr>
-              <td colSpan={9} className="px-4 py-12 text-center text-gray-400 text-sm">Sin datos de clasificación disponibles para esta selección.</td>
-            </tr>
-          )}
-        </tbody>
-      </table>
+          </thead>
+          <tbody className="divide-y divide-outline-variant/20">
+            {standings.map((team, index) => {
+              const isSelected = selectedTeamId === team.equipoId;
+              return (
+                <tr 
+                  key={team.equipoId} 
+                  onClick={() => onSelectTeam(team.equipoId)}
+                  className={`cursor-pointer transition-colors hover:bg-surface-container-low/80 ${
+                    isSelected 
+                      ? 'bg-primary/5' 
+                      : 'opacity-70 hover:opacity-100'
+                  }`}
+                >
+                  <td className={`px-base py-2.5 text-data-tabular pl-4 font-bold ${
+                    isSelected ? 'text-primary' : 'text-outline'
+                  }`}>
+                    {index + 1}
+                  </td>
+                  <td className="px-base py-2.5">
+                    <div className="flex items-center gap-xs">
+                      <div className="w-5 h-5 rounded-full overflow-hidden flex items-center justify-center shrink-0 bg-white">
+                        {team.clubLogo ? (
+                          <img 
+                            src={team.clubLogo} 
+                            alt="" 
+                            className="w-full h-full object-contain" 
+                            referrerPolicy="no-referrer"
+                          />
+                        ) : (
+                          <div className={`w-full h-full rounded-full flex items-center justify-center shrink-0 ${
+                            isSelected ? 'bg-primary' : 'bg-outline-variant'
+                          }`}>
+                            <span className="text-[7px] font-bold text-white">
+                              {getInitials(team.nombre)}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                      <span className={`text-[14px] truncate uppercase max-w-[160px] sm:max-w-xs ${
+                        isSelected ? 'font-bold text-primary' : 'text-on-surface-variant font-medium'
+                      }`}>
+                        {team.nombre}
+                      </span>
+                    </div>
+                  </td>
+                  <td className={`px-base py-2.5 text-data-tabular text-center text-[14px] ${
+                    isSelected ? 'font-bold text-primary' : 'text-slate-600'
+                  }`}>
+                    {team.pj}
+                  </td>
+                  <td className={`px-base py-2.5 text-data-tabular text-center text-[14px] ${
+                    isSelected ? 'font-bold text-primary' : 'text-slate-600'
+                  }`}>
+                    {team.pg}
+                  </td>
+                  <td className={`px-base py-2.5 text-data-tabular text-center text-[14px] ${
+                    isSelected ? 'font-bold text-primary' : 'text-slate-600'
+                  }`}>
+                    {team.pp}
+                  </td>
+                  <td className={`px-base py-2.5 text-data-tabular text-center text-[14px] ${
+                    isSelected ? 'font-bold text-primary' : 'text-slate-600'
+                  }`}>
+                    {team.pf}
+                  </td>
+                  <td className={`px-base py-2.5 text-data-tabular text-center text-[14px] ${
+                    isSelected ? 'font-bold text-primary' : 'text-slate-600'
+                  }`}>
+                    {team.pc}
+                  </td>
+                  <td className={`px-base py-2.5 text-data-tabular text-center text-[14px] ${
+                    isSelected ? 'font-bold text-primary' : 'text-slate-600'
+                  }`}>
+                    {team.diff > 0 ? `+${team.diff}` : team.diff}
+                  </td>
+                  <td className={`px-base py-2.5 text-data-tabular text-center font-bold text-[14px] pr-4 ${
+                    isSelected ? 'text-primary' : 'text-slate-800'
+                  }`}>
+                    {team.puntos}
+                  </td>
+                </tr>
+              );
+            })}
+            {standings.length === 0 && (
+              <tr>
+                <td colSpan={9} className="px-4 py-8 text-center text-outline text-xs italic">
+                  Sin datos de clasificación disponibles para esta selección.
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 };

@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { supabase } from '../supabaseClient';
-import { Loader2, Trophy, ShieldAlert, BadgeCheck } from 'lucide-react';
+import { Loader2, ShieldAlert, BadgeCheck } from 'lucide-react';
+// @ts-ignore
+import logoImg from '../src/assets/images/fedstats_header_logo.png';
 
 interface LoginLandingPageProps {
   onLoginStart: () => void;
@@ -41,25 +43,18 @@ const LoginLandingPage: React.FC<LoginLandingPageProps> = ({ onLoginStart, onLog
 
   return (
     <div className="min-h-screen bg-slate-50 flex flex-col justify-between p-4 md:p-8 font-sans">
-      {/* Top Header decoration */}
-      <div className="flex items-center justify-center gap-2 mt-4 md:mt-8">
-        <div className="w-10 h-10 bg-fcbq-blue rounded-full flex items-center justify-center text-white border-2 border-fcbq-accent shadow-sm">
-          <span className="font-black text-lg">B</span>
-        </div>
-        <div className="text-left">
-          <h2 className="text-xl font-black text-slate-800 tracking-tight leading-none uppercase">
-            Brafa Stats
-          </h2>
-          <span className="text-[9px] text-fcbq-blue uppercase tracking-widest font-bold">
-            FCBQ Analytics
-          </span>
-        </div>
-      </div>
+      {/* Spacer to push card down and balance layout */}
+      <div className="h-4 md:h-8" />
 
       {/* Main Card */}
       <div className="w-full max-w-md mx-auto my-auto bg-white rounded-3xl shadow-xl border border-slate-100 p-6 md:p-8 flex flex-col items-center text-center space-y-6">
-        <div className="w-16 h-16 bg-blue-50 text-fcbq-blue rounded-2xl flex items-center justify-center shadow-inner">
-          <Trophy size={32} className="stroke-[2.2]" />
+        <div className="w-full bg-slate-900 rounded-2xl p-6 flex items-center justify-center shadow-inner">
+          <img 
+            className="w-full max-h-28 md:max-h-36 object-contain scale-105" 
+            src={logoImg} 
+            alt="FedStats Logo"
+            referrerPolicy="no-referrer"
+          />
         </div>
 
         <div className="space-y-2">
@@ -117,7 +112,7 @@ const LoginLandingPage: React.FC<LoginLandingPageProps> = ({ onLoginStart, onLog
 
       {/* Footer */}
       <footer className="text-center text-xs text-slate-400 mt-8 mb-4">
-        &copy; {new Date().getFullYear()} Brafa Stats. Todos los derechos reservados.
+        &copy; {new Date().getFullYear()} FedStats. Todos los derechos reservados.
       </footer>
     </div>
   );
