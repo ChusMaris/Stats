@@ -251,6 +251,8 @@ export interface GlobalPlayerFilters {
   playerIds?: string[];
   limit?: number;
   offset?: number;
+  sortBy?: string;
+  sortDirection?: 'asc' | 'desc';
 }
 
 export interface GlobalPlayerRow extends PlayerAggregatedStats {

@@ -413,13 +413,7 @@ export const fetchGlobalPlayers = async (filters: GlobalPlayerFilters): Promise<
 
     const allPlayerIds = Array.from(rosterByPlayer.keys());
     
-    const offset = Math.max(0, filters.offset || 0);
-    const limit = filters.limit && filters.limit > 0 ? filters.limit : 0;
-    const scopedPlayerIds = limit > 0
-        ? allPlayerIds.slice(offset, offset + limit)
-        : allPlayerIds.slice(offset);
-
-    if (scopedPlayerIds.length === 0) {
+    if (allPlayerIds.length === 0) {
         return [];
     }
 
@@ -432,7 +426,7 @@ export const fetchGlobalPlayers = async (filters: GlobalPlayerFilters): Promise<
     const isFilteringByCompetition = Boolean(filters.temporadaId || filters.categoriaId || filters.fase || filters.competicionNombre || filters.equipoNombre);
 
     const statsAccumulator = new Map<string, EstadisticaJugadorPartido>();
-    const playerChunks = chunkArray(scopedPlayerIds, 120);
+    const playerChunks = chunkArray(allPlayerIds, 120);
 
     // Optimizamos el flujo: siempre consultamos primero las estadísticas de los jugadores en pantalla (que son muy pocos, max 20).
     // Esto garantiza que no nos saltamos ningún partido del jugador debido al límite de 1000 filas de Supabase.
@@ -550,7 +544,7 @@ export const fetchGlobalPlayers = async (filters: GlobalPlayerFilters): Promise<
 
     const expectedMinutesByPlayerMatch = new Set<string>();
 
-    for (const playerId of scopedPlayerIds) {
+    for (const playerId of allPlayerIds) {
         playerAggregates.set(playerId, {
             jugadorId: playerId,
             totalPuntos: 0,
@@ -740,9 +734,47 @@ export const fetchGlobalPlayers = async (filters: GlobalPlayerFilters): Promise<
         });
     }
 
-    rows = rows.sort((a, b) => b.ppg - a.ppg);
+    const sortBy = filters.sortBy || 'ppg';
+    const sortDirection = filters.sortDirection || 'desc';
 
-    return rows;
+    rows.sort((a, b) => {
+        let valA: any = 0;
+        let valB: any = 0;
+
+        if (sortBy === 'nombre') {
+            valA = a.nombre;
+            valB = b.nombre;
+            return sortDirection === 'asc'
+                ? valA.localeCompare(valB)
+                : valB.localeCompare(valA);
+        } else if (sortBy === 'dorsal') {
+            const numA = parseInt(a.dorsal, 10);
+            const numB = parseInt(b.dorsal, 10);
+            valA = isNaN(numA) ? 999999 : numA;
+            valB = isNaN(numB) ? 999999 : numB;
+        } else if (sortBy === 't2Made') {
+            valA = a.partidosJugados > 0 ? (a.totalTiros2Anotados / a.partidosJugados) : 0;
+            valB = b.partidosJugados > 0 ? (b.totalTiros2Anotados / b.partidosJugados) : 0;
+        } else if (sortBy === 't3Made') {
+            valA = a.partidosJugados > 0 ? (a.totalTiros3Anotados / a.partidosJugados) : 0;
+            valB = b.partidosJugados > 0 ? (b.totalTiros3Anotados / b.partidosJugados) : 0;
+        } else {
+            valA = (a as any)[sortBy] || 0;
+            valB = (b as any)[sortBy] || 0;
+        }
+
+        if (valA < valB) return sortDirection === 'asc' ? -1 : 1;
+        if (valA > valB) return sortDirection === 'asc' ? 1 : -1;
+        return 0;
+    });
+
+    const offset = Math.max(0, filters.offset || 0);
+    const limit = filters.limit && filters.limit > 0 ? filters.limit : 0;
+    const slicedRows = limit > 0
+        ? rows.slice(offset, offset + limit)
+        : rows.slice(offset);
+
+    return slicedRows;
 };
 
 export const fetchGlobalTeams = async (filters: GlobalTeamFilters): Promise<GlobalTeamRow[]> => {
@@ -959,24 +991,22 @@ export const fetchGlobalTeams = async (filters: GlobalTeamFilters): Promise<Glob
     }
 
     const scopedMatchIds = Array.from(matchMetaMap.keys());
-    if (scopedMatchIds.length === 0) {
-        return [];
-    }
-
     const statsAccumulator = new Map<string, EstadisticaJugadorPartido>();
-    const playerChunks = chunkArray(selectedPlayerIds, 120);
-    const matchChunks = chunkArray(scopedMatchIds, 150);
 
-    for (const playerChunk of playerChunks) {
+    if (scopedMatchIds.length > 0) {
+        const matchChunks = chunkArray(scopedMatchIds, 150);
+        const playerSet = new Set(selectedPlayerIds);
+
         for (const matchChunk of matchChunks) {
             const { data: statsData, error: statsError } = await supabase
                 .from('estadisticas_jugador_partido')
                 .select('*')
-                .in('jugador_id', playerChunk)
                 .in('partido_id', matchChunk);
             if (statsError) throw statsError;
             for (const row of statsData || []) {
-                statsAccumulator.set(String(row.id), row as EstadisticaJugadorPartido);
+                if (playerSet.has(String(row.jugador_id))) {
+                    statsAccumulator.set(String(row.id), row as EstadisticaJugadorPartido);
+                }
             }
         }
     }

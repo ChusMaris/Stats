@@ -19,6 +19,8 @@ import {
 import { Categoria, Competicion, RecentCompetition, Temporada, GlobalPlayerRow, GlobalTeamRow } from '../types';
 import CompetitionFilterForm from './CompetitionFilterForm';
 import { fetchGlobalPlayers, fetchGlobalTeams, fetchCompeticionesByIds } from '../services/dataService';
+// @ts-ignore
+import fedstatsLogo from '../src/assets/images/fedstats_header_logo_white.png';
 
 interface LandingPageProps {
   temporadas: Temporada[];
@@ -392,11 +394,11 @@ const LandingPage: React.FC<LandingPageProps> = ({
     <div className="flex flex-col items-center px-4 max-w-3xl mx-auto w-full mt-[10vh] md:mt-[15vh] space-y-8 pb-20 md:pb-8 animate-fade-in text-center">
       
       {/* Centered Branding Logo */}
-      <div className="flex flex-col items-center space-y-2 select-none">
+      <div className="flex flex-col items-center select-none transition-transform hover:scale-[1.02] duration-300">
         <img 
-          src="https://lh3.googleusercontent.com/aida-public/AB6AXuCtRYxMJFRsY35mqSEtx2i9IFgE2_PBriyKi0BBjdYB_US6LJrclwnLGRvFJO1m7qvTeIFtQEGNDKZm3Q156ruhEf9W9zjnwkxTg1wxOtcd5BTzZZOcdz2RpyEJpC7jlAa1oeH4bDFimSOMzT_sIIRLz3aBGDhNoYdn5YMwlrF8cRdFLJrhG3eOdtlr31PMRcDudrkb_1nA3rORyo55tkY0bsFyANIz9wW4nPhMlJy_ws0otbXWfMCCFuT_y35BXHoM-CzB2zlZ7fY" 
+          src={fedstatsLogo} 
           alt="FedStats Logo" 
-          className="w-full max-w-[200px] h-auto object-contain transition-transform hover:scale-105 duration-300" 
+          className="w-full max-w-[280px] h-auto object-contain" 
           referrerPolicy="no-referrer"
         />
       </div>
@@ -467,6 +469,41 @@ const LandingPage: React.FC<LandingPageProps> = ({
           </div>
         </div>
       </section>
+
+      {/* Quick Access Links */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full max-w-2xl text-left">
+        <Link 
+          to="/players" 
+          className="flex items-center justify-between p-4 bg-white border border-[#c2c6d2] hover:border-primary rounded-2xl shadow-sm hover:shadow-md transition-all group cursor-pointer"
+        >
+          <div className="flex items-center gap-3 truncate">
+            <div className="p-3 bg-primary/10 rounded-xl text-primary group-hover:bg-primary group-hover:text-white transition-all">
+              <Users className="w-5 h-5" />
+            </div>
+            <div className="truncate">
+              <h4 className="font-extrabold text-sm text-slate-800">Buscador de Jugadores</h4>
+              <p className="text-xs text-slate-400 truncate">Trayectorias, estadísticas históricas y fichas</p>
+            </div>
+          </div>
+          <ChevronRight className="w-5 h-5 text-slate-300 group-hover:text-primary transition-colors shrink-0" />
+        </Link>
+        
+        <Link 
+          to="/teams" 
+          className="flex items-center justify-between p-4 bg-white border border-[#c2c6d2] hover:border-primary rounded-2xl shadow-sm hover:shadow-md transition-all group cursor-pointer"
+        >
+          <div className="flex items-center gap-3 truncate">
+            <div className="p-3 bg-[#013554]/10 rounded-xl text-[#013554] group-hover:bg-[#013554] group-hover:text-white transition-all">
+              <Shield className="w-5 h-5" />
+            </div>
+            <div className="truncate">
+              <h4 className="font-extrabold text-sm text-slate-800">Directorio de Equipos</h4>
+              <p className="text-xs text-slate-400 truncate">Clubes, plantillas y enfrentamientos</p>
+            </div>
+          </div>
+          <ChevronRight className="w-5 h-5 text-slate-300 group-hover:text-primary transition-colors shrink-0" />
+        </Link>
+      </div>
 
       {/* Or Search by Competition Filters */}
       <div className="w-full max-w-2xl bg-white border border-[#c2c6d2] rounded-2xl p-6 shadow-sm text-left space-y-4">

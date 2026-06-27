@@ -138,7 +138,7 @@ const TeamsPage: React.FC = () => {
     };
 
     loadBaseFilters();
-  }, [favoriteIds.length]);
+  }, []);
 
   useEffect(() => {
     let isCancelled = false;

@@ -135,7 +135,7 @@ const PlayersPage: React.FC<PlayersPageProps> = () => {
     };
 
     loadBaseFilters();
-  }, [favoriteIds.length]);
+  }, []);
 
   useEffect(() => {
     let isCancelled = false;
@@ -265,7 +265,7 @@ const PlayersPage: React.FC<PlayersPageProps> = () => {
     setPage(0);
     setHasMore(true);
     setPlayers([]);
-  }, [filtersKey, favoriteIds, onlyFavorites, isReady]);
+  }, [filtersKey, favoriteIds, onlyFavorites, isReady, sortConfig.key, sortConfig.direction]);
 
   useEffect(() => {
     if (!isReady) return;
@@ -305,12 +305,16 @@ const PlayersPage: React.FC<PlayersPageProps> = () => {
               playerIds: favoriteIds,
               limit: PAGE_SIZE,
               offset: page * PAGE_SIZE,
+              sortBy: sortConfig.key,
+              sortDirection: sortConfig.direction,
             };
           } else if (filters.temporadaId) {
             queryFilters = {
               temporadaId: filters.temporadaId,
               limit: PAGE_SIZE,
               offset: page * PAGE_SIZE,
+              sortBy: sortConfig.key,
+              sortDirection: sortConfig.direction,
             };
           }
           } else {
@@ -318,6 +322,8 @@ const PlayersPage: React.FC<PlayersPageProps> = () => {
             ...filters,
             limit: PAGE_SIZE,
             offset: page * PAGE_SIZE,
+            sortBy: sortConfig.key,
+            sortDirection: sortConfig.direction,
           };
         }
 
@@ -366,7 +372,7 @@ const PlayersPage: React.FC<PlayersPageProps> = () => {
     };
 
     loadPage();
-  }, [favoriteIds, filters, isReady, onlyFavorites, page]);
+  }, [favoriteIds, filters, isReady, onlyFavorites, page, sortConfig.key, sortConfig.direction]);
 
   useEffect(() => {
     if (!sentinelRef.current) return;
