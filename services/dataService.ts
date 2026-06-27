@@ -426,81 +426,79 @@ export const fetchGlobalPlayers = async (filters: GlobalPlayerFilters): Promise<
     const scopedTeamIds = Array.from(teamMap.keys());
 
     const matchMetaMap = new Map<string, { id: string; competicion_id: string; equipo_local_id: string; equipo_visitante_id: string }>();
-    let scopedMatchIds: string[] = [];
 
     // CAMBIO CRÍTICO: Definimos si el usuario está buscando algo específico de una competición.
     // Si NO hay filtros de temporada/cat/fase/equipo, NO debemos restringir los partidos.
     const isFilteringByCompetition = Boolean(filters.temporadaId || filters.categoriaId || filters.fase || filters.competicionNombre || filters.equipoNombre);
 
-    if (isFilteringByCompetition) {
-        let matchesQuery = supabase
-            .from('partidos')
-            .select('id, competicion_id, equipo_local_id, equipo_visitante_id')
-            .order('fecha_hora', { ascending: false });
-
-        if (scopedCompetitionIds.length > 0) {
-            matchesQuery = matchesQuery.in('competicion_id', scopedCompetitionIds);
-        }
-
-        const { data: matchesData, error: matchesError } = await matchesQuery;
-        if (matchesError) throw matchesError;
-
-        const scopedTeamIdSet = new Set(scopedTeamIds.map(String));
-        const filteredMatches = (matchesData || []).filter((match: any) => {
-            if (scopedTeamIdSet.size === 0) return true;
-            return scopedTeamIdSet.has(String(match.equipo_local_id)) || scopedTeamIdSet.has(String(match.equipo_visitante_id));
-        });
-
-        for (const match of filteredMatches) {
-            const matchId = String(match.id);
-            matchMetaMap.set(matchId, {
-                id: matchId,
-                competicion_id: String(match.competicion_id),
-                equipo_local_id: String(match.equipo_local_id),
-                equipo_visitante_id: String(match.equipo_visitante_id),
-            });
-        }
-
-        scopedMatchIds = filteredMatches.map((match: any) => String(match.id));
-    }
-
     const statsAccumulator = new Map<string, EstadisticaJugadorPartido>();
     const playerChunks = chunkArray(scopedPlayerIds, 120);
 
-    // Si estamos filtrando por competición, solo pillamos stats de esos partidos.
-    // Si NO estamos filtrando, pillamos TODAS las stats de esos jugadores en la historia.
-    if (isFilteringByCompetition) {
-        if (scopedMatchIds.length > 0) {
-            const matchChunks = chunkArray(scopedMatchIds, 150);
-            for (const playerChunk of playerChunks) {
-                for (const matchChunk of matchChunks) {
-                    const { data: statsData, error: statsError } = await supabase
-                        .from('estadisticas_jugador_partido')
-                        .select('*')
-                        .in('jugador_id', playerChunk)
-                        .in('partido_id', matchChunk);
-                    if (statsError) throw statsError;
-                    for (const row of statsData || []) {
-                        statsAccumulator.set(String(row.id), row as EstadisticaJugadorPartido);
-                    }
-                }
-            }
+    // Optimizamos el flujo: siempre consultamos primero las estadísticas de los jugadores en pantalla (que son muy pocos, max 20).
+    // Esto garantiza que no nos saltamos ningún partido del jugador debido al límite de 1000 filas de Supabase.
+    for (const playerChunk of playerChunks) {
+        const { data: statsData, error: statsError } = await supabase
+            .from('estadisticas_jugador_partido')
+            .select('*')
+            .in('jugador_id', playerChunk);
+        if (statsError) throw statsError;
+        for (const row of statsData || []) {
+            statsAccumulator.set(String(row.id), row as EstadisticaJugadorPartido);
         }
-    } else {
-        // Modo búsqueda global (ej: Solo buscar "Oriol")
-        for (const playerChunk of playerChunks) {
-            const { data: statsData, error: statsError } = await supabase
-                .from('estadisticas_jugador_partido')
-                .select('*')
-                .in('jugador_id', playerChunk);
-            if (statsError) throw statsError;
-            for (const row of statsData || []) {
-                statsAccumulator.set(String(row.id), row as EstadisticaJugadorPartido);
+    }
+
+    const allStatsRows = Array.from(statsAccumulator.values());
+
+    // Obtenemos los IDs únicos de partidos en los que han participado estos jugadores
+    const statsMatchIds = Array.from(new Set(allStatsRows.map((row) => String(row.partido_id))));
+
+    // Cargamos los detalles de esos partidos específicos (sin riesgo de truncamiento de 1000 filas de partidos generales)
+    if (statsMatchIds.length > 0) {
+        const matchChunks = chunkArray(statsMatchIds, 150);
+        for (const matchChunk of matchChunks) {
+            const { data: matchesData, error: matchesError } = await supabase
+                .from('partidos')
+                .select('id, competicion_id, equipo_local_id, equipo_visitante_id')
+                .in('id', matchChunk);
+            if (matchesError) throw matchesError;
+
+            for (const match of matchesData || []) {
+                const matchId = String(match.id);
+                matchMetaMap.set(matchId, {
+                    id: matchId,
+                    competicion_id: String(match.competicion_id),
+                    equipo_local_id: String(match.equipo_local_id),
+                    equipo_visitante_id: String(match.equipo_visitante_id),
+                });
             }
         }
     }
 
-    const statsRows = Array.from(statsAccumulator.values());
+    // Filtramos las filas de estadísticas según la competición/temporada/fase/equipo si corresponde
+    let statsRows = allStatsRows;
+    if (isFilteringByCompetition) {
+        const scopedCompetitionIdSet = new Set(scopedCompetitionIds.map(String));
+        const scopedTeamIdSet = new Set(scopedTeamIds.map(String));
+        const hasTeamFilter = Boolean(filters.equipoNombre);
+
+        statsRows = allStatsRows.filter((row) => {
+            const matchId = String(row.partido_id);
+            const match = matchMetaMap.get(matchId);
+            if (!match) return false;
+
+            // Debe pertenecer a una de las competiciones de la temporada/categoría/fase seleccionada
+            if (!scopedCompetitionIdSet.has(String(match.competicion_id))) return false;
+
+            // Si hay un filtro de equipo específico, el partido debe involucrar a dicho equipo
+            if (hasTeamFilter) {
+                if (!scopedTeamIdSet.has(String(match.equipo_local_id)) && !scopedTeamIdSet.has(String(match.equipo_visitante_id))) {
+                    return false;
+                }
+            }
+
+            return true;
+        });
+    }
 
     // En modo global puede faltar metadata de partidos; la cargamos para poder desglosar por competición/temporada/categoría.
     const missingMatchIds = Array.from(new Set(statsRows.map((row) => String(row.partido_id))))
