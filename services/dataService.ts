@@ -3,6 +3,7 @@ import { supabaseAnon as supabase, supabase as supabaseAuth } from '../supabaseC
 import { 
     Temporada, Categoria, Competicion, Partido, Equipo, EstadisticaJugadorPartido, PartidoMovimiento, PlayerAggregatedStats, ScoutingReport, CalendarioItem, CareerStats, ParallelStats, GlobalPlayerFilters, GlobalPlayerRow, GlobalTeamFilters, GlobalTeamPhaseBreakdown, GlobalTeamRow, GlobalTeamSeasonBreakdown
 } from '../types';
+import { calculateIntervalPlusMinus, normalizeScoreEvents, selectFinalPlusMinus } from '../utils/playerPlusMinus';
 
 export const fetchTemporadas = async (): Promise<Temporada[]> => {
   const { data, error } = await supabase.from('temporadas').select('*').order('nombre', { ascending: false });
@@ -1596,36 +1597,7 @@ const calculatePlusMinusFromMovements = (
         }).map((m, index) => ({ ...m, seq: index }));
 
         // 2. Identify Score Events
-        const scoreEvents: Record<number, { deltaL: number, deltaV: number, score: string, period: number }> = {};
-        let lastScore = { l: 0, v: 0, period: 0 };
-        matchMovs.forEach(m => {
-            const p = Number(m.periodo || 0);
-            if (m.marcador && m.marcador.includes('-')) {
-                const parts = m.marcador.split('-');
-                const currL = parseInt(parts[0] || '0');
-                const currV = parseInt(parts[1] || '0');
-                
-                let baseL = lastScore.l;
-                let baseV = lastScore.v;
-
-                if (p !== lastScore.period) {
-                    if (esMini || (currL + currV) < (lastScore.l + lastScore.v)) {
-                        baseL = 0;
-                        baseV = 0;
-                    }
-                } else {
-                    if ((currL + currV) < (lastScore.l + lastScore.v)) return;
-                }
-
-                const deltaL = currL - baseL;
-                const deltaV = currV - baseV;
-
-                if (deltaL !== 0 || deltaV !== 0) {
-                    scoreEvents[m.seq] = { deltaL, deltaV, score: m.marcador, period: p };
-                    lastScore = { l: currL, v: currV, period: p };
-                }
-            }
-        });
+        const scoreEvents = normalizeScoreEvents(matchMovs, esMini);
 
         // 3. Identify Player Intervals (v4.0 Stint-Based Logic)
         const getSeconds = (m: any) => {
@@ -1730,12 +1702,14 @@ const calculatePlusMinusFromMovements = (
             if (!myTeamPlayerIds.has(pid)) return;
 
             const key = `${String(matchId).toLowerCase()}_${String(pid).toLowerCase()}`;
-            let pm = 0;
+            const intervals = playerIntervals[pid];
+            const pm = calculateIntervalPlusMinus(scoreEvents, intervals, isLocal);
             let totalSecs = 0;
 
             const isAidan = pid === '10862997-0bc4-4e16-b0e3-1557f3f7a6a6' && (matchId === 'f5bc4270-eedb-4712-96e9-f3ae051cf7e1' || matchId === 'e3701455-c1fc-4689-828d-374b84f631b8');
             
-            playerIntervals[pid].forEach((interval, idx) => {
+            let debugPM = 0;
+            intervals.forEach((interval, idx) => {
                 // Calculate Seconds
                 const startMove = matchMovs.find(m => m.seq === interval.startSeq);
                 const endMove = matchMovs.find(m => m.seq === interval.endSeq);
@@ -1757,14 +1731,11 @@ const calculatePlusMinusFromMovements = (
                         const timeStr = scoreMov ? `${scoreMov.minuto}:${scoreMov.segundo}` : '??';
                         if (included) {
                             const impact = isLocal ? (scoreEv.deltaL - scoreEv.deltaV) : (scoreEv.deltaV - scoreEv.deltaL);
-                            pm += impact;
-                            console.log(`    Score ${scoreEv.score} @ ${timeStr} (P${scoreEv.period}, seq:${sSeq}) -> INCLUDED. Impact:${impact}, RunningPM:${pm}`);
+                            debugPM += impact;
+                            console.log(`    Score ${scoreEv.score} @ ${timeStr} (P${scoreEv.period}, seq:${sSeq}) -> INCLUDED. Impact:${impact}, RunningPM:${debugPM}`);
                         } else if (scoreEv.period === interval.period) {
                             console.log(`    Score ${scoreEv.score} @ ${timeStr} (P${scoreEv.period}, seq:${sSeq}) -> EXCLUDED. Outside interval [${interval.startSeq}-${interval.endSeq}]`);
                         }
-                    } else if (included) {
-                        const impact = isLocal ? (scoreEv.deltaL - scoreEv.deltaV) : (scoreEv.deltaV - scoreEv.deltaL);
-                        pm += impact;
                     }
                 });
             });
@@ -1929,8 +1900,7 @@ export const fetchTeamStats = async (competicionId: number | string, equipoId: n
         matchIsLocal[String(m.id)] = String(m.equipo_local_id) === String(equipoId);
     });
 
-    console.log(`[DBStats v6.3] Pure View Mode: Relying on vw_kpi_plusminus for PM`);
-    const { playerSeconds } = calculatePlusMinusFromMovements(movementsData, myTeamPlayerIds, esMini, minsPerPeriod, matchIsLocal);
+    const { playerPlusMinus, playerSeconds } = calculatePlusMinusFromMovements(movementsData, myTeamPlayerIds, esMini, minsPerPeriod, matchIsLocal);
 
     // Final Injection
     const finalStats = statsData.map((s: EstadisticaJugadorPartido) => {
@@ -1942,8 +1912,12 @@ export const fetchTeamStats = async (competicionId: number | string, equipoId: n
         const secs = Math.round(seconds % 60);
         const timeStr = `${mins}:${secs.toString().padStart(2, '0')}`;
         
-        // STRICT VIEW MODE: Use View PM if available, otherwise fallback to DB value. No local calculations.
-        const finalPM = viewPlusMinus[key] !== undefined ? viewPlusMinus[key] : (s.mas_menos || 0);
+        const finalPM = selectFinalPlusMinus({
+            isMini: esMini,
+            calculated: playerPlusMinus[key],
+            view: viewPlusMinus[key],
+            stored: s.mas_menos || 0,
+        });
 
         if (String(s.jugador_id) === '10862997-0bc4-4e16-b0e3-1557f3f7a6a6') {
              console.log(`[DEBUG AIDAN] Match ${s.partido_id}: View PM=${viewPlusMinus[key]}, DB PM=${s.mas_menos}, Final=${finalPM}`);
