@@ -38,6 +38,7 @@ interface LandingPageProps {
   recentSearches: RecentCompetition[];
   onOpenRecent: (item: RecentCompetition) => void;
   hasActiveCompetition: boolean;
+  isAdmin?: boolean;
 }
 
 const inferCompetitionPhase = (competitionName: string) => {
@@ -63,6 +64,7 @@ const LandingPage: React.FC<LandingPageProps> = ({
   onCompeticionChange,
   recentSearches,
   onOpenRecent,
+  isAdmin = false,
 }) => {
   const navigate = useNavigate();
   const searchInputRef = useRef<HTMLInputElement | null>(null);
@@ -524,6 +526,7 @@ const LandingPage: React.FC<LandingPageProps> = ({
           onCategoriaChange={onCategoriaChange}
           onFaseChange={onFaseChange}
           onCompeticionChange={onCompeticionChange}
+          isAdmin={isAdmin}
         />
       </div>
 

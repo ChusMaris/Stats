@@ -1,0 +1,17 @@
+change:
+  name: eliminar-competicion
+  title: Eliminar competición completa (superuser only)
+  description: >-
+    Permitir eliminar por completo una competición y todos sus datos relacionados
+    (equipos, partidos, jugadores, estadísticas, etc.). Operación restringida al
+    superuser y debe ejecutarse de forma transaccional y registrada.
+artifacts:
+  - id: proposal
+    type: markdown
+    outputPath: openspec/changes/eliminar-competicion/proposal.md
+  - id: design
+    type: markdown
+    outputPath: openspec/changes/eliminar-competicion/design.md
+  - id: tasks
+    type: markdown
+    outputPath: openspec/changes/eliminar-competicion/tasks.md

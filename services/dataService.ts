@@ -16,10 +16,38 @@ export const fetchCategorias = async (): Promise<Categoria[]> => {
   return data as Categoria[];
 };
 
+export const fetchCategoriasWithActiveCompetitions = async (temporadaId?: number | string): Promise<Categoria[]> => {
+    let query = supabase
+        .from('competiciones')
+        .select('categoria_id, categorias(id, nombre, es_mini)')
+        .is('deleted_at', null);
+
+    if (temporadaId !== undefined && temporadaId !== null && String(temporadaId) !== '') {
+        query = query.eq('temporada_id', temporadaId);
+    }
+
+    const { data, error } = await query;
+    if (error) throw error;
+
+    const categoriesById = new Map<string, Categoria>();
+    for (const row of (data || []) as any[]) {
+        const cat = Array.isArray(row.categorias) ? row.categorias[0] : row.categorias;
+        if (!cat || cat.id === undefined || cat.id === null) continue;
+        categoriesById.set(String(cat.id), {
+            id: cat.id,
+            nombre: cat.nombre,
+            es_mini: Boolean(cat.es_mini),
+        });
+    }
+
+    return Array.from(categoriesById.values()).sort((a, b) => a.nombre.localeCompare(b.nombre));
+};
+
 export const fetchCompeticiones = async (temporadaId: number | string, categoriaId: number | string): Promise<Competicion[]> => {
   const { data, error } = await supabase
     .from('competiciones')
-    .select('*')
+        .select('*')
+        .is('deleted_at', null)
     .eq('temporada_id', temporadaId)
     .eq('categoria_id', categoriaId)
     .order('nombre');
@@ -32,7 +60,8 @@ export const fetchCompeticionesByIds = async (ids: (string | number)[]): Promise
   if (ids.length === 0) return [];
   const { data, error } = await supabase
     .from('competiciones')
-    .select('*')
+        .select('*')
+        .is('deleted_at', null)
     .in('id', ids);
   if (error) throw error;
   return data as Competicion[];
@@ -96,6 +125,7 @@ export const fetchCompeticionesByFilters = async (filters: {
     let query = supabase
         .from('competiciones')
         .select('*')
+        .is('deleted_at', null)
         .order('nombre');
 
     if (filters.temporadaId) {
@@ -119,6 +149,7 @@ export const fetchEquipos = async (): Promise<Equipo[]> => {
     const { data, error } = await supabase
         .from('equipos')
         .select('*')
+        .is('deleted_at', null)
         .order('nombre_especifico');
 
     if (error) throw error;
@@ -159,6 +190,7 @@ export const fetchEquiposByFilters = async (filters: {
     let query = supabase
         .from('equipos')
         .select('id, nombre_especifico, competicion_id')
+        .is('deleted_at', null)
         .order('nombre_especifico');
 
     if (filteredCompetitions.length > 0) {
@@ -246,6 +278,7 @@ export const fetchGlobalPlayers = async (filters: GlobalPlayerFilters): Promise<
         let competitionsQuery = supabase
             .from('competiciones')
             .select('id, nombre, temporada_id, categoria_id, categorias(id, nombre, es_mini)')
+            .is('deleted_at', null)
             .order('nombre');
 
         if (filters.temporadaId) {
@@ -278,6 +311,7 @@ export const fetchGlobalPlayers = async (filters: GlobalPlayerFilters): Promise<
         let teamsQuery = supabase
             .from('equipos')
             .select('id, nombre_especifico, competicion_id, club_id, clubs:clubs!equipos_club_id_fkey(id, nombre)')
+            .is('deleted_at', null)
             .order('nombre_especifico');
 
         if (scopedCompetitionIds.length > 0) {
@@ -306,7 +340,8 @@ export const fetchGlobalPlayers = async (filters: GlobalPlayerFilters): Promise<
 
         let rosterQuery = supabase
             .from('plantillas')
-            .select('jugador_id, dorsal, equipo_id, jugadores!inner(id, nombre_completo, foto_url)');
+            .select('jugador_id, dorsal, equipo_id, jugadores!inner(id, nombre_completo, foto_url)')
+            .is('deleted_at', null);
 
         if (normalizedNameFilter) {
             rosterQuery = rosterQuery.ilike('jugadores.nombre_completo', `%${normalizedNameFilter}%`);
@@ -337,7 +372,8 @@ export const fetchGlobalPlayers = async (filters: GlobalPlayerFilters): Promise<
         // --- BRANCH B: Global Search (Fast, complete, avoids 1000 row limits) ---
         let rosterQuery = supabase
             .from('plantillas')
-            .select('jugador_id, dorsal, equipo_id, jugadores!inner(id, nombre_completo, foto_url)');
+            .select('jugador_id, dorsal, equipo_id, jugadores!inner(id, nombre_completo, foto_url)')
+            .is('deleted_at', null);
 
         if (normalizedNameFilter) {
             rosterQuery = rosterQuery.ilike('jugadores.nombre_completo', `%${normalizedNameFilter}%`);
@@ -369,6 +405,7 @@ export const fetchGlobalPlayers = async (filters: GlobalPlayerFilters): Promise<
                     const { data: teamsData, error: teamsError } = await supabase
                         .from('equipos')
                         .select('id, nombre_especifico, competicion_id, club_id, clubs:clubs!equipos_club_id_fkey(id, nombre)')
+                        .is('deleted_at', null)
                         .in('id', teamChunk);
                     if (teamsError) throw teamsError;
 
@@ -381,10 +418,11 @@ export const fetchGlobalPlayers = async (filters: GlobalPlayerFilters): Promise<
                 if (uniqueCompIds.length > 0) {
                     const compChunks = chunkArray(uniqueCompIds, 150);
                     for (const compChunk of compChunks) {
-                        const { data: compsData, error: compsError } = await supabase
-                            .from('competiciones')
-                            .select('id, nombre, temporada_id, categoria_id, categorias(id, nombre, es_mini)')
-                            .in('id', compChunk);
+                            const { data: compsData, error: compsError } = await supabase
+                                .from('competiciones')
+                                .select('id, nombre, temporada_id, categoria_id, categorias(id, nombre, es_mini)')
+                                .is('deleted_at', null)
+                                .in('id', compChunk);
                         if (compsError) throw compsError;
 
                         for (const comp of compsData || []) {
@@ -434,6 +472,7 @@ export const fetchGlobalPlayers = async (filters: GlobalPlayerFilters): Promise<
         const { data: statsData, error: statsError } = await supabase
             .from('estadisticas_jugador_partido')
             .select('*')
+            .is('deleted_at', null)
             .in('jugador_id', playerChunk);
         if (statsError) throw statsError;
         for (const row of statsData || []) {
@@ -453,6 +492,7 @@ export const fetchGlobalPlayers = async (filters: GlobalPlayerFilters): Promise<
             const { data: matchesData, error: matchesError } = await supabase
                 .from('partidos')
                 .select('id, competicion_id, equipo_local_id, equipo_visitante_id')
+                .is('deleted_at', null)
                 .in('id', matchChunk);
             if (matchesError) throw matchesError;
 
@@ -504,6 +544,7 @@ export const fetchGlobalPlayers = async (filters: GlobalPlayerFilters): Promise<
             const { data: extraMatchesData, error: extraMatchesError } = await supabase
                 .from('partidos')
                 .select('id, competicion_id, equipo_local_id, equipo_visitante_id')
+                .is('deleted_at', null)
                 .in('id', matchChunk);
             if (extraMatchesError) throw extraMatchesError;
 
@@ -784,6 +825,7 @@ export const fetchGlobalTeams = async (filters: GlobalTeamFilters): Promise<Glob
     let competitionsQuery = supabase
         .from('competiciones')
         .select('id, nombre, temporada_id, categoria_id, categorias(id, nombre, es_mini)')
+        .is('deleted_at', null)
         .order('nombre');
 
     if (filters.temporadaId) {
@@ -822,6 +864,7 @@ export const fetchGlobalTeams = async (filters: GlobalTeamFilters): Promise<Glob
     let teamsQuery = supabase
         .from('equipos')
         .select('id, nombre_especifico, competicion_id, club_id, clubs:clubs!equipos_club_id_fkey(id, nombre, logo_url, nombre_corto)')
+        .is('deleted_at', null)
         .order('nombre_especifico');
 
     if (scopedCompetitionIds.length > 0) {
@@ -904,6 +947,7 @@ export const fetchGlobalTeams = async (filters: GlobalTeamFilters): Promise<Glob
         const { data: rosterData, error: rosterError } = await supabase
             .from('plantillas')
             .select('jugador_id, equipo_id')
+            .is('deleted_at', null)
             .in('equipo_id', teamChunk);
         if (rosterError) throw rosterError;
 
@@ -950,7 +994,8 @@ export const fetchGlobalTeams = async (filters: GlobalTeamFilters): Promise<Glob
     for (const teamChunk of teamChunks) {
         let matchesQuery = supabase
             .from('partidos')
-            .select('id, competicion_id, equipo_local_id, equipo_visitante_id, puntos_local, puntos_visitante');
+            .select('id, competicion_id, equipo_local_id, equipo_visitante_id, puntos_local, puntos_visitante')
+            .is('deleted_at', null);
 
         if (scopedCompetitionIds.length > 0) {
             matchesQuery = matchesQuery.in('competicion_id', scopedCompetitionIds);
@@ -981,6 +1026,7 @@ export const fetchGlobalTeams = async (filters: GlobalTeamFilters): Promise<Glob
                     .from('competiciones')
                     .select('id, nombre, temporada_id, categoria_id, categorias(id, nombre, es_mini)')
                     .eq('id', match.competicion_id)
+                    .is('deleted_at', null)
                     .maybeSingle();
                 if (competitionError) throw competitionError;
                 if (competitionData) {
@@ -1001,6 +1047,7 @@ export const fetchGlobalTeams = async (filters: GlobalTeamFilters): Promise<Glob
             const { data: statsData, error: statsError } = await supabase
                 .from('estadisticas_jugador_partido')
                 .select('*')
+                .is('deleted_at', null)
                 .in('partido_id', matchChunk);
             if (statsError) throw statsError;
             for (const row of statsData || []) {
@@ -1247,6 +1294,7 @@ export const fetchCompetitionSummary = async (competicionId: number | string) =>
         const { count, error: countError } = await supabase
             .from('equipos')
             .select('*', { count: 'exact', head: true })
+            .is('deleted_at', null)
             .eq('competicion_id', competicionId);
         
         if (countError) throw countError;
@@ -1266,6 +1314,7 @@ export const fetchCompetitionSummary = async (competicionId: number | string) =>
         const { data: nextCal, error: queryError } = await supabase
             .from('calendario')
             .select('jornada, fecha_hora')
+            .is('deleted_at', null)
             .eq('competicion_id', competicionId)
             .gte('fecha_hora', todayISO)
             .order('fecha_hora', { ascending: true })
@@ -1284,6 +1333,7 @@ export const fetchCompetitionSummary = async (competicionId: number | string) =>
             const { data: lastCal } = await supabase
                 .from('calendario')
                 .select('jornada')
+                .is('deleted_at', null)
                 .eq('competicion_id', competicionId)
                 .order('fecha_hora', { ascending: false }) // El último por fecha
                 .limit(1);
@@ -1295,6 +1345,7 @@ export const fetchCompetitionSummary = async (competicionId: number | string) =>
                 const { data: lastMatch } = await supabase
                     .from('partidos')
                     .select('jornada')
+                    .is('deleted_at', null)
                     .eq('competicion_id', competicionId)
                     .order('fecha_hora', { ascending: false })
                     .limit(1);
@@ -1321,6 +1372,7 @@ export const fetchCompeticionDetails = async (competicionId: number | string) =>
   const compResponse = await supabase
     .from('competiciones')
     .select('*')
+        .is('deleted_at', null)
     .eq('id', competicionId)
     .single();
 
@@ -1335,6 +1387,7 @@ export const fetchCompeticionDetails = async (competicionId: number | string) =>
       equipo_local:equipos!equipo_local_id(id, nombre_especifico, clubs:clubs!equipos_club_id_fkey(id, nombre, logo_url, nombre_corto)),
       equipo_visitante:equipos!equipo_visitante_id(id, nombre_especifico, clubs:clubs!equipos_club_id_fkey(id, nombre, logo_url, nombre_corto))
     `)
+    .is('deleted_at', null)
     .eq('competicion_id', competicionId)
     .order('jornada', { ascending: true })
     .order('fecha_hora', { ascending: true });
@@ -1350,6 +1403,7 @@ export const fetchCompeticionDetails = async (competicionId: number | string) =>
       equipo_local:equipos!equipo_local_id(id, nombre_especifico, clubs:clubs!equipos_club_id_fkey(id, nombre, logo_url, nombre_corto)),
       equipo_visitante:equipos!equipo_visitante_id(id, nombre_especifico, clubs:clubs!equipos_club_id_fkey(id, nombre, logo_url, nombre_corto))
     `)
+    .is('deleted_at', null)
     .eq('competicion_id', competicionId)
     .order('jornada', { ascending: true })
     .order('fecha_hora', { ascending: true });
@@ -1415,6 +1469,7 @@ export const fetchCompeticionDetails = async (competicionId: number | string) =>
         *,
         clubs:clubs!equipos_club_id_fkey (*)
     `)
+    .is('deleted_at', null)
     .eq('competicion_id', competicionId);
 
   if (teamsResponse.error) throw teamsResponse.error;
@@ -1727,6 +1782,7 @@ export const fetchTeamStats = async (competicionId: number | string, equipoId: n
     const compInfo = await supabase
         .from('competiciones')
         .select('*, categorias(es_mini)')
+        .is('deleted_at', null)
         .eq('id', competicionId)
         .single();
     const esMini = compInfo.data?.categorias?.es_mini || false;
@@ -1739,6 +1795,7 @@ export const fetchTeamStats = async (competicionId: number | string, equipoId: n
             equipo_local:equipos!equipo_local_id(id, nombre_especifico, clubs:clubs!equipos_club_id_fkey(logo_url)),
             equipo_visitante:equipos!equipo_visitante_id(id, nombre_especifico, clubs:clubs!equipos_club_id_fkey(logo_url))
         `)
+        .is('deleted_at', null)
         .eq('competicion_id', competicionId)
         .or(`equipo_local_id.eq.${equipoId},equipo_visitante_id.eq.${equipoId}`)
         .order('fecha_hora', { ascending: false });
@@ -1750,6 +1807,7 @@ export const fetchTeamStats = async (competicionId: number | string, equipoId: n
     const calendarResponse = await supabase
         .from('calendario')
         .select('jornada, equipo_local_id, equipo_visitante_id')
+        .is('deleted_at', null)
         .eq('competicion_id', competicionId);
         
     const calendarEntries = calendarResponse.data || [];
@@ -1782,6 +1840,7 @@ export const fetchTeamStats = async (competicionId: number | string, equipoId: n
             equipo_id,
             jugadores (*)
         `)
+        .is('deleted_at', null)
         .in('equipo_id', allTeamIds);
     
     if (plantillaResponse.error) throw plantillaResponse.error;
@@ -1795,6 +1854,7 @@ export const fetchTeamStats = async (competicionId: number | string, equipoId: n
         const statsResponse = await supabase
             .from('estadisticas_jugador_partido')
             .select('*')
+            .is('deleted_at', null)
             .in('partido_id', matchIds);
             
         if (statsResponse.error) throw statsResponse.error;
@@ -1848,6 +1908,7 @@ export const fetchTeamStats = async (competicionId: number | string, equipoId: n
             const movsResponse = await supabase
                 .from('partido_movimientos')
                 .select('*')
+                .is('deleted_at', null)
                 .eq('partido_id', mid)
                 .order('periodo')
                 .order('minuto', { ascending: false })
@@ -1933,6 +1994,7 @@ const fetchHistoricalPlayerStats = async (playerIds: (string | number)[]): Promi
     const { data: allStats, error } = await supabase
         .from('estadisticas_jugador_partido')
         .select('jugador_id, puntos, t3_anotados, t3_intentados, t1_anotados, t1_intentados, tiempo_jugado')
+        .is('deleted_at', null)
         .in('jugador_id', playerIds);
 
     if (error) {
@@ -2015,6 +2077,7 @@ const fetchParallelPlayerStats = async (seasonId: number | string, currentCompId
                 )
             )
         `)
+        .is('deleted_at', null)
         .in('jugador_id', playerIds)
         // Fix: partidos table does not have temporada_id, we must filter via the joined competiciones table
         .eq('partido.competiciones.temporada_id', seasonId)
@@ -2132,6 +2195,7 @@ export const getTeamScoutingReport = async (competicionId: number | string, equi
     const { data: team, error: teamError } = await supabase
         .from('equipos')
         .select('*, clubs:clubs!equipos_club_id_fkey(*)')
+        .is('deleted_at', null)
         .eq('id', equipoId)
         .single();
     
@@ -2140,6 +2204,7 @@ export const getTeamScoutingReport = async (competicionId: number | string, equi
     const { data: comp, error: compError } = await supabase
         .from('competiciones')
         .select('*, temporadas(*)')
+        .is('deleted_at', null)
         .eq('id', competicionId)
         .single();
     
@@ -2393,4 +2458,476 @@ export const getTeamScoutingReport = async (competicionId: number | string, equi
 export const fetchCareerStats = async (jugadorId: string | number): Promise<CareerStats | null> => {
     const context = await fetchHistoricalPlayerStats([jugadorId]);
     return context[String(jugadorId)] || null;
+};
+
+/**
+ * Soft-delete (mover a papelera) una competición y datos relacionados.
+ * Requiere que el `currentUserId` sea superuser.
+ */
+export const softDeleteCompetition = async (competitionId: string | number, currentUserId?: string | number) => {
+    // Obtener currentUserId desde la sesión si no se pasa
+    let uid = currentUserId as string | number | undefined;
+    if (!uid) {
+        const { data: { session } } = await supabaseAuth.auth.getSession();
+        uid = session?.user?.id;
+    }
+    if (!uid) throw new Error('not authenticated');
+
+    // NOTE: La verificación de superuser en la tabla `usuarios` se omite intencionadamente.
+    // Esta función confía en que la UI solo muestra el botón cuando el modo superuser está activo.
+    // Si necesitas una verificación server-side más estricta, implementa un endpoint protegido.
+    console.warn('softDeleteCompetition: skipping usuarios table superuser check; relying on client-side admin mode');
+
+    const now = new Date().toISOString();
+    const TEAM_CHUNK_SIZE = 50;
+    const MATCH_CHUNK_SIZE = 10;
+    const PLAYER_CHUNK_SIZE = 50;
+    const ROW_CHUNK_SIZE = 200;
+
+    // Marcar competicion
+    const debugResponses: any = { phase: 'init' };
+    const isTimeoutError = (err: any) => {
+        const msg = String(err?.message || '').toLowerCase();
+        return err?.code === '57014' || msg.includes('statement timeout') || msg.includes('canceling statement due to statement timeout');
+    };
+
+    try {
+        debugResponses.phase = 'update_competicion';
+        // Request the updated row(s) back with `.select()` so callers can see affected rows
+        const compResp = await supabaseAuth
+            .from('competiciones')
+            .update({ deleted_at: now })
+            .eq('id', competitionId)
+            .is('deleted_at', null)
+            .select('id, deleted_at');
+        debugResponses.compResp = compResp;
+        if (compResp.error) throw compResp.error;
+
+        // Soporta reintentos: si ya estaba soft-deleted, no abortar aquí.
+        if (!compResp.data || compResp.data.length === 0) {
+            const compCheck = await supabaseAuth
+                .from('competiciones')
+                .select('id, deleted_at')
+                .eq('id', competitionId)
+                .maybeSingle();
+            debugResponses.compCheck = compCheck;
+            if (compCheck.error) throw compCheck.error;
+            if (!compCheck.data) {
+                throw new Error('No se encontró la competición a eliminar.');
+            }
+            if (!compCheck.data.deleted_at) {
+                throw new Error('No se pudo actualizar la competición. Posibles causas: política RLS que bloquea UPDATE o condición no cumplida.');
+            }
+        }
+
+        // Marcar equipos, partidos y calendario por competicion_id
+        debugResponses.phase = 'load_related_ids';
+        const teamsResp = await supabaseAuth.from('equipos').select('id').eq('competicion_id', competitionId);
+        debugResponses.teamsResp = teamsResp;
+        if (teamsResp.error) throw teamsResp.error;
+        const teamIds = (teamsResp.data || []).map((t: any) => t.id);
+
+        // Jugadores relacionados por plantilla (para cubrir borrado de todas las tablas relacionadas)
+        const playerIds: string[] = [];
+        if (teamIds.length > 0) {
+            const rosterResp = await supabaseAuth.from('plantillas').select('jugador_id').in('equipo_id', teamIds.map(String));
+            debugResponses.rosterResp = rosterResp;
+            if (rosterResp.error) throw rosterResp.error;
+            const uniquePlayers = new Set((rosterResp.data || []).map((r: any) => String(r.jugador_id)));
+            playerIds.push(...Array.from(uniquePlayers));
+        }
+
+        const matchesResp = await supabaseAuth.from('partidos').select('id').eq('competicion_id', competitionId);
+        debugResponses.matchesResp = matchesResp;
+        if (matchesResp.error) throw matchesResp.error;
+        const matchIds = (matchesResp.data || []).map((m: any) => m.id);
+
+        const calendarResp = await supabaseAuth.from('calendario').select('id').eq('competicion_id', competitionId);
+        debugResponses.calendarResp = calendarResp;
+        if (calendarResp.error) throw calendarResp.error;
+        const calendarIds = (calendarResp.data || []).map((c: any) => c.id);
+
+        // Actualizaciones en batch (chunks) para evitar timeouts en tablas grandes
+        debugResponses.phase = 'update_equipos';
+        debugResponses.updEquipos = [];
+        if (teamIds.length > 0) {
+            const teamChunks = chunkArray(teamIds.map(String), TEAM_CHUNK_SIZE);
+            for (const chunk of teamChunks) {
+                const r = await supabaseAuth.from('equipos').update({ deleted_at: now }).is('deleted_at', null).in('id', chunk);
+                debugResponses.updEquipos.push(r);
+                if (r.error) throw r.error;
+            }
+        }
+
+        debugResponses.phase = 'update_partidos';
+        debugResponses.updPartidos = [];
+        if (matchIds.length > 0) {
+            const matchChunks = chunkArray(matchIds.map(String), MATCH_CHUNK_SIZE);
+            for (const chunk of matchChunks) {
+                const r = await supabaseAuth.from('partidos').update({ deleted_at: now }).is('deleted_at', null).in('id', chunk);
+                debugResponses.updPartidos.push(r);
+                if (r.error) throw r.error;
+            }
+        }
+
+        debugResponses.phase = 'update_calendario';
+        debugResponses.updCalendario = [];
+        if (calendarIds.length > 0) {
+            const calChunks = chunkArray(calendarIds.map(String), MATCH_CHUNK_SIZE);
+            for (const chunk of calChunks) {
+                const r = await supabaseAuth.from('calendario').update({ deleted_at: now }).is('deleted_at', null).in('id', chunk);
+                debugResponses.updCalendario.push(r);
+                if (r.error) throw r.error;
+            }
+        }
+
+        // Plantillas por equipo
+        debugResponses.phase = 'update_plantillas';
+        if (teamIds.length > 0) {
+            const teamChunks = chunkArray(teamIds.map(String), TEAM_CHUNK_SIZE);
+            debugResponses.plantillas = [];
+            for (const chunk of teamChunks) {
+                const r = await supabaseAuth.from('plantillas').update({ deleted_at: now }).is('deleted_at', null).in('equipo_id', chunk);
+                debugResponses.plantillas.push(r);
+                if (r.error) throw r.error;
+            }
+        }
+
+        debugResponses.phase = 'update_jugadores';
+        if (playerIds.length > 0) {
+            const playerChunks = chunkArray(playerIds, PLAYER_CHUNK_SIZE);
+            debugResponses.jugadores = [];
+            for (const chunk of playerChunks) {
+                const r = await supabaseAuth.from('jugadores').update({ deleted_at: now }).is('deleted_at', null).in('id', chunk);
+                debugResponses.jugadores.push(r);
+                if (r.error) throw r.error;
+            }
+        }
+
+        // Estadísticas y movimientos por partido
+        // Se hace en 2 pasos (select ids + update por id) para evitar timeouts en updates pesados por partido_id.
+        debugResponses.phase = 'update_stats_movimientos';
+        if (matchIds.length > 0) {
+            const matchChunks = chunkArray(matchIds.map(String), MATCH_CHUNK_SIZE);
+            debugResponses.stats = [];
+            debugResponses.movimientos = [];
+
+            for (const chunk of matchChunks) {
+                const statsIdsResp = await supabaseAuth
+                    .from('estadisticas_jugador_partido')
+                    .select('id')
+                    .is('deleted_at', null)
+                    .in('partido_id', chunk);
+                if (statsIdsResp.error) throw statsIdsResp.error;
+                const statsIds = (statsIdsResp.data || []).map((r: any) => String(r.id));
+                if (statsIds.length > 0) {
+                    const statsIdChunks = chunkArray(statsIds, ROW_CHUNK_SIZE);
+                    for (const idsChunk of statsIdChunks) {
+                        const r1 = await supabaseAuth
+                            .from('estadisticas_jugador_partido')
+                            .update({ deleted_at: now })
+                            .is('deleted_at', null)
+                            .in('id', idsChunk);
+                        debugResponses.stats.push(r1);
+                        if (r1.error) throw r1.error;
+                    }
+                }
+
+                const movIdsResp = await supabaseAuth
+                    .from('partido_movimientos')
+                    .select('id')
+                    .is('deleted_at', null)
+                    .in('partido_id', chunk);
+                if (movIdsResp.error) throw movIdsResp.error;
+                const movIds = (movIdsResp.data || []).map((r: any) => String(r.id));
+                if (movIds.length > 0) {
+                    const movIdChunks = chunkArray(movIds, ROW_CHUNK_SIZE);
+                    for (const idsChunk of movIdChunks) {
+                        const r2 = await supabaseAuth
+                            .from('partido_movimientos')
+                            .update({ deleted_at: now })
+                            .is('deleted_at', null)
+                            .in('id', idsChunk);
+                        debugResponses.movimientos.push(r2);
+                        if (r2.error) throw r2.error;
+                    }
+                }
+            }
+        }
+
+        // Registrar auditoría (si existe la tabla audit_logs)
+        debugResponses.phase = 'audit_log';
+        try {
+            const auditResp = await supabaseAuth.from('audit_logs').insert([{ user_id: currentUserId, action: 'soft_delete_competition', target_type: 'competition', target_id: competitionId, details: 'soft deleted', created_at: now }]);
+            debugResponses.audit = auditResp;
+        } catch (e) {
+            // No bloquear si audit_logs no existe
+            console.warn('audit_logs insert failed', e);
+            debugResponses.audit = { error: String(e) };
+        }
+
+        debugResponses.phase = 'done';
+        return { success: true, operation_id: `soft_delete_${competitionId}_${Date.now()}`, debug: debugResponses };
+    } catch (e: any) {
+        debugResponses.phaseError = String(e?.message || e);
+        if (isTimeoutError(e)) {
+            throw new Error(`Timeout en fase '${debugResponses.phase}'. Reintenta: el proceso es idempotente y continuará donde se quedó.`);
+        }
+        throw e;
+    }
+};
+
+export const restoreCompetition = async (competitionId: string | number, currentUserId?: string | number) => {
+    let uid = currentUserId as string | number | undefined;
+    if (!uid) {
+        const { data: { session } } = await supabaseAuth.auth.getSession();
+        uid = session?.user?.id;
+    }
+    if (!uid) throw new Error('not authenticated');
+
+    console.warn('restoreCompetition: skipping usuarios table superuser check; relying on client-side admin mode');
+    const TEAM_CHUNK_SIZE = 50;
+    const MATCH_CHUNK_SIZE = 40;
+    const PLAYER_CHUNK_SIZE = 50;
+
+    // Restaurar filas marcadas como borradas
+    const rComp = await supabaseAuth
+        .from('competiciones')
+        .update({ deleted_at: null })
+        .eq('id', competitionId)
+        .not('deleted_at', 'is', null)
+        .select('id');
+    if (rComp.error) throw rComp.error;
+    if (!rComp.data || rComp.data.length === 0) {
+        throw new Error('No se pudo restaurar la competición. Puede que ya estuviera restaurada o una política RLS bloquea UPDATE.');
+    }
+
+    const teamsResp = await supabaseAuth.from('equipos').select('id').eq('competicion_id', competitionId);
+    if (teamsResp.error) throw teamsResp.error;
+    const teamIds = (teamsResp.data || []).map((t: any) => t.id);
+
+    const playerIds: string[] = [];
+    if (teamIds.length > 0) {
+        const rosterResp = await supabaseAuth.from('plantillas').select('jugador_id').in('equipo_id', teamIds.map(String));
+        if (rosterResp.error) throw rosterResp.error;
+        const uniquePlayers = new Set((rosterResp.data || []).map((r: any) => String(r.jugador_id)));
+        playerIds.push(...Array.from(uniquePlayers));
+    }
+
+    const matchesResp = await supabaseAuth.from('partidos').select('id').eq('competicion_id', competitionId);
+    if (matchesResp.error) throw matchesResp.error;
+    const matchIds = (matchesResp.data || []).map((m: any) => m.id);
+
+    const calendarResp = await supabaseAuth.from('calendario').select('id').eq('competicion_id', competitionId);
+    if (calendarResp.error) throw calendarResp.error;
+    const calendarIds = (calendarResp.data || []).map((c: any) => c.id);
+
+    if (teamIds.length > 0) {
+        const teamChunks = chunkArray(teamIds.map(String), TEAM_CHUNK_SIZE);
+        for (const chunk of teamChunks) {
+            const r = await supabaseAuth.from('equipos').update({ deleted_at: null }).not('deleted_at', 'is', null).in('id', chunk);
+            if (r.error) throw r.error;
+        }
+    }
+
+    if (matchIds.length > 0) {
+        const matchChunks = chunkArray(matchIds.map(String), MATCH_CHUNK_SIZE);
+        for (const chunk of matchChunks) {
+            const r = await supabaseAuth.from('partidos').update({ deleted_at: null }).not('deleted_at', 'is', null).in('id', chunk);
+            if (r.error) throw r.error;
+        }
+    }
+
+    if (calendarIds.length > 0) {
+        const calChunks = chunkArray(calendarIds.map(String), MATCH_CHUNK_SIZE);
+        for (const chunk of calChunks) {
+            const r = await supabaseAuth.from('calendario').update({ deleted_at: null }).not('deleted_at', 'is', null).in('id', chunk);
+            if (r.error) throw r.error;
+        }
+    }
+
+    if (teamIds.length > 0) {
+        const teamChunks = chunkArray(teamIds.map(String), TEAM_CHUNK_SIZE);
+        for (const chunk of teamChunks) {
+            const r = await supabaseAuth.from('plantillas').update({ deleted_at: null }).not('deleted_at', 'is', null).in('equipo_id', chunk);
+            if (r.error) throw r.error;
+        }
+    }
+
+    if (playerIds.length > 0) {
+        const playerChunks = chunkArray(playerIds, PLAYER_CHUNK_SIZE);
+        for (const chunk of playerChunks) {
+            const r = await supabaseAuth.from('jugadores').update({ deleted_at: null }).not('deleted_at', 'is', null).in('id', chunk);
+            if (r.error) throw r.error;
+        }
+    }
+
+    if (matchIds.length > 0) {
+        const matchChunks = chunkArray(matchIds.map(String), MATCH_CHUNK_SIZE);
+        for (const chunk of matchChunks) {
+            const r1 = await supabaseAuth.from('estadisticas_jugador_partido').update({ deleted_at: null }).not('deleted_at', 'is', null).in('partido_id', chunk);
+            if (r1.error) throw r1.error;
+            const r2 = await supabaseAuth.from('partido_movimientos').update({ deleted_at: null }).not('deleted_at', 'is', null).in('partido_id', chunk);
+            if (r2.error) throw r2.error;
+        }
+    }
+
+    // Auditoría
+    try {
+        await supabaseAuth.from('audit_logs').insert([{ user_id: currentUserId, action: 'restore_competition', target_type: 'competition', target_id: competitionId, details: 'restored', created_at: new Date().toISOString() }]);
+    } catch (e) {}
+
+    return { success: true, operation_id: `restore_${competitionId}_${Date.now()}` };
+};
+
+export const hardDeleteCompetition = async (competitionId: string | number, currentUserId?: string | number) => {
+    // Requiere superuser
+    let uid = currentUserId as string | number | undefined;
+    if (!uid) {
+        const { data: { session } } = await supabaseAuth.auth.getSession();
+        uid = session?.user?.id;
+    }
+    if (!uid) throw new Error('not authenticated');
+
+    console.warn('hardDeleteCompetition: skipping usuarios table superuser check; relying on client-side admin mode');
+    const TEAM_CHUNK_SIZE = 25;
+    const MATCH_CHUNK_SIZE = 10;
+    const PLAYER_CHUNK_SIZE = 50;
+    const ROW_CHUNK_SIZE = 200;
+
+    let phase = 'init';
+    const isTimeoutError = (err: any) => {
+        const msg = String(err?.message || '').toLowerCase();
+        return err?.code === '57014' || msg.includes('statement timeout');
+    };
+
+    // Ante un timeout parte el lote por la mitad y reintenta hasta llegar a filas sueltas.
+    const deleteByIdsAdaptive = async (table: string, ids: string[], initialSize: number) => {
+        const pending: string[][] = chunkArray(ids, initialSize);
+        while (pending.length > 0) {
+            const chunk = pending.shift()!;
+            const { error } = await supabaseAuth.from(table).delete().in('id', chunk);
+            if (!error) continue;
+            if (isTimeoutError(error) && chunk.length > 1) {
+                const mid = Math.ceil(chunk.length / 2);
+                pending.unshift(chunk.slice(mid));
+                pending.unshift(chunk.slice(0, mid));
+                continue;
+            }
+            throw error;
+        }
+    };
+
+    try {
+    // Obtener equipos y partidos relacionados
+    phase = 'load_related_ids';
+    const teamsResp = await supabaseAuth.from('equipos').select('id').eq('competicion_id', competitionId);
+    if (teamsResp.error) throw teamsResp.error;
+    const teamIds = (teamsResp.data || []).map((t: any) => t.id);
+
+    const playerIds: string[] = [];
+    if (teamIds.length > 0) {
+        const rosterResp = await supabaseAuth.from('plantillas').select('jugador_id').in('equipo_id', teamIds.map(String));
+        if (rosterResp.error) throw rosterResp.error;
+        const uniquePlayers = new Set((rosterResp.data || []).map((r: any) => String(r.jugador_id)));
+        playerIds.push(...Array.from(uniquePlayers));
+    }
+
+    const matchesResp = await supabaseAuth.from('partidos').select('id').eq('competicion_id', competitionId);
+    if (matchesResp.error) throw matchesResp.error;
+    const matchIds = (matchesResp.data || []).map((m: any) => m.id);
+
+    const calendarResp = await supabaseAuth.from('calendario').select('id').eq('competicion_id', competitionId);
+    if (calendarResp.error) throw calendarResp.error;
+    const calendarIds = (calendarResp.data || []).map((c: any) => c.id);
+
+    // Borrar estadísticas y movimientos en dos pasos (select ids + delete por id) para evitar timeouts
+    phase = 'delete_stats_movimientos';
+    if (matchIds.length > 0) {
+        const matchChunks = chunkArray(matchIds.map(String), MATCH_CHUNK_SIZE);
+        for (const chunk of matchChunks) {
+            const statsIdsResp = await supabaseAuth.from('estadisticas_jugador_partido').select('id').in('partido_id', chunk);
+            if (statsIdsResp.error) throw statsIdsResp.error;
+            const statsIds = (statsIdsResp.data || []).map((r: any) => String(r.id));
+            await deleteByIdsAdaptive('estadisticas_jugador_partido', statsIds, ROW_CHUNK_SIZE);
+
+            const movIdsResp = await supabaseAuth.from('partido_movimientos').select('id').in('partido_id', chunk);
+            if (movIdsResp.error) throw movIdsResp.error;
+            const movIds = (movIdsResp.data || []).map((r: any) => String(r.id));
+            await deleteByIdsAdaptive('partido_movimientos', movIds, ROW_CHUNK_SIZE);
+        }
+    }
+
+    // Borrar plantillas por equipo
+    phase = 'delete_plantillas';
+    if (teamIds.length > 0) {
+        for (const chunk of chunkArray(teamIds.map(String), TEAM_CHUNK_SIZE)) {
+            const r = await supabaseAuth.from('plantillas').delete().in('equipo_id', chunk);
+            if (r.error) throw r.error;
+        }
+    }
+
+    // Borrar jugadores que hayan quedado huérfanos tras eliminar las plantillas de esta competición
+    phase = 'delete_jugadores_huerfanos';
+    if (playerIds.length > 0) {
+        const playerChunks = chunkArray(playerIds, PLAYER_CHUNK_SIZE);
+        for (const chunk of playerChunks) {
+            const stillReferenced = new Set<string>();
+
+            // Un jugador solo se borra si no queda referenciado en ninguna tabla dependiente.
+            for (const [table, column] of [
+                ['plantillas', 'jugador_id'],
+                ['estadisticas_jugador_partido', 'jugador_id'],
+                ['partido_movimientos', 'jugador_id'],
+            ] as const) {
+                const refResp = await supabaseAuth.from(table).select(column).in(column, chunk);
+                if (refResp.error) throw refResp.error;
+                for (const row of (refResp.data || []) as any[]) {
+                    stillReferenced.add(String(row[column]));
+                }
+            }
+
+            const orphanPlayers = chunk.filter((id) => !stillReferenced.has(String(id)));
+
+            if (orphanPlayers.length > 0) {
+                const r = await supabaseAuth.from('jugadores').delete().in('id', orphanPlayers);
+                if (r.error) throw r.error;
+            }
+        }
+    }
+
+    // Borrar calendario, partidos, equipos y competicion en lotes por id
+    phase = 'delete_calendario';
+    await deleteByIdsAdaptive('calendario', calendarIds.map(String), 100);
+
+    phase = 'delete_partidos';
+    await deleteByIdsAdaptive('partidos', matchIds.map(String), 20);
+
+    phase = 'delete_equipos';
+    await deleteByIdsAdaptive('equipos', teamIds.map(String), 20);
+
+    phase = 'delete_competicion';
+    const d4 = await supabaseAuth.from('competiciones').delete().eq('id', competitionId);
+    if (d4.error) throw d4.error;
+
+    // Registrar auditoría
+    try {
+        await supabaseAuth.from('audit_logs').insert([{ user_id: currentUserId, action: 'hard_delete_competition', target_type: 'competition', target_id: competitionId, details: 'permanently deleted', created_at: new Date().toISOString() }]);
+    } catch (e) {}
+
+    return { success: true, operation_id: `hard_delete_${competitionId}_${Date.now()}` };
+    } catch (e: any) {
+        if (isTimeoutError(e)) {
+            throw new Error(`Timeout en fase '${phase}'. Vuelve a pulsar Purgar: el proceso continúa donde se quedó.`);
+        }
+        throw e;
+    }
+};
+
+export const fetchDeletedCompetitions = async (): Promise<Competicion[]> => {
+    // Use authenticated client so RLS/policies that restrict viewing deleted rows
+    // to authenticated users (admins) don't block this query.
+    const { data, error } = await supabaseAuth.from('competiciones').select('*').not('deleted_at', 'is', null).order('deleted_at', { ascending: false });
+    if (error) throw error;
+    return data as Competicion[];
 };

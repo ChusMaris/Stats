@@ -15,6 +15,7 @@ export interface Competicion {
   nombre: string;
   temporada_id: number | string;
   categoria_id: number | string;
+  deleted_at?: string | null;
   categorias?: Categoria; // Joined
 }
 

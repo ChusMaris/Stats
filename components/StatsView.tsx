@@ -6,6 +6,8 @@ import TeamStats from './TeamStats';
 import { fetchTeamStats } from '../services/dataService';
 import { Loader2 } from 'lucide-react';
 import { Competicion } from '../types';
+import { supabase } from '../supabaseClient';
+import { softDeleteCompetition } from '../services/dataService';
 
 interface StatsViewProps {
   viewData: {
@@ -15,9 +17,12 @@ interface StatsViewProps {
     competicion: Competicion | null
   };
   selectedCompeticionId: string;
+  isAdmin?: boolean;
+  temporadaNombre?: string;
+  categoriaNombre?: string;
 }
 
-const StatsView: React.FC<StatsViewProps> = ({ viewData, selectedCompeticionId }) => {
+const StatsView: React.FC<StatsViewProps> = ({ viewData, selectedCompeticionId, isAdmin, temporadaNombre, categoriaNombre }) => {
   const navigate = useNavigate();
   const initialCompetitionId = String(viewData?.competicion?.id || selectedCompeticionId || '');
 
@@ -45,6 +50,9 @@ const StatsView: React.FC<StatsViewProps> = ({ viewData, selectedCompeticionId }
     }
   });
   const [loadingTeam, setLoadingTeam] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [isDeletingCompetition, setIsDeletingCompetition] = useState(false);
+  
   const previousCompetitionIdRef = useRef<string>(String(viewData?.competicion?.id || selectedCompeticionId || ''));
 
   // Clear team details only when the selected competition really changes.
@@ -96,6 +104,11 @@ const StatsView: React.FC<StatsViewProps> = ({ viewData, selectedCompeticionId }
 
   return (
     <div className="animate-fade-in space-y-6 pb-20">
+      {viewData?.competicion && isAdmin && (
+        <div className="flex justify-end">
+          <button onClick={() => setShowDeleteModal(true)} className="px-3 py-1 text-xs bg-red-600 text-white rounded">Eliminar competición</button>
+        </div>
+      )}
       {/* Compact Clasificación Section */}
       <section className="mb-lg">
           {viewData.equipos.length > 0 ? (
@@ -153,6 +166,62 @@ const StatsView: React.FC<StatsViewProps> = ({ viewData, selectedCompeticionId }
                   )
                )}
           </section>
+      )}
+      {showDeleteModal && viewData?.competicion && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+          <div className="bg-white p-6 rounded shadow-lg w-full max-w-lg">
+            <h3 className="font-bold text-lg mb-2">Confirmar eliminación</h3>
+            <p className="text-sm text-slate-600">¿Seguro que quieres mover esta competición a la papelera?</p>
+            <p className="mt-2 font-semibold">{`${temporadaNombre || ''} / ${categoriaNombre || viewData.competicion.categorias?.nombre || ''} / ${viewData.competicion.nombre}`}</p>
+            {isDeletingCompetition && (
+              <div className="mt-3 flex items-center gap-2 text-sm text-slate-700 bg-slate-50 border border-slate-200 rounded p-2">
+                <Loader2 size={16} className="animate-spin" />
+                <span>Procesando borrado en base de datos. Puede tardar unos segundos...</span>
+              </div>
+            )}
+            <div className="flex justify-end gap-2 mt-4">
+              <button
+                onClick={() => { setShowDeleteModal(false); }}
+                disabled={isDeletingCompetition}
+                className="px-3 py-1 rounded border disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={async () => {
+                  const comp = viewData.competicion;
+                  if (!comp) return alert('Competición no encontrada');
+                  try {
+                    setIsDeletingCompetition(true);
+                    const { data: { session } } = await supabase.auth.getSession();
+                    if (!session || !session.user) return alert('No autenticado. Inicia sesión para continuar.');
+                    const userId = session.user.id;
+
+                    // Comprobación previa en cliente para dar mensaje claro
+                    // No comprobación de permisos en la base de datos: la visibilidad del botón
+                    // (modo admin local) es la única fuente de verdad para permitir esta acción.
+
+                    const result = await softDeleteCompetition(String(comp.id), userId);
+                    console.log('softDeleteCompetition result', result);
+                    alert('Competición movida a la papelera');
+                    setShowDeleteModal(false);
+                    window.location.reload();
+                  } catch (e: any) {
+                    console.error(e);
+                    alert('Error eliminando competición: ' + (e.message || e));
+                  } finally {
+                    setIsDeletingCompetition(false);
+                  }
+                }}
+                disabled={isDeletingCompetition}
+                className="px-3 py-1 bg-red-600 text-white rounded disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center gap-2"
+              >
+                {isDeletingCompetition && <Loader2 size={14} className="animate-spin" />}
+                {isDeletingCompetition ? 'Moviendo...' : 'Mover a papelera'}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

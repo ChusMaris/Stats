@@ -1,12 +1,13 @@
 
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { HashRouter as Router, Routes, Route, NavLink, Link, useLocation, useNavigate } from 'react-router-dom';
-import { fetchTemporadas, fetchCategorias, fetchCompeticiones, fetchCompeticionDetails } from './services/dataService';
+import { fetchTemporadas, fetchCategoriasWithActiveCompetitions, fetchCompeticiones, fetchCompeticionDetails } from './services/dataService';
 import { Temporada, Categoria, Competicion, RecentCompetition } from './types';
 import CompetitionFilters from './components/CompetitionFilters';
 import StatsView from './components/StatsView';
 import ScoutingView from './components/ScoutingView';
 import LandingPage from './components/LandingPage';
+import TrashPage from './components/TrashPage';
 // @ts-ignore
 import logoImg from './src/assets/images/fedstats_header_logo.png';
 import PlayersPage from './components/PlayersPage';
@@ -296,9 +297,7 @@ const AppContent: React.FC = () => {
     const loadFilters = async () => {
       try {
         const temps = await fetchTemporadas();
-        const cats = await fetchCategorias();
         setTemporadas(temps);
-        setCategorias(cats);
       } catch (error) {
         console.error("Error loading filters", error);
         setErrorMsg("Error cargando los filtros iniciales. Por favor recarga la página.");
@@ -306,6 +305,29 @@ const AppContent: React.FC = () => {
     };
     loadFilters();
   }, []);
+
+  // --- Load categories with active competitions for selected season ---
+  useEffect(() => {
+    const loadActiveCategories = async () => {
+      try {
+        const activeCategories = await fetchCategoriasWithActiveCompetitions(selectedTemporada || undefined);
+        setCategorias(activeCategories);
+
+        if (selectedCategoria && !activeCategories.some((c) => String(c.id) === String(selectedCategoria))) {
+          setSelectedCategoria('');
+          setSelectedFase('');
+          setSelectedCompeticion('');
+          setCompeticiones([]);
+          setViewData(null);
+        }
+      } catch (error) {
+        console.error('Error loading active categories', error);
+        setCategorias([]);
+      }
+    };
+
+    loadActiveCategories();
+  }, [selectedTemporada, selectedCategoria]);
 
   // --- Scroll Listener ---
   useEffect(() => {
@@ -698,6 +720,13 @@ const AppContent: React.FC = () => {
                     <span>Iniciar sesión (Google)</span>
                   </button>
                 )}
+
+                {isAdmin && (
+                  <Link to="/trash" onClick={() => setIsDropdownOpen(false)} className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-fuchsia-800 hover:bg-neutral-50 font-bold text-xs transition-colors text-left cursor-pointer">
+                    <Shield size={14} className="stroke-[2.5]" />
+                    <span>Papelera</span>
+                  </Link>
+                )}
               </div>
             </div>
           )}
@@ -806,7 +835,13 @@ const AppContent: React.FC = () => {
         )}
 
         {route === 'stats' ? (
-          <StatsView viewData={viewData} selectedCompeticionId={selectedCompeticion} />
+          <StatsView
+            viewData={viewData}
+            selectedCompeticionId={selectedCompeticion}
+            isAdmin={isAdmin}
+            temporadaNombre={temporadas.find(t => String(t.id) === selectedTemporada)?.nombre || ''}
+            categoriaNombre={categorias.find(c => String(c.id) === selectedCategoria)?.nombre || ''}
+          />
         ) : (
           <ScoutingView
             viewData={viewData}
@@ -913,6 +948,13 @@ const AppContent: React.FC = () => {
                         <span>Iniciar sesión (Google)</span>
                       </button>
                     )}
+
+                    {isAdmin && (
+                      <Link to="/trash" onClick={() => setIsDropdownOpen(false)} className="w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-fuchsia-800 hover:bg-neutral-50 font-bold text-xs transition-colors text-left cursor-pointer">
+                        <Shield size={14} className="stroke-[2.5]" />
+                        <span>Papelera</span>
+                      </Link>
+                    )}
                   </div>
                 </div>
               )}
@@ -982,6 +1024,7 @@ const AppContent: React.FC = () => {
           <Route path="/match-center" element={renderDataRoute('match-center')} />
           <Route path="/players" element={<PlayersPage activeCompetitionName={activeCompetitionName} />} />
           <Route path="/teams" element={<TeamsPage />} />
+          <Route path="/trash" element={<TrashPage isAdmin={isAdmin} />} />
           <Route path="/access_token=*" element={
             <div className="bg-white rounded-3xl shadow-xl border border-slate-100 p-12 text-center max-w-md mx-auto my-12 flex flex-col items-center justify-center min-h-[300px]">
               <Loader2 size={48} className="text-fcbq-blue animate-spin mb-4" />
