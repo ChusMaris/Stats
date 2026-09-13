@@ -88,6 +88,10 @@ const MatchVideoButton = ({ link }: { link?: string | null }) => {
   const href = typeof link === 'string' ? link.trim() : '';
   if (!hasYoutubeLink(href)) return null;
 
+  const handleClick = (event: React.MouseEvent<HTMLAnchorElement>) => {
+    event.stopPropagation();
+  };
+
   return (
     <a
       href={href}
@@ -95,6 +99,7 @@ const MatchVideoButton = ({ link }: { link?: string | null }) => {
       rel="noopener noreferrer"
       aria-label="Ver partido en YouTube"
       title="Ver partido en YouTube"
+      onClick={handleClick}
       className="inline-flex h-7 w-7 items-center justify-center rounded-[8px] bg-[#ff0000] shadow-sm transition-all hover:opacity-90 shrink-0"
     >
       <span className="ml-[2px] h-0 w-0 border-y-[6px] border-y-transparent border-l-[10px] border-l-white" aria-hidden="true" />
