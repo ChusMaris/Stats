@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { batchValuesForInQuery } from '../services/dataService';
 import { calculateIntervalPlusMinus, normalizeScoreEvents, selectFinalPlusMinus } from './playerPlusMinus';
 
 describe('normalizeScoreEvents', () => {
@@ -75,5 +76,12 @@ describe('selectFinalPlusMinus', () => {
     it('falls back when the preferred source is unavailable', () => {
         expect(selectFinalPlusMinus({ isMini: false, view: 8, stored: 4 })).toBe(8);
         expect(selectFinalPlusMinus({ isMini: true, stored: 4 })).toBe(4);
+    });
+});
+
+describe('batchValuesForInQuery', () => {
+    it('keeps ids grouped in safe Supabase batches without reordering', () => {
+        expect(batchValuesForInQuery([1, 2, 3, 4, 5], 2)).toEqual([[1, 2], [3, 4], [5]]);
+        expect(batchValuesForInQuery(['a', 'b', 'c', 'd'], 3)).toEqual([['a', 'b', 'c'], ['d']]);
     });
 });

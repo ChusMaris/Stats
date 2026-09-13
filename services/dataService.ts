@@ -78,6 +78,10 @@ const chunkArray = <T,>(items: T[], chunkSize: number): T[][] => {
     return chunks;
 };
 
+export const batchValuesForInQuery = <T,>(values: T[], maxPerBatch = 1000): T[][] => {
+    return chunkArray(values, maxPerBatch);
+};
+
 const parseTiempoGlobal = (tiempo: string | number | undefined): number => {
     if (!tiempo && tiempo !== 0) return 0;
     if (typeof tiempo === 'number') return tiempo;
@@ -1837,60 +1841,56 @@ export const fetchTeamStats = async (competicionId: number | string, equipoId: n
     let viewPlusMinus: Record<string, number> = {};
 
     if (matchIds.length > 0) {
-        console.log(`[DBStats v6.3] Fetching View PM for ${matchIds.length} matches...`);
-        console.log(`[DBStats v6.3] Match IDs:`, matchIds);
-        
-        // 1. Fetch View PM - Using lowercase name as suggested by Supabase hint
-        const viewResponse = await supabase
-            .from('vw_kpi_plusminus')
-            .select('*')
-            .in('partido_id', matchIds);
-        
-        console.log(`[DBStats v6.3] View Response:`, { 
-            error: viewResponse.error, 
-            count: viewResponse.data?.length,
-            status: viewResponse.status,
-            statusText: viewResponse.statusText
-        });
+        const matchIdBatches = batchValuesForInQuery(matchIds, 1000);
 
-        if (viewResponse.error) {
-            console.error(`[DBStats v6.3] Error fetching from vw_kpi_plusminus:`, {
-                message: viewResponse.error.message,
-                details: viewResponse.error.details,
-                hint: viewResponse.error.hint,
-                code: viewResponse.error.code
-            });
-        } else if (viewResponse.data) {
-            console.log(`[DBStats v6.3] View Data Raw:`, viewResponse.data.slice(0, 2));
-            viewResponse.data.forEach((row: any) => {
-                const pId = row.partido_id || row.id_partido || row.partido;
-                const jId = row.jugador_id || row.id_jugador || row.jugador;
-                const val = row.kpi_mas_menos !== undefined ? row.kpi_mas_menos : row.plusminus;
+        for (const batch of matchIdBatches) {
+            const [viewResponse, movsResponse] = await Promise.all([
+                supabase
+                    .from('vw_kpi_plusminus')
+                    .select('*')
+                    .in('partido_id', batch),
+                supabase
+                    .from('partido_movimientos')
+                    .select('*')
+                    .is('deleted_at', null)
+                    .in('partido_id', batch)
+                    .order('partido_id')
+                    .order('periodo')
+                    .order('minuto', { ascending: false })
+                    .order('segundo', { ascending: false })
+            ]);
 
-                if (pId && jId) {
-                    const key = `${String(pId).toLowerCase()}_${String(jId).toLowerCase()}`;
-                    viewPlusMinus[key] = Number(val || 0);
-                }
-            });
-            console.log(`[DBStats v6.3] Loaded ${Object.keys(viewPlusMinus).length} PM records from view.`);
-        }
+            if (viewResponse.error) {
+                console.error(`[DBStats v6.3] Error fetching from vw_kpi_plusminus:`, {
+                    message: viewResponse.error.message,
+                    details: viewResponse.error.details,
+                    hint: viewResponse.error.hint,
+                    code: viewResponse.error.code
+                });
+            } else if (viewResponse.data) {
+                viewResponse.data.forEach((row: any) => {
+                    const pId = row.partido_id || row.id_partido || row.partido;
+                    const jId = row.jugador_id || row.id_jugador || row.jugador;
+                    const val = row.kpi_mas_menos !== undefined ? row.kpi_mas_menos : row.plusminus;
 
-        // 2. Fetch movements match by match to avoid the 1000 row limit per request
-        for (const mid of matchIds) {
-            const movsResponse = await supabase
-                .from('partido_movimientos')
-                .select('*')
-                .is('deleted_at', null)
-                .eq('partido_id', mid)
-                .order('periodo')
-                .order('minuto', { ascending: false })
-                .order('segundo', { ascending: false });
-            
+                    if (pId && jId) {
+                        const key = `${String(pId).toLowerCase()}_${String(jId).toLowerCase()}`;
+                        viewPlusMinus[key] = Number(val || 0);
+                    }
+                });
+            }
+
             if (!movsResponse.error) {
                 movementsData = [...movementsData, ...(movsResponse.data || [])];
+            } else {
+                console.error(`[DBStats v6.3] Error fetching partido_movimientos:`, {
+                    message: movsResponse.error.message,
+                    details: movsResponse.error.details,
+                    hint: movsResponse.error.hint,
+                    code: movsResponse.error.code
+                });
             }
         }
-        console.log(`[DBStats v6.3] Total movements fetched: ${movementsData.length}`);
     }
 
     // --- CALCULATE PLUS MINUS & MINUTES ---
