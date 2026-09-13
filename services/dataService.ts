@@ -1386,7 +1386,8 @@ export const fetchCompeticionDetails = async (competicionId: number | string) =>
     .select(`
       *,
       equipo_local:equipos!equipo_local_id(id, nombre_especifico, clubs:clubs!equipos_club_id_fkey(id, nombre, logo_url, nombre_corto)),
-      equipo_visitante:equipos!equipo_visitante_id(id, nombre_especifico, clubs:clubs!equipos_club_id_fkey(id, nombre, logo_url, nombre_corto))
+      equipo_visitante:equipos!equipo_visitante_id(id, nombre_especifico, clubs:clubs!equipos_club_id_fkey(id, nombre, logo_url, nombre_corto)),
+      youtube_link
     `)
     .is('deleted_at', null)
     .eq('competicion_id', competicionId)

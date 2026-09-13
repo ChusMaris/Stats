@@ -48,6 +48,7 @@ export interface Partido {
   puntos_local?: number;
   puntos_visitante?: number;
   jornada?: number;
+  youtube_link?: string | null;
   equipos_local?: Equipo;     // Virtual join for easier access
   equipos_visitante?: Equipo; // Virtual join for easier access
   equipo_local?: Equipo;      // Aliased join used in dataService

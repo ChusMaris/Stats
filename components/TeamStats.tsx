@@ -3,6 +3,7 @@ import React, { useState, useMemo } from 'react';
 import { EstadisticaJugadorPartido, PlayerAggregatedStats, PartidoMovimiento, Plantilla } from '../types';
 import { User, Calendar, Table, LayoutGrid, ArrowUpDown, ChevronUp, ChevronDown } from 'lucide-react';
 import PlayerModal from './PlayerModal';
+import { hasYoutubeLink } from '../utils/matchVideoLink';
 
 interface TeamStatsProps {
   equipoId: number | string;
@@ -80,6 +81,24 @@ const MiniDonut = ({ value }: { value: number }) => {
           </svg>
           <span className="absolute text-[14px] font-black text-slate-700">{Math.round(normalizedValue)}%</span>
       </div>
+  );
+};
+
+const MatchVideoButton = ({ link }: { link?: string | null }) => {
+  const href = typeof link === 'string' ? link.trim() : '';
+  if (!hasYoutubeLink(href)) return null;
+
+  return (
+    <a
+      href={href}
+      target="_blank"
+      rel="noopener noreferrer"
+      aria-label="Ver partido en YouTube"
+      title="Ver partido en YouTube"
+      className="inline-flex h-7 w-7 items-center justify-center rounded-[8px] bg-[#ff0000] shadow-sm transition-all hover:opacity-90 shrink-0"
+    >
+      <span className="ml-[2px] h-0 w-0 border-y-[6px] border-y-transparent border-l-[10px] border-l-white" aria-hidden="true" />
+    </a>
   );
 };
 
@@ -557,7 +576,7 @@ const TeamStats: React.FC<TeamStatsProps> = ({ equipoId, matches, plantilla, all
                       >
                         <div className="flex flex-col gap-1 w-full min-w-0 flex-1 pr-4">
                           <div className="flex items-center justify-between mb-1">
-                            <div className="flex items-center gap-xs">
+                            <div className="flex items-center gap-xs min-w-0">
                               <span className="text-[10px] font-black text-outline uppercase tracking-tighter">
                                 Jornada {match.jornada || '-'}
                               </span>
@@ -566,12 +585,14 @@ const TeamStats: React.FC<TeamStatsProps> = ({ equipoId, matches, plantilla, all
                                 {formatDate(match.fecha_hora)}
                               </span>
                             </div>
-                            <div className={`px-1.5 py-0.5 rounded text-[8px] font-bold uppercase tracking-tighter shrink-0 ${
-                              match.puntos_local !== null && match.puntos_visitante !== null
-                                ? 'bg-surface-container-high text-outline'
-                                : 'bg-primary/10 text-primary'
-                            }`}>
-                              {match.puntos_local !== null && match.puntos_visitante !== null ? 'Finalizado' : 'Programado'}
+                            <div className="flex items-center gap-2 shrink-0">
+                              <div className={`px-1.5 py-0.5 rounded text-[8px] font-bold uppercase tracking-tighter ${
+                                match.puntos_local !== null && match.puntos_visitante !== null
+                                  ? 'bg-surface-container-high text-outline'
+                                  : 'bg-primary/10 text-primary'
+                              }`}>
+                                {match.puntos_local !== null && match.puntos_visitante !== null ? 'Finalizado' : 'Programado'}
+                              </div>
                             </div>
                           </div>
                           
@@ -599,7 +620,7 @@ const TeamStats: React.FC<TeamStatsProps> = ({ equipoId, matches, plantilla, all
                             </div>
 
                             {/* Score Pill */}
-                            <div className="flex items-center gap-2 px-2 py-0.5 bg-primary/5 rounded-lg shrink-0">
+                            <div className="flex items-center gap-2 px-2 py-0.5 bg-primary/5 rounded-lg min-w-[78px] justify-center shrink-0">
                               <span className={`text-[13px] font-black ${
                                 match.local.score !== null && match.visitor.score !== null && match.local.score > match.visitor.score
                                   ? 'text-emerald-600 font-extrabold'
@@ -640,10 +661,8 @@ const TeamStats: React.FC<TeamStatsProps> = ({ equipoId, matches, plantilla, all
                             </div>
                           </div>
                         </div>
-                        <div className="flex items-center shrink-0">
-                          <span className="material-symbols-outlined text-primary group-hover:translate-x-1 transition-transform">
-                            keyboard_arrow_right
-                          </span>
+                        <div className="flex items-center shrink-0 pl-2">
+                          <MatchVideoButton link={match.youtube_link} />
                         </div>
                       </div>
                     );
@@ -669,8 +688,10 @@ const TeamStats: React.FC<TeamStatsProps> = ({ equipoId, matches, plantilla, all
                             {formatDate(match.fecha_hora)}
                           </span>
                         </div>
-                        <div className="flex items-center gap-xs px-2 py-0.5 bg-primary rounded text-[10px] font-black text-on-primary uppercase tracking-tighter shrink-0">
-                          {match.puntos_local !== null && match.puntos_visitante !== null ? 'Finalizado' : 'Programado'}
+                        <div className="flex items-center gap-2 shrink-0">
+                          <div className="flex items-center gap-xs px-2 py-0.5 bg-primary rounded text-[10px] font-black text-on-primary uppercase tracking-tighter">
+                            {match.puntos_local !== null && match.puntos_visitante !== null ? 'Finalizado' : 'Programado'}
+                          </div>
                         </div>
                       </div>
 
@@ -701,7 +722,7 @@ const TeamStats: React.FC<TeamStatsProps> = ({ equipoId, matches, plantilla, all
                         </div>
 
                         {/* Scores & Outcome */}
-                        <div className="px-2 flex flex-col items-center shrink-0">
+                        <div className="px-2 flex items-center justify-center gap-2 shrink-0">
                           <div className="flex items-center gap-sm">
                             <span className={`text-3xl font-black ${
                               match.local.score !== null && match.visitor.score !== null && match.local.score > match.visitor.score
@@ -719,18 +740,18 @@ const TeamStats: React.FC<TeamStatsProps> = ({ equipoId, matches, plantilla, all
                               {match.visitor.score}
                             </span>
                           </div>
-                          {match.puntos_local !== null && match.puntos_visitante !== null && (
-                            <div className={`mt-2 px-2.5 py-0.5 rounded-full ${
-                              isWin ? 'bg-primary/10' : isDraw ? 'bg-outline/10' : 'bg-red-50'
-                            }`}>
-                              <span className={`text-[10px] font-bold uppercase tracking-wider ${
-                                isWin ? 'text-primary' : isDraw ? 'text-outline' : 'text-red-600'
-                              }`}>
-                                {isWin ? 'Victoria' : isDraw ? 'Empate' : 'Derrota'}
-                              </span>
-                            </div>
-                          )}
                         </div>
+                        {match.puntos_local !== null && match.puntos_visitante !== null && (
+                          <div className={`mt-2 px-2.5 py-0.5 rounded-full ${
+                            isWin ? 'bg-primary/10' : isDraw ? 'bg-outline/10' : 'bg-red-50'
+                          }`}>
+                            <span className={`text-[10px] font-bold uppercase tracking-wider ${
+                              isWin ? 'text-primary' : isDraw ? 'text-outline' : 'text-red-600'
+                            }`}>
+                              {isWin ? 'Victoria' : isDraw ? 'Empate' : 'Derrota'}
+                            </span>
+                          </div>
+                        )}
 
                         {/* Visitor Team */}
                         <div className="flex-1 flex flex-col items-center min-w-0">
