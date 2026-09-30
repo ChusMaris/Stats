@@ -1,7 +1,7 @@
 
 import React, { useState, useMemo } from 'react';
 import { EstadisticaJugadorPartido, PlayerAggregatedStats, PartidoMovimiento, Plantilla } from '../types';
-import { User, Calendar, Table, LayoutGrid, ArrowUpDown, ChevronUp, ChevronDown, Info, Activity } from 'lucide-react';
+import { User, Calendar, ArrowUpDown, ChevronUp, ChevronDown, Info, Activity } from 'lucide-react';
 import PlayerModal from './PlayerModal';
 import { hasYoutubeLink } from '../utils/matchVideoLink';
 import { aggregateMatchScoring, type MatchScoringSummary } from '../utils/matchScoringSummary';
@@ -372,7 +372,6 @@ const MatchScoringSummaryPanel: React.FC<{
 
 const TeamStats: React.FC<TeamStatsProps> = ({ equipoId, matches, plantilla, allPlantillas, stats, movements = [], esMini }) => {
   const [activeTab, setActiveTab] = useState<'matches' | 'players'>('matches');
-  const [playerViewMode, setPlayerViewMode] = useState<'table' | 'cards'>('table');
   const [matchViewMode, setMatchViewMode] = useState<'table' | 'cards'>('table');
   const [selectedPlayer, setSelectedPlayer] = useState<PlayerAggregatedStats | null>(null);
   const [expandedPlayerIds, setExpandedPlayerIds] = useState<Set<string>>(new Set());
@@ -1163,16 +1162,9 @@ const TeamStats: React.FC<TeamStatsProps> = ({ equipoId, matches, plantilla, all
 
         {activeTab === 'players' && (
           <div className="animate-fade-in">
-             <div className="relative flex items-center justify-end mb-2 md:mb-3 h-7">
-              <div className="hidden md:flex absolute left-0 items-center gap-1.5 text-xs text-slate-400">
+             <div className="hidden md:flex mb-2 md:mb-3 items-center gap-1.5 text-xs text-slate-400">
                 <ArrowUpDown size={12} /> Orden: <span className="font-semibold text-fcbq-blue uppercase tracking-wide">{sortConfig.key}</span>
               </div>
-              <div className="inline-flex items-center gap-0.5 bg-slate-50 p-0.5 rounded-lg border border-slate-200">
-                <button onClick={() => setPlayerViewMode('table')} className={`flex items-center gap-1 px-2.5 py-1 rounded-md text-[14px] font-semibold uppercase tracking-[0.06em] transition-all ${playerViewMode === 'table' ? 'bg-white text-fcbq-blue shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}><Table size={13} /> Tabla</button>
-                <button onClick={() => setPlayerViewMode('cards')} className={`flex items-center gap-1 px-2.5 py-1 rounded-md text-[14px] font-semibold uppercase tracking-[0.06em] transition-all ${playerViewMode === 'cards' ? 'bg-white text-fcbq-blue shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}><LayoutGrid size={13} /> Tarjetas</button>
-              </div>
-             </div>
-                          {playerViewMode === 'table' && (
                <div className="border border-outline-variant rounded-xl overflow-hidden bg-surface-container-lowest animate-fade-in shadow-sm">
                  <div className="overflow-x-auto hide-scrollbar">
                     <table className="w-full text-left text-data-tabular border-collapse min-w-[850px]">
@@ -1219,9 +1211,17 @@ const TeamStats: React.FC<TeamStatsProps> = ({ equipoId, matches, plantilla, all
                                   />
                                 </div>
                                 <div className="min-w-0 flex flex-col">
-                                  <span className="leading-none text-[12px] font-bold text-on-surface uppercase tracking-tight truncate max-w-[85px] xs:max-w-[120px] sm:max-w-[200px] md:max-w-[320px]">
+                                  <button
+                                    type="button"
+                                    onClick={(event) => {
+                                      event.stopPropagation();
+                                      setSelectedPlayer(player);
+                                    }}
+                                    aria-label={`Ver ficha de ${player.nombre}`}
+                                    className="max-w-[85px] truncate text-left text-[12px] font-bold uppercase leading-none tracking-tight text-on-surface hover:text-primary xs:max-w-[120px] sm:max-w-[200px] md:max-w-[320px]"
+                                  >
                                     {player.nombre}
-                                  </span>
+                                  </button>
                                   <span className="text-[10px] text-slate-400 font-medium uppercase tracking-wider mt-1 leading-none">
                                     {isExpanded ? 'Ocultar partidos' : 'Ver partidos'}
                                   </span>
@@ -1354,39 +1354,6 @@ const TeamStats: React.FC<TeamStatsProps> = ({ equipoId, matches, plantilla, all
                     </table>
                  </div>
                 </div>
-              )}
-
-             {playerViewMode === 'cards' && (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 animate-fade-in">
-                    {playerStats.map((player) => (
-                    <div key={player.jugadorId} onClick={() => setSelectedPlayer(player)} className="bg-white rounded-2xl p-5 border border-slate-100 shadow-[0_2px_15px_-3px_rgba(0,0,0,0.07),0_10px_20px_-2px_rgba(0,0,0,0.04)] hover:shadow-xl transition-all duration-300 cursor-pointer relative group flex flex-col items-center">
-                        <div className="absolute top-4 right-4 bg-slate-100 text-slate-500 font-bold text-sm px-2.5 py-1 rounded-lg">#{player.dorsal}</div>
-                        <div className="w-28 h-28 rounded-full p-1 border border-slate-100 bg-white mb-3 shadow-sm relative group-hover:scale-105 transition-transform duration-300">
-                            <div className="w-full h-full rounded-full overflow-hidden bg-slate-50 flex items-center justify-center">
-                                <img src={player.fotoUrl || "https://image.singular.live/fit-in/450x450/filters:format(webp)/0d62960e1109063fb6b062e758907fb1/images/41uEQx58oj4zwPoOkM6uEO_w585h427.png"} className="w-full h-full object-cover" alt={player.nombre} />
-                            </div>
-                        </div>
-                        <h3 className="font-bold text-slate-800 text-base uppercase tracking-wide mb-6 truncate w-full text-center px-2">{player.nombre}</h3>
-                        <div className="grid grid-cols-3 w-full border-t border-slate-50 pt-4">
-                            <div className="flex flex-col items-center border-r border-slate-100">
-                                <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-1">PTS</span>
-                                <span className="text-xl font-black text-fcbq-blue leading-none">{player.totalPuntos}</span>
-                            </div>
-                            <div className="flex flex-col items-center border-r border-slate-100">
-                                <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-1">PPG</span>
-                                <span className="text-xl font-black text-slate-700 leading-none">{player.ppg.toFixed(1)}</span>
-                            </div>
-                            <div className="flex flex-col items-center">
-                                <span className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-1">+/-</span>
-                                <span className={`text-xl font-black leading-none ${(player.avgMasMenos || 0) > 0 ? 'text-green-600' : (player.avgMasMenos || 0) < 0 ? 'text-red-500' : 'text-slate-700'}`}>
-                                    {(player.avgMasMenos || 0) > 0 ? '+' : ''}{(player.avgMasMenos || 0).toFixed(1)}
-                                </span>
-                            </div>
-                        </div>
-                    </div>
-                    ))}
-                </div>
-             )}
           </div>
         )}
       </div>
