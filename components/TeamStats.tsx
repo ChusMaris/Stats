@@ -1,9 +1,12 @@
 
 import React, { useState, useMemo } from 'react';
 import { EstadisticaJugadorPartido, PlayerAggregatedStats, PartidoMovimiento, Plantilla } from '../types';
-import { User, Calendar, Table, LayoutGrid, ArrowUpDown, ChevronUp, ChevronDown } from 'lucide-react';
+import { User, Calendar, Table, LayoutGrid, ArrowUpDown, ChevronUp, ChevronDown, Info, Activity } from 'lucide-react';
 import PlayerModal from './PlayerModal';
 import { hasYoutubeLink } from '../utils/matchVideoLink';
+import { aggregateMatchScoring, type MatchScoringSummary } from '../utils/matchScoringSummary';
+import { buildMatchScoreProgression, type MatchScoreProgression } from '../utils/matchScoreProgression';
+import { CartesianGrid, Line, LineChart, ReferenceLine, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 
 interface TeamStatsProps {
   equipoId: number | string;
@@ -104,6 +107,266 @@ const MatchVideoButton = ({ link }: { link?: string | null }) => {
     >
       <span className="ml-[2px] h-0 w-0 border-y-[6px] border-y-transparent border-l-[10px] border-l-white" aria-hidden="true" />
     </a>
+  );
+};
+
+const formatMatchSummaryPercentage = (value: number | null): string =>
+  value === null ? '—' : `${Math.round(value)}%`;
+
+const MatchScoreProgressionChart: React.FC<{
+  progression: MatchScoreProgression;
+  localName: string;
+  visitorName: string;
+}> = ({ progression, localName, visitorName }) => {
+  const localColor = '#064a73';
+  const visitorColor = '#24b8b0';
+  const periodTicks = progression.periodScores.map(period => period.period - 0.5);
+
+  return (
+    <section className="mt-3 overflow-hidden rounded-xl border border-outline-variant bg-white">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-dashed border-outline-variant/70 px-3 py-3">
+        <h3 className="flex items-center gap-2 text-[10px] font-bold text-on-surface-variant">
+          <span className="flex h-7 w-7 items-center justify-center rounded-md bg-primary/10 text-primary">
+            <Activity size={15} aria-hidden="true" />
+          </span>
+          Evolución del marcador
+        </h3>
+        <div className="flex items-center gap-3 text-[10px] font-medium text-on-surface-variant">
+          <span className="flex max-w-[120px] items-center gap-1.5 truncate" title={localName}>
+            <span className="h-2.5 w-2.5 shrink-0 rounded-sm" style={{ backgroundColor: localColor }} />
+            {getInitialsCompact(localName)}
+          </span>
+          <span className="flex max-w-[120px] items-center gap-1.5 truncate" title={visitorName}>
+            <span className="h-2.5 w-2.5 shrink-0 rounded-sm" style={{ backgroundColor: visitorColor }} />
+            {getInitialsCompact(visitorName)}
+          </span>
+        </div>
+      </div>
+
+      {!progression.hasEvents ? (
+        <div className="px-4 py-12 text-center text-xs text-outline">
+          Sin datos de evolución del marcador para este partido.
+        </div>
+      ) : (
+        <>
+          <div className="h-56 px-2 pt-3 sm:h-64 sm:px-4">
+            <ResponsiveContainer width="100%" height="100%">
+              <LineChart data={progression.points} margin={{ top: 8, right: 8, bottom: 0, left: 0 }}>
+                <CartesianGrid stroke="#e2e8f0" strokeDasharray="3 3" vertical={false} />
+                <XAxis
+                  type="number"
+                  dataKey="x"
+                  domain={[0, progression.periodCount]}
+                  ticks={periodTicks}
+                  tickFormatter={(value: number) => `P${Math.floor(value) + 1}`}
+                  tickLine={false}
+                  axisLine={{ stroke: '#cbd5e1' }}
+                  tick={{ fill: '#64748b', fontSize: 10, fontWeight: 700 }}
+                  padding={{ left: 4, right: 4 }}
+                />
+                <YAxis
+                  allowDecimals={false}
+                  domain={[0, 'auto']}
+                  width={30}
+                  tickLine={false}
+                  axisLine={{ stroke: '#cbd5e1' }}
+                  tick={{ fill: '#64748b', fontSize: 9 }}
+                />
+                <Tooltip
+                  labelFormatter={(value) => `Periodo ${Math.min(progression.periodCount, Math.floor(Number(value)) + 1)}`}
+                  formatter={(value, name) => [value, name === 'local' ? localName : visitorName]}
+                  contentStyle={{ borderRadius: 8, borderColor: '#cbd5e1', fontSize: 11 }}
+                />
+                {progression.periodScores.slice(0, -1).map(period => (
+                  <ReferenceLine key={period.period} x={period.period} stroke="#cbd5e1" />
+                ))}
+                <Line
+                  type="linear"
+                  dataKey="local"
+                  name="local"
+                  stroke={localColor}
+                  strokeWidth={2}
+                  dot={{ r: 2.5, fill: localColor, strokeWidth: 0 }}
+                  activeDot={{ r: 4 }}
+                  isAnimationActive={false}
+                />
+                <Line
+                  type="linear"
+                  dataKey="visitor"
+                  name="visitor"
+                  stroke={visitorColor}
+                  strokeWidth={2}
+                  dot={{ r: 2.5, fill: visitorColor, strokeWidth: 0 }}
+                  activeDot={{ r: 4 }}
+                  isAnimationActive={false}
+                />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+          <div className="grid grid-cols-2 gap-1.5 px-3 pb-3 sm:grid-cols-4">
+            {progression.periodScores.map(period => {
+              const localLeads = period.local > period.visitor;
+              const visitorLeads = period.visitor > period.local;
+              const leader = localLeads ? localName : visitorLeads ? visitorName : null;
+
+              return (
+                <div key={period.period} className="flex min-w-0 items-center justify-between gap-2 rounded border border-outline-variant bg-surface-container-low/50 px-3 py-2.5">
+                  <span className="text-[10px] font-bold text-outline">P{period.period}</span>
+                  <span className="whitespace-nowrap text-sm font-black tabular-nums text-primary">
+                    {period.local}<span className="mx-1 font-medium text-outline">-</span>{period.visitor}
+                  </span>
+                  {leader ? (
+                    <span className={`max-w-12 truncate text-[9px] font-bold ${localLeads ? 'text-primary' : 'text-teal-600'}`} title={leader}>
+                      {getInitialsCompact(leader)}
+                    </span>
+                  ) : <span className="w-5" />}
+                </div>
+              );
+            })}
+          </div>
+        </>
+      )}
+    </section>
+  );
+};
+
+const MatchScoringSummaryPanel: React.FC<{
+  localName: string;
+  visitorName: string;
+  local: MatchScoringSummary;
+  visitor: MatchScoringSummary;
+  progression: MatchScoreProgression;
+}> = ({ localName, visitorName, local, visitor, progression }) => {
+  const [showLegend, setShowLegend] = useState(false);
+
+  const renderTeam = (name: string, scoring: MatchScoringSummary, isLocal: boolean) => {
+    const colors = isLocal
+      ? ['#064a73', '#5c91ad', '#b7d4e0']
+      : ['#108f91', '#4dbbb5', '#b7e3df'];
+    const shotPoints = scoring.t2.points + scoring.t3.points + scoring.t1.points;
+    const t2End = shotPoints > 0 ? (scoring.t2.points / shotPoints) * 100 : 0;
+    const t3End = shotPoints > 0 ? t2End + (scoring.t3.points / shotPoints) * 100 : 0;
+    const donutBackground = shotPoints > 0
+      ? `conic-gradient(${colors[0]} 0 ${t2End}%, ${colors[1]} ${t2End}% ${t3End}%, ${colors[2]} ${t3End}% 100%)`
+      : 'conic-gradient(#e2e8f0 0 100%)';
+    const rows = [
+      { label: 'Tiro de 2', shots: scoring.t2 },
+      { label: 'Tiro de 3', shots: scoring.t3 },
+      { label: 'Tiro libre', shots: scoring.t1 },
+      { label: 'Tiros de campo', shots: scoring.fieldGoals },
+      { label: 'Total', shots: scoring.total }
+    ];
+
+    return (
+      <div className="min-w-0 p-3 sm:p-4">
+        <h3 className="mb-3 truncate text-[10px] font-bold uppercase tracking-wide text-on-surface">{name}</h3>
+        <div className="mx-auto grid w-fit max-w-full grid-cols-[68px_auto] items-center gap-3">
+          <div
+            role="img"
+            aria-label={`${scoring.points} puntos; ${scoring.t2.points} de dos, ${scoring.t3.points} de tres y ${scoring.t1.points} de tiros libres`}
+            className="relative aspect-square w-[68px] rounded-full"
+            style={{ background: donutBackground }}
+          >
+            <div className="absolute inset-[9px] flex flex-col items-center justify-center rounded-full bg-white text-center">
+              <span className="text-base font-black leading-none text-on-surface">{scoring.points}</span>
+              <span className="mt-1 text-[8px] font-semibold uppercase text-outline">puntos</span>
+            </div>
+          </div>
+          <div className="grid gap-1 text-[10px]">
+            {[
+              { label: 'Tiro de 2', points: scoring.t2.points, color: colors[0] },
+              { label: 'Tiro de 3', points: scoring.t3.points, color: colors[1] },
+              { label: 'Tiro libre', points: scoring.t1.points, color: colors[2] }
+            ].map((item) => (
+              <div key={item.label} className="flex min-w-0 items-center gap-1.5">
+                <span className="h-2 w-2 shrink-0 rounded-full" style={{ backgroundColor: item.color }} />
+                <span className="min-w-0 flex-1 truncate text-on-surface-variant">{item.label}</span>
+                <span className="shrink-0 font-bold text-on-surface">{item.points} pts</span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="mt-4 overflow-hidden border-t border-outline-variant/50 pt-2">
+          <div className="grid grid-cols-[minmax(3rem,1fr)_2rem_2.8rem_3.3rem_2.7rem_2rem] gap-x-1.5 px-1 pb-1 text-[8px] font-extrabold uppercase text-on-surface sm:grid-cols-[minmax(5rem,1fr)_2.5rem_3.5rem_4.25rem_3.5rem_3rem] sm:gap-x-3 sm:text-[9px]">
+            <span>Tipo</span><span className="whitespace-nowrap text-right">Pts</span><span className="whitespace-nowrap text-right">Dist. pts</span><span className="whitespace-nowrap text-right">Dist. tiros</span><span className="whitespace-nowrap text-right">C/I</span><span className="whitespace-nowrap text-right">% A</span>
+          </div>
+          {rows.map((row, index) => {
+            const pointsShare = scoring.points > 0
+              ? `${Math.round((row.shots.points / scoring.points) * 100)}%`
+              : '—';
+            const shotShare = scoring.total.attempted > 0
+              ? `${Math.round((row.shots.attempted / scoring.total.attempted) * 100)}%`
+              : '—';
+
+            return (
+              <div
+                key={row.label}
+                className={`grid grid-cols-[minmax(3rem,1fr)_2rem_2.8rem_3.3rem_2.7rem_2rem] gap-x-1.5 px-1 py-2 text-[9px] sm:grid-cols-[minmax(5rem,1fr)_2.5rem_3.5rem_4.25rem_3.5rem_3rem] sm:gap-x-3 sm:text-[10px] ${index === rows.length - 1 ? 'font-bold text-on-surface' : 'text-on-surface-variant'}`}
+              >
+                <span className="truncate">{row.label}</span>
+                <span className="text-right tabular-nums">{row.shots.points}</span>
+                <span className="text-right tabular-nums">{pointsShare}</span>
+                <span className="text-right tabular-nums">{shotShare}</span>
+                <span className="text-right tabular-nums">{row.shots.made}/{row.shots.attempted}</span>
+                <span className="text-right tabular-nums">{formatMatchSummaryPercentage(row.shots.percentage)}</span>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
+  };
+
+  return (
+    <>
+    <section className="mb-4 overflow-hidden rounded-xl border border-outline-variant bg-white">
+      <div className="flex items-center justify-between gap-3 border-b border-outline-variant/50 px-3 py-2">
+        <h2 className="text-[10px] font-bold text-on-surface-variant">
+          Distribución y eficiencia de anotación
+        </h2>
+        <button
+          type="button"
+          onClick={() => setShowLegend(current => !current)}
+          aria-label={showLegend ? 'Ocultar leyenda de estadísticas' : 'Mostrar leyenda de estadísticas'}
+          aria-expanded={showLegend}
+          title={showLegend ? 'Ocultar leyenda' : 'Mostrar leyenda'}
+          className="inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-primary transition-colors hover:bg-primary/10 focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary"
+        >
+          <Info size={15} aria-hidden="true" />
+        </button>
+      </div>
+      {showLegend && (
+        <div className="grid grid-cols-1 gap-x-6 gap-y-2 border-b border-outline-variant/50 bg-surface-container-low/40 px-3 py-3 text-[10px] sm:grid-cols-2 lg:grid-cols-3">
+          <div className="grid grid-cols-[5.5rem_minmax(0,1fr)] gap-2">
+            <span className="font-bold uppercase text-on-surface-variant">Dist. pts</span>
+            <span className="text-outline">Distribución del total de puntos anotados</span>
+          </div>
+          <div className="grid grid-cols-[5.5rem_minmax(0,1fr)] gap-2">
+            <span className="font-bold uppercase text-on-surface-variant">Dist. tiros</span>
+            <span className="text-outline">Distribución de los tiros efectuados</span>
+          </div>
+          <div className="grid grid-cols-[5.5rem_minmax(0,1fr)] gap-2">
+            <span className="font-bold uppercase text-on-surface-variant">C/I</span>
+            <span className="text-outline">Convertidos / intentados</span>
+          </div>
+          <div className="grid grid-cols-[5.5rem_minmax(0,1fr)] gap-2">
+            <span className="font-bold uppercase text-on-surface-variant">% acierto</span>
+            <span className="text-outline">Porcentaje de conversión (C/I × 100)</span>
+          </div>
+          <div className="grid grid-cols-[5.5rem_minmax(0,1fr)] gap-2 sm:col-span-2">
+            <span className="font-bold uppercase text-on-surface-variant">Tiros de campo</span>
+            <span className="text-outline">Suma de T2 + T3; no incluye tiros libres</span>
+          </div>
+        </div>
+      )}
+      <div className="grid grid-cols-1 divide-y divide-outline-variant/50 lg:grid-cols-2 lg:divide-x lg:divide-y-0">
+        {renderTeam(localName, local, true)}
+        {renderTeam(visitorName, visitor, false)}
+      </div>
+    </section>
+    <MatchScoreProgressionChart progression={progression} localName={localName} visitorName={visitorName} />
+    </>
   );
 };
 
@@ -479,92 +742,29 @@ const TeamStats: React.FC<TeamStatsProps> = ({ equipoId, matches, plantilla, all
                     };
                   })();
 
-                  const teamMvp = (() => {
-                    if (matchPlayerStats.length === 0) return null;
-                    const sorted = [...matchPlayerStats].sort((a, b) => {
-                      const valA = a.valoracion ?? 0;
-                      const valB = b.valoracion ?? 0;
-                      if (valB !== valA) return valB - valA;
-                      return (b.puntos ?? 0) - (a.puntos ?? 0);
-                    });
-                    const mvpStat = sorted[0];
-                    const playerMeta = getPlayerMeta(mvpStat.jugador_id);
-                    const initials = playerMeta.nombre.split(' ').map(n => n[0]).join('').substring(0, 2).toUpperCase();
-                    return {
-                      stat: mvpStat,
-                      meta: playerMeta,
-                      initials
-                    };
-                  })();
+                  const localPlayersStats = (stats || []).filter(s => {
+                    if (!s || String(s.partido_id) !== String(match.id)) return false;
+                    const pRecord = (allPlantillas || []).find(p => p && String(p.jugador_id) === String(s.jugador_id));
+                    if (pRecord) {
+                      return String(pRecord.equipo_id) === String(match.equipo_local_id);
+                    }
+                    return teamPlayerIds.has(String(s.jugador_id)) === match.local.isMyTeam;
+                  });
 
-                  const matchComparison = (() => {
-                    const localPlayersStats = (stats || []).filter(s => {
-                      if (!s || String(s.partido_id) !== String(match.id)) return false;
-                      const pRecord = (allPlantillas || []).find(p => p && String(p.jugador_id) === String(s.jugador_id));
-                      if (pRecord) {
-                        return String(pRecord.equipo_id) === String(match.equipo_local_id);
-                      }
-                      return teamPlayerIds.has(String(s.jugador_id)) === match.local.isMyTeam;
-                    });
+                  const visitorPlayersStats = (stats || []).filter(s => {
+                    if (!s || String(s.partido_id) !== String(match.id)) return false;
+                    const pRecord = (allPlantillas || []).find(p => p && String(p.jugador_id) === String(s.jugador_id));
+                    if (pRecord) {
+                      return String(pRecord.equipo_id) === String(match.equipo_visitante_id);
+                    }
+                    return teamPlayerIds.has(String(s.jugador_id)) === match.visitor.isMyTeam;
+                  });
 
-                    const visitorPlayersStats = (stats || []).filter(s => {
-                      if (!s || String(s.partido_id) !== String(match.id)) return false;
-                      const pRecord = (allPlantillas || []).find(p => p && String(p.jugador_id) === String(s.jugador_id));
-                      if (pRecord) {
-                        return String(pRecord.equipo_id) === String(match.equipo_visitante_id);
-                      }
-                      return teamPlayerIds.has(String(s.jugador_id)) === match.visitor.isMyTeam;
-                    });
-
-                    const localPts = match.local.score || localPlayersStats.reduce((sum, s) => sum + (s.puntos || 0), 0);
-                    const visitorPts = match.visitor.score || visitorPlayersStats.reduce((sum, s) => sum + (s.puntos || 0), 0);
-
-                    const localT1 = localPlayersStats.reduce((sum, s) => sum + (s.t1_anotados || 0), 0);
-                    const visitorT1 = visitorPlayersStats.reduce((sum, s) => sum + (s.t1_anotados || 0), 0);
-
-                    const localT2 = localPlayersStats.reduce((sum, s) => sum + (s.t2_anotados || 0), 0);
-                    const visitorT2 = visitorPlayersStats.reduce((sum, s) => sum + (s.t2_anotados || 0), 0);
-
-                    const localT3 = localPlayersStats.reduce((sum, s) => sum + (s.t3_anotados || 0), 0);
-                    const visitorT3 = visitorPlayersStats.reduce((sum, s) => sum + (s.t3_anotados || 0), 0);
-
-                    const localF = localPlayersStats.reduce((sum, s) => sum + (s.faltas_cometidas || 0) + (s.tecnicas || 0) + (s.antideportivas || 0), 0);
-                    const visitorF = visitorPlayersStats.reduce((sum, s) => sum + (s.faltas_cometidas || 0) + (s.tecnicas || 0) + (s.antideportivas || 0), 0);
-
-                    const totalPts = localPts + visitorPts;
-                    const ptsPctLocal = totalPts > 0 ? (localPts / totalPts) * 100 : 50;
-
-                    const totalT1 = localT1 + visitorT1;
-                    const t1PctLocal = totalT1 > 0 ? (localT1 / totalT1) * 100 : 50;
-
-                    const totalT2 = localT2 + visitorT2;
-                    const t2PctLocal = totalT2 > 0 ? (localT2 / totalT2) * 100 : 50;
-
-                    const totalT3 = localT3 + visitorT3;
-                    const t3PctLocal = totalT3 > 0 ? (localT3 / totalT3) * 100 : 50;
-
-                    const totalF = localF + visitorF;
-                    const fPctLocal = totalF > 0 ? (localF / totalF) * 100 : 50;
-
-                    return {
-                      localPts,
-                      visitorPts,
-                      localT1,
-                      visitorT1,
-                      localT2,
-                      visitorT2,
-                      localT3,
-                      visitorT3,
-                      localF,
-                      visitorF,
-                      ptsPctLocal,
-                      t1PctLocal,
-                      t2PctLocal,
-                      t3PctLocal,
-                      fPctLocal
-                    };
-                  })();
-
+                  const localScoring = aggregateMatchScoring(localPlayersStats, match.local.score);
+                  const visitorScoring = aggregateMatchScoring(visitorPlayersStats, match.visitor.score);
+                  const scoreProgression = isExpanded
+                    ? buildMatchScoreProgression(movements || [], match.id, esMini, match.periodos_totales || 4)
+                    : null;
                   const isLocalMyTeam = match.local.isMyTeam;
                   const myScore = isLocalMyTeam ? match.local.score : match.visitor.score;
                   const oppScore = isLocalMyTeam ? match.visitor.score : match.local.score;
@@ -801,6 +1001,14 @@ const TeamStats: React.FC<TeamStatsProps> = ({ equipoId, matches, plantilla, all
                       {/* Professional Stats Table (Expanded) */}
                       {isExpanded && (
                         <div className="border-t border-outline-variant/20 bg-surface-container-lowest animate-fade-in p-2 sm:p-4 overflow-hidden">
+                          <MatchScoringSummaryPanel
+                            localName={match.local.name}
+                            visitorName={match.visitor.name}
+                            local={localScoring}
+                            visitor={visitorScoring}
+                            progression={scoreProgression!}
+                          />
+
                           {/* Tabs for Local vs Visitor inside expanded match details */}
                           <div className="flex border-b border-outline-variant mb-4 bg-surface-container-low/40 rounded-lg p-1 gap-1">
                             <button 
@@ -943,150 +1151,6 @@ const TeamStats: React.FC<TeamStatsProps> = ({ equipoId, matches, plantilla, all
                           )}
                           </div>
 
-                          {/* Bento Insights Grid adapted for Match Details */}
-                          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                            {/* Statistical Comparison */}
-                            <div className="bg-surface-container-lowest p-4 rounded-xl border border-outline-variant flex flex-col gap-3">
-                              <h3 className="text-[10px] font-bold text-outline uppercase tracking-wider">Líderes Estadísticos</h3>
-                              <div className="flex flex-col gap-2">
-                                {/* Puntos */}
-                                <div className="flex justify-between items-center text-xs">
-                                  <span className={`font-bold ${activeTeamType === 'local' ? 'text-primary' : 'text-outline'}`}>{matchComparison.localPts}</span>
-                                  <span className="text-[10px] text-outline font-black tracking-wider uppercase">Puntos</span>
-                                  <span className={`font-bold ${activeTeamType === 'visitor' ? 'text-primary' : 'text-outline'}`}>{matchComparison.visitorPts}</span>
-                                </div>
-                                <div className="relative h-2.5 w-full flex bg-surface-container rounded-full overflow-hidden">
-                                  <div className="h-full bg-primary" style={{ width: `${matchComparison.ptsPctLocal}%` }}></div>
-                                  <div className="h-full bg-secondary" style={{ width: `${100 - matchComparison.ptsPctLocal}%` }}></div>
-                                </div>
-
-                                {/* T1 */}
-                                <div className="flex justify-between items-center text-xs mt-1">
-                                  <span className={`font-bold ${activeTeamType === 'local' ? 'text-primary' : 'text-outline'}`}>{matchComparison.localT1}</span>
-                                  <span className="text-[10px] text-outline font-black tracking-wider uppercase">T1</span>
-                                  <span className={`font-bold ${activeTeamType === 'visitor' ? 'text-primary' : 'text-outline'}`}>{matchComparison.visitorT1}</span>
-                                </div>
-                                <div className="relative h-2.5 w-full flex bg-surface-container rounded-full overflow-hidden">
-                                  <div className="h-full bg-primary" style={{ width: `${matchComparison.t1PctLocal}%` }}></div>
-                                  <div className="h-full bg-secondary" style={{ width: `${100 - matchComparison.t1PctLocal}%` }}></div>
-                                </div>
-
-                                {/* T2 */}
-                                <div className="flex justify-between items-center text-xs mt-1">
-                                  <span className={`font-bold ${activeTeamType === 'local' ? 'text-primary' : 'text-outline'}`}>{matchComparison.localT2}</span>
-                                  <span className="text-[10px] text-outline font-black tracking-wider uppercase">T2</span>
-                                  <span className={`font-bold ${activeTeamType === 'visitor' ? 'text-primary' : 'text-outline'}`}>{matchComparison.visitorT2}</span>
-                                </div>
-                                <div className="relative h-2.5 w-full flex bg-surface-container rounded-full overflow-hidden">
-                                  <div className="h-full bg-primary" style={{ width: `${matchComparison.t2PctLocal}%` }}></div>
-                                  <div className="h-full bg-secondary" style={{ width: `${100 - matchComparison.t2PctLocal}%` }}></div>
-                                </div>
-
-                                {/* T3 */}
-                                <div className="flex justify-between items-center text-xs mt-1">
-                                  <span className={`font-bold ${activeTeamType === 'local' ? 'text-primary' : 'text-outline'}`}>{matchComparison.localT3}</span>
-                                  <span className="text-[10px] text-outline font-black tracking-wider uppercase">T3</span>
-                                  <span className={`font-bold ${activeTeamType === 'visitor' ? 'text-primary' : 'text-outline'}`}>{matchComparison.visitorT3}</span>
-                                </div>
-                                <div className="relative h-2.5 w-full flex bg-surface-container rounded-full overflow-hidden">
-                                  <div className="h-full bg-primary" style={{ width: `${matchComparison.t3PctLocal}%` }}></div>
-                                  <div className="h-full bg-secondary" style={{ width: `${100 - matchComparison.t3PctLocal}%` }}></div>
-                                </div>
-
-                                {/* Faltas */}
-                                <div className="flex justify-between items-center text-xs mt-1">
-                                  <span className={`font-bold ${activeTeamType === 'local' ? 'text-primary' : 'text-outline'}`}>{matchComparison.localF}</span>
-                                  <span className="text-[10px] text-outline font-black tracking-wider uppercase">Faltas (F)</span>
-                                  <span className={`font-bold ${activeTeamType === 'visitor' ? 'text-primary' : 'text-outline'}`}>{matchComparison.visitorF}</span>
-                                </div>
-                                <div className="relative h-2.5 w-full flex bg-surface-container rounded-full overflow-hidden">
-                                  <div className="h-full bg-primary" style={{ width: `${matchComparison.fPctLocal}%` }}></div>
-                                  <div className="h-full bg-secondary" style={{ width: `${100 - matchComparison.fPctLocal}%` }}></div>
-                                </div>
-                              </div>
-                            </div>
-
-                            {/* MVP of the Match */}
-                            {teamMvp ? (
-                              <div className="bg-primary-container p-4 rounded-xl border border-outline-variant text-on-primary-container flex flex-col justify-between">
-                                <div>
-                                  <h3 className="text-[10px] font-bold text-on-primary-container/80 uppercase tracking-wider">MVP de {activeTeamData.name}</h3>
-                                  <div className="flex items-center gap-3 mt-2">
-                                    <div className="w-10 h-10 rounded-full border-2 border-on-primary-container overflow-hidden flex items-center justify-center bg-white shrink-0">
-                                      <img 
-                                        src={teamMvp.meta.fotoUrl || "https://image.singular.live/fit-in/450x450/filters:format(webp)/0d62960e1109063fb6b062e758907fb1/images/41uEQx58oj4zwPoOkM6uEO_w585h427.png"} 
-                                        alt={teamMvp.meta.nombre} 
-                                        className="w-full h-full object-cover rounded-full" 
-                                        referrerPolicy="no-referrer"
-                                      />
-                                    </div>
-                                    <div className="min-w-0">
-                                      <p className="font-bold text-sm text-on-primary-container truncate">{teamMvp.meta.nombre}</p>
-                                      <p className="text-[10px] text-on-primary-container/80 font-medium">Dorsal #{teamMvp.meta.dorsal}</p>
-                                    </div>
-                                  </div>
-                                </div>
-                                <div className="grid grid-cols-3 gap-y-3 gap-x-2 mt-3 border-t border-on-primary-container/20 pt-3 text-center sm:text-left">
-                                  <div>
-                                    <p className="text-[10px] uppercase tracking-wide opacity-70">PTS</p>
-                                    <p className="font-extrabold text-sm">{teamMvp.stat.puntos || 0}</p>
-                                  </div>
-                                  <div>
-                                    <p className="text-[10px] uppercase tracking-wide opacity-70">MIN</p>
-                                    <p className="font-extrabold text-sm">{formatTiempoPartido(teamMvp.stat.tiempo_jugado)}</p>
-                                  </div>
-                                  <div>
-                                    <p className="text-[10px] uppercase tracking-wide opacity-70">T1</p>
-                                    <p className="font-extrabold text-sm">{teamMvp.stat.t1_anotados || 0}/{teamMvp.stat.t1_intentados || 0}</p>
-                                  </div>
-                                  <div>
-                                    <p className="text-[10px] uppercase tracking-wide opacity-70">T2</p>
-                                    <p className="font-extrabold text-sm">{teamMvp.stat.t2_anotados || 0}</p>
-                                  </div>
-                                  <div>
-                                    <p className="text-[10px] uppercase tracking-wide opacity-70">T3</p>
-                                    <p className="font-extrabold text-sm">{teamMvp.stat.t3_anotados || 0}</p>
-                                  </div>
-                                  <div>
-                                    <p className="text-[10px] uppercase tracking-wide opacity-70">F</p>
-                                    <p className="font-extrabold text-sm">{(teamMvp.stat.faltas_cometidas || 0) + (teamMvp.stat.tecnicas || 0) + (teamMvp.stat.antideportivas || 0)}</p>
-                                  </div>
-                                </div>
-                              </div>
-                            ) : (
-                              <div className="bg-primary-container p-4 rounded-xl border border-outline-variant text-on-primary-container flex flex-col justify-center items-center italic text-xs">
-                                Sin MVP disponible
-                              </div>
-                            )}
-
-                            {/* Shooting Percentages */}
-                            <div className="bg-surface-container-lowest p-4 rounded-xl border border-outline-variant flex flex-col gap-3">
-                              <h3 className="text-[10px] font-bold text-outline uppercase tracking-wider">Porcentajes de tiro</h3>
-                              <div className="space-y-2">
-                                <div className="flex justify-between items-center">
-                                  <span className="text-xs font-medium text-on-surface-variant">Tiro de 2</span>
-                                  <div className="flex-1 mx-3 h-2 bg-surface-container rounded-full overflow-hidden">
-                                    <div className="h-full bg-primary rounded-full transition-all duration-500" style={{ width: `${Math.min(100, activeTeamStats.t2Pct)}%` }}></div>
-                                  </div>
-                                  <span className="text-xs font-bold text-primary">{Math.round(activeTeamStats.t2Pct)}%</span>
-                                </div>
-                                <div className="flex justify-between items-center">
-                                  <span className="text-xs font-medium text-on-surface-variant">Triples</span>
-                                  <div className="flex-1 mx-3 h-2 bg-surface-container rounded-full overflow-hidden">
-                                    <div className="h-full bg-primary rounded-full transition-all duration-500" style={{ width: `${Math.min(100, activeTeamStats.t3Pct)}%` }}></div>
-                                  </div>
-                                  <span className="text-xs font-bold text-primary">{Math.round(activeTeamStats.t3Pct)}%</span>
-                                </div>
-                                <div className="flex justify-between items-center">
-                                  <span className="text-xs font-medium text-on-surface-variant">T. Libres</span>
-                                  <div className="flex-1 mx-3 h-2 bg-surface-container rounded-full overflow-hidden">
-                                    <div className="h-full bg-primary rounded-full transition-all duration-500" style={{ width: `${Math.min(100, activeTeamStats.t1Pct)}%` }}></div>
-                                  </div>
-                                  <span className="text-xs font-bold text-primary">{Math.round(activeTeamStats.t1Pct)}%</span>
-                                </div>
-                              </div>
-                            </div>
-                          </div>
                         </div>
                       )}
                     </div>
