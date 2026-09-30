@@ -857,7 +857,7 @@ const TeamStats: React.FC<TeamStatsProps> = ({ equipoId, matches, plantilla, all
                                     <th className="py-2 px-4 font-semibold text-left w-[100px] sm:w-[160px] bg-surface-container-low">Jugador</th>
                                     <th className="py-2 px-2 font-semibold text-center w-14 bg-surface-container-low">MIN</th>
                                     <th className="py-2 px-2 font-semibold text-center w-12 bg-surface-container-low">PTS</th>
-                                    <th className="py-2 px-2 font-semibold text-center w-12 bg-surface-container-low text-primary">VAL</th>
+                                    <th className="hidden py-2 px-2 font-semibold text-center w-12 bg-surface-container-low text-primary">VAL</th>
                                     <th className="py-2 px-2 font-semibold text-center w-12 bg-surface-container-low">+/-</th>
                                     <th className="py-2 px-2 font-semibold text-center w-14 bg-surface-container-low">T1</th>
                                     <th className="py-2 px-2 font-semibold text-center w-12 bg-surface-container-low">T2</th>
@@ -896,7 +896,7 @@ const TeamStats: React.FC<TeamStatsProps> = ({ equipoId, matches, plantilla, all
                                         <td className="py-3 px-2 text-center font-bold text-[14px] text-primary">
                                           {item.puntos || 0}
                                         </td>
-                                        <td className="py-3 px-2 text-center font-bold text-[14px] text-primary">
+                                        <td className="hidden py-3 px-2 text-center font-bold text-[14px] text-primary">
                                           {item.valoracion || 0}
                                         </td>
                                         <td className={`py-3 px-2 text-center font-bold text-[14px] ${
@@ -930,7 +930,7 @@ const TeamStats: React.FC<TeamStatsProps> = ({ equipoId, matches, plantilla, all
                                     <td className="py-3 px-4 text-slate-800 uppercase">TOTALES</td>
                                     <td className="py-3 px-2 text-center text-slate-600 opacity-65">-</td>
                                     <td className="py-3 px-2 text-center font-bold text-primary">{activeTeamStats.totalPts}</td>
-                                    <td className="py-3 px-2 text-center font-bold text-primary">{activeTeamStats.totalVal}</td>
+                                    <td className="hidden py-3 px-2 text-center font-bold text-primary">{activeTeamStats.totalVal}</td>
                                     <td className="py-3 px-2 text-center text-slate-600 opacity-65">-</td>
                                     <td className="py-3 px-2 text-center text-slate-600">{activeTeamStats.t1A}/{activeTeamStats.t1I}</td>
                                     <td className="py-3 px-2 text-center text-slate-600">{activeTeamStats.t2A}</td>

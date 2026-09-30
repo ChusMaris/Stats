@@ -308,9 +308,13 @@ const AppContent: React.FC = () => {
 
   // --- Load categories with active competitions for selected season ---
   useEffect(() => {
+    let isCancelled = false;
+
     const loadActiveCategories = async () => {
       try {
         const activeCategories = await fetchCategoriasWithActiveCompetitions(selectedTemporada || undefined);
+        if (isCancelled) return;
+
         setCategorias(activeCategories);
 
         if (selectedCategoria && !activeCategories.some((c) => String(c.id) === String(selectedCategoria))) {
@@ -322,11 +326,15 @@ const AppContent: React.FC = () => {
         }
       } catch (error) {
         console.error('Error loading active categories', error);
-        setCategorias([]);
+        if (!isCancelled) setCategorias([]);
       }
     };
 
     loadActiveCategories();
+
+    return () => {
+      isCancelled = true;
+    };
   }, [selectedTemporada, selectedCategoria]);
 
   // --- Scroll Listener ---
